@@ -24,7 +24,11 @@ namespace ppbox
     namespace demux
     {
 
-        static const framework::network::NetName dns_live_jump_server("(tcp)(v4)livejump.150hi.com:80");
+#ifdef API_PPLIVE
+        static const NetName dns_live_jump_server("(tcp)(v4)j.api.pplive.com:80");
+#else
+        static const NetName dns_live_jump_server("(tcp)(v4)livejump.150hi.com:80");
+#endif
 
         struct LiveJumpInfo
         {

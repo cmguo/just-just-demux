@@ -24,8 +24,13 @@ namespace ppbox
     namespace demux
     {
 
+#ifdef API_PPLIVE
+        static const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
+        static const NetName dns_vod_drag_server("(tcp)(v4)drag.api.pplive.com:80");
+#else
         static const NetName dns_vod_jump_server("(tcp)(v4)jump.150hi.com:80");
         static const NetName dns_vod_drag_server("(tcp)(v4)drag.150hi.com:80");
+#endif
 
         static inline std::string addr_host(
             NetName const & addr)

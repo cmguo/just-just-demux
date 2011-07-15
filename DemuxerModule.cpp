@@ -19,6 +19,7 @@ using namespace ppbox::demux;
 #include <framework/memory/SharedMemoryIdPointer.h>
 #include <framework/logger/LoggerStreamRecord.h>
 using namespace framework::logger;
+using namespace framework::network;
 
 #include <boost/bind.hpp>
 using namespace boost::system;
@@ -116,7 +117,11 @@ namespace ppbox
                 .get_by_id(SHARED_OBJECT_ID_DEMUX);
             new (stats_) framework::container::List<SharedStatistics>;
 
-            const framework::network::NetName dns_vod_jump_server("(tcp)(v4)jump.150hi.com:80");
+#ifdef API_PPLIVE
+            const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
+#else
+            const NetName dns_vod_jump_server("(tcp)(v4)jump.150hi.com:80");
+#endif
 
             framework::network::ResolverService & service = 
                 boost::asio::use_service<framework::network::ResolverService>(io_svc());
