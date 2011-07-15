@@ -84,7 +84,7 @@ namespace ppbox
                 LOG_S(Logger::kLevelDebug, "[change_status]: buffering block_type=" << block_type_);
             }
             LOG_S(Logger::kLevelDebug, "[change_status]: new_state=" 
-                << type_str[new_state] << ", play_position=" << play_position_);
+                << type_str[(int)new_state & 0xff] << ", play_position=" << play_position_);
 
             StatusInfo info(type, play_position_);
             status_infos_.push_back(info);
