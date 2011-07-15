@@ -52,10 +52,9 @@ PROJECT_LINK_FLAGS		:= $(PROJECT_LINK_FLAGS)
 
 ## 该项目依赖的其他项目
 
-PROJECT_DEPENDS			:=
+PROJECT_DEPENDS			:= /bento4 \
+				$(PROJECT_DEPENDS) \
 
 ## 该项目特定的引用库
 
 PROJECT_DEPEND_LIBRARYS		:= 
-
-include $(RELETIVE_DIR)/../BootStrap.mk
