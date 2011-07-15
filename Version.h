@@ -8,7 +8,7 @@
 #include <framework/system/AutoVersion.h>
 
 #include <ppbox/common/Version.h>
-#include <ppbox/bento4/Version.h>
+#include <bento4/Version.h>
 
 #include <tinyxml/Version.h>
 
