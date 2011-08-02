@@ -39,8 +39,9 @@ namespace ppbox
             HttpBufferList(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size)
-                : BufferList(buffer_size, prepare_size)
+                boost::uint32_t prepare_size, 
+                size_t total_req = 1)
+                : BufferList(buffer_size, prepare_size, total_req)
                 , http_(io_svc)
             {
                 addr_.svc("80");
@@ -50,7 +51,6 @@ namespace ppbox
 
             //friend class ppbox::demux::BufferList<HttpBufferList<HttpSegments> >;
 
-            //
             boost::system::error_code open_segment(
                 size_t segment, 
                 boost::uint64_t beg, 
@@ -100,9 +100,7 @@ namespace ppbox
             bool is_open(
                 boost::system::error_code & ec)
             {
-                bool is_success = http_.is_open(ec);
-
-                return is_success;
+                return http_.is_open(ec);
             }
 
             boost::system::error_code cancel_segment(
@@ -197,7 +195,7 @@ namespace ppbox
                 return http_.stat();
             }
 
-        private:
+        public:
             HttpSegments & segments()
             {
                 return static_cast<HttpSegments &>(*this);

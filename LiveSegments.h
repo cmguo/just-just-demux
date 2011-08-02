@@ -77,30 +77,37 @@ namespace ppbox
                 util::protocol::HttpRequest & request, 
                 error_code & ec)
             {
-                live_demuxer_->seg_beg(segment);
-
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
-                if (segment == 0) {
-                    set_time_out(0, ec);
-                    if (!proxy_addr_.host().empty()) {
-                        addr = proxy_addr_;
-                    } else {
-                        addr.host("127.0.0.1");
-                        addr.port(live_port_);
-                    }
-                    head.host.reset(addr_host(addr));
-                    head.path = "/" + pptv::base64_encode(url_, key_);
+
+                set_max_try(1);
+                set_time_out(0, ec);
+                if (!proxy_addr_.host().empty()) {
+                    addr = proxy_addr_;
                 } else {
-                    ec = item_not_exist;
+                    addr.host("127.0.0.1");
+                    addr.port(live_port_);
                 }
+                head.host.reset(addr_host(addr));
+                head.path = "/" + pptv::base64_encode(url_, key_);
+
                 return ec;
+            }
+
+            void on_seg_beg(
+                size_t segment)
+            {
+                live_demuxer_->seg_beg(segment);
             }
 
             void on_seg_close(
                 size_t segment)
             {
                 live_demuxer_->seg_end(segment);
+
+                segment_end();
+
+                //clear_readed_segment();
             }
 
         public:

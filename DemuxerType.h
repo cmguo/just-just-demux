@@ -17,6 +17,7 @@ namespace ppbox
                 live, 
                 mp4, 
                 asf, 
+                flv, 
             };
         };
 

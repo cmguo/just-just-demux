@@ -12,17 +12,17 @@ namespace ppbox
 
             enum errors
             {
-                already_open, // demux已经打开连接
-                not_open, // demux连接未打开
-                no_more_sample,           // 
-                empty_name,
+                already_open,   // demux已经打开连接
+                not_open,       // demux连接未打开
+                no_more_sample, 
+                empty_name, 
                 bad_media_type, 
-                bad_file_type, // demux连接未打开
+                bad_file_type, 
                 bad_file_format, 
                 bad_smaple_order, 
                 bad_offset_size, 
                 file_stream_error, 
-                not_support,              // 
+                not_support,
             };
 
             namespace detail {

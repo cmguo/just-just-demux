@@ -79,8 +79,10 @@ namespace ppbox
             {
                 video_avc_packet = 1, 
                 video_avc_byte_stream = 2, 
-                audio_microsoft_wave = 3,
-                audio_iso_mp4 = 4,
+                video_flv_tag = 3,
+                audio_microsoft_wave = 4, 
+                audio_iso_mp4 = 5, 
+                audio_flv_tag = 6, 
             };
 
             boost::uint32_t format_type;             // 格式说明的类型

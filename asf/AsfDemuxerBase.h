@@ -23,6 +23,11 @@ namespace ppbox
                 , open_step_(size_t(-1))
                 , object_parse_(file_prop_)
                 , buffer_parse_(file_prop_)
+                , skip_type_(0)
+                , fisrt_sample_dts_(boost::uint64_t(-1))
+                , last_valid_sample_dts_(0)
+                , last_valid_sample_itrack_(0)
+                , first_next_sample_dts_(boost::uint64_t(-1))
             {
             }
 
@@ -65,6 +70,25 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
+            boost::system::error_code get_real_sample(
+                Sample & sample, 
+                boost::system::error_code & ec);
+
+            boost::system::error_code get_key_sample(
+                Sample & sample,
+                boost::system::error_code & ec);
+
+            boost::system::error_code get_sample_without_data(
+                Sample & sample,
+                boost::system::error_code & ec);
+
+            boost::system::error_code get_end_time_sample(
+                Sample & sample,
+                boost::system::error_code & ec);
+
+            bool is_video_sample(Sample & sample);
+
+        private:
             struct ParseStatus
             {
                 ParseStatus(
@@ -100,7 +124,6 @@ namespace ppbox
             std::vector<AsfStream> streams_;
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order
-    
             ParseStatus object_parse_; 
             std::vector<ASF_PayloadHeader> object_payloads_;
             boost::uint32_t next_object_offset_; // not offset in file, just offset of this object
@@ -108,7 +131,15 @@ namespace ppbox
 
             // for calc buffer time
             boost::uint32_t fixed_packet_length_;
-            ParseStatus buffer_parse_; 
+            ParseStatus buffer_parse_;
+
+            // for calc sample timestamp
+            boost::uint32_t skip_type_;
+            boost::uint32_t fisrt_sample_dts_;
+            boost::uint64_t last_valid_sample_dts_;
+            boost::uint32_t last_valid_sample_itrack_;
+            boost::uint64_t first_next_sample_dts_;
+
         };
 
     }
