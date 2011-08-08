@@ -28,6 +28,8 @@ namespace ppbox
 
         Demuxer::~Demuxer()
         {
+            delete ticker_;
+            ticker_ = NULL;
         }
 
         struct SyncResponse
