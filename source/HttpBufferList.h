@@ -67,7 +67,8 @@ namespace ppbox
                     std::ostringstream oss;
                     head.get_content(oss);
                     LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
-                    http_.reopen(addr_, request_, ec);
+                    http_.bind_host(addr_, ec);
+                    http_.open(request_, ec);
                 }
 
                 return ec;
@@ -90,7 +91,7 @@ namespace ppbox
                     std::ostringstream oss;
                     head.get_content(oss);
                     LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
-
+                    http_.bind_host(addr_, ec);
                     http_.async_open(request_, resp);
                 } else {
                     resp(ec);
@@ -116,13 +117,6 @@ namespace ppbox
             {
                 segments().on_seg_close(segment);
                 return http_.close(ec);
-            }
-
-            boost::system::error_code poll_read(
-                boost::system::error_code & ec)
-            {
-                http_.poll(ec);
-                return ec;
             }
 
             template <typename MutableBufferSequence>
@@ -151,10 +145,10 @@ namespace ppbox
             {
                 boost::uint64_t n = 0;
                 if (http_.is_open(ec)) {
-                    if (http_.get_response_head().content_length.is_initialized()) {
-                        n = http_.get_response_head().content_length.get();
-                    } else if (http_.get_response_head().content_range.is_initialized()) {
-                        n = http_.get_response_head().content_range.get().total();
+                    if (http_.response_head().content_length.is_initialized()) {
+                        n = http_.response_head().content_length.get();
+                    } else if (http_.response_head().content_range.is_initialized()) {
+                        n = http_.response_head().content_range.get().total();
                     } else {
                         ec = framework::system::logic_error::no_data;
                     }
