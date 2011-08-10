@@ -128,7 +128,8 @@ namespace ppbox
         struct VodJumpInfo
         {
             VodJumpInfo()
-                : BWType(0)
+                : server_host("", 80)
+                , BWType(0)
                 , block_size(0)
             {
             }
