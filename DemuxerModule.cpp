@@ -345,7 +345,7 @@ namespace ppbox
                     break;
                 case DemuxerType::live2:
                     cert_type = certify::CertifyType::live;
-                    demuxer = new Live2Demuxer(io_svc(), live_.port(), buffer_size_, prepare_size_);
+                    demuxer = new Live2Demuxer(io_svc(), 0, buffer_size_, prepare_size_);
                     break;
                 case DemuxerType::mp4:
                     cert_type = certify::CertifyType::local;
