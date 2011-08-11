@@ -81,6 +81,9 @@ namespace ppbox
                         stream_buf_->drop_all();
                         FlvDemuxerBase::open(ec) 
                            || FlvDemuxerBase::get_sample(sample, ec);
+                        if (ec == ppbox::demux::error::file_stream_error) {
+                            ec = stream_buf_->error();
+                        }
                     } else {
                         ec = stream_buf_->error();
                     }
@@ -92,11 +95,15 @@ namespace ppbox
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf)
             {
-                if (!is_open(ec)) {
-                    return 0;
-                }
                 stream_buf_->more(0);
                 ec_buf = stream_buf_->error();
+
+                if (!is_open(ec)) {
+                    if (ec == ppbox::demux::error::file_stream_error) {
+                        ec = stream_buf_->error();
+                    }
+                    return 0;
+                }
 
                 boost::uint32_t total_download_size = 0;
                 total_download_size = boost::uint32_t(buffer_.write_offset() - buffer_.read_offset());

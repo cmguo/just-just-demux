@@ -273,7 +273,7 @@ namespace ppbox
                     sample.duration = 0;
                     sample.idesc = 0;
                     sample.dts = object_parse_.payload.PresTime;
-                    sample.cts_delta = 0;
+                    sample.cts_delta = (boost::uint32_t)-1;
                     sample.is_sync = object_parse_.payload.KeyFrameBit;
                     sample.is_discontinuity = is_discontinuity_;
                     object_payloads_.clear();

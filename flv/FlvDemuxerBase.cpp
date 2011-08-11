@@ -301,7 +301,7 @@ namespace ppbox
             streams_info_[0].time_scale = 1000;
             if (metadata_.audiocodecid == SoundCodec::FLV_CODECID_AAC) {
                 streams_info_[0].sub_type = AUDIO_TYPE_MP4A;
-                streams_info_[0].format_type = MediaInfo::audio_flv_tag;
+                streams_info_[0].format_type = MediaInfo::audio_iso_mp4;
                 if (metadata_.stereo) {
                     streams_info_[0].audio_format.channel_count = 2;
                 } else {
@@ -317,7 +317,7 @@ namespace ppbox
             streams_info_[0].time_scale = 1000;
             if (metadata_.videocodecid == VideoCodec::FLV_CODECID_H264) {
                 streams_info_[1].sub_type = VIDEO_TYPE_AVC1;
-                streams_info_[1].format_type = MediaInfo::video_flv_tag;
+                streams_info_[1].format_type = MediaInfo::video_avc_packet;
                 streams_info_[1].video_format.frame_rate = metadata_.framerate;
                 streams_info_[1].video_format.height = metadata_.height;
                 streams_info_[1].video_format.width = metadata_.width;
@@ -520,7 +520,7 @@ namespace ppbox
             sample_.duration = 0;
             sample_.idesc = 0;
             sample_.dts = flv_tag.Timestamp;
-            sample_.cts_delta = 0;
+            sample_.cts_delta = (boost::uint32_t)-1;
             sample_.is_discontinuity = false;
             if (flv_tag.TagType == TagType::FLV_TAG_TYPE_AUDIO) {
                 sample_.itrack = 0;
@@ -597,7 +597,11 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             boost::uint32_t buffer_time = 0;
-            buffer_time += (total_size / ((metadata_.datarate * 1000 * 2) / 8));
+            if (metadata_.datarate) {
+                buffer_time += (total_size / ((metadata_.datarate * 1000) / 8));
+            } else {
+                buffer_time += (total_size / ((800 * 1000) / 8));
+            }
             std::cout << "size: " << total_size
                 <<", buffer_time: " << buffer_time << std::endl;
             if (is_open(ec)) {

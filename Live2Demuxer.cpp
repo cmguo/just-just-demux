@@ -227,10 +227,8 @@ namespace ppbox
             Live2JumpInfo & jump_info)
         {
             LOG_S(Logger::kLevelDebug, "jump succeed (" << open_logs_[0].total_elapse << " milliseconds)");
-            demux_data().set_server_host(format(jump_info.server_hosts));
-            for (size_t i = 0; i < jump_info.server_hosts.size(); ++i) {
-                LOG_S(Logger::kLevelDebug, "server host: " << jump_info.server_hosts[i]);
-            }
+            demux_data().set_server_host(jump_info.server_host.to_string());
+            LOG_S(Logger::kLevelDebug, "server host: " << format(jump_info.server_hosts));
             LOG_S(Logger::kLevelDebug, "delay play time: " << jump_info.delay_play_time);
             time_t server_time = jump_info.server_time.to_time_t();
             LOG_S(Logger::kLevelDebug, "server time: " << ::ctime(&server_time));

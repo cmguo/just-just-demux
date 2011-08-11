@@ -65,6 +65,7 @@ namespace ppbox
                 boost::uint32_t prepare_size)
                 : HttpBufferList<LiveSegments>(io_svc, buffer_size, prepare_size)
                 , live_port_(live_port)
+                , live_demuxer_(NULL)
             {
             }
 
@@ -175,14 +176,12 @@ namespace ppbox
             boost::uint16_t live_port_;
             framework::network::NetName proxy_addr_;
 
-        private:
             std::string key_;
             std::string url_;
             std::string name_;
             std::string channel_;
             LiveJumpInfo jump_info_;
 
-        private:
             LiveDemuxer * live_demuxer_;
         };
 

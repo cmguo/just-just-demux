@@ -29,18 +29,20 @@ namespace ppbox
     namespace demux
     {
 #ifdef API_PPLIVE
-        static const NetName dns_live2_jump_server("(tcp)(v4)dt.api.pplive.com:80");
+        static const NetName dns_live2_jump_server("(tcp)(v4)live.dt.synacast.com:80");
 #else
-        static const NetName dns_live2_jump_server("(tcp)(v4)jump.150hi.com:80");
+        static const NetName dns_live2_jump_server("(tcp)(v4)live.dt.synacast.com:80");
 #endif
 
         struct Live2JumpInfo
         {
-            std::vector<std::string> server_hosts;
+            NetName server_host;
+            std::vector<NetName> server_hosts;
             util::serialization::UtcTime server_time;
             boost::uint16_t delay_play_time;
             std::string channelGUID;
             std::string server_limit;
+            std::vector<std::string> server_limits;
 
             template <
                 typename Archive
@@ -48,11 +50,13 @@ namespace ppbox
             void serialize(
                 Archive & ar)
             {
-                ar & SERIALIZATION_NVP(server_hosts)
+                ar & SERIALIZATION_NVP(server_host)
                     & SERIALIZATION_NVP(server_time)
                     & SERIALIZATION_NVP(delay_play_time)
                     & SERIALIZATION_NVP(server_limit)
-                    & SERIALIZATION_NVP(channelGUID);
+                    & SERIALIZATION_NVP(channelGUID)
+                    & SERIALIZATION_NVP(server_hosts)
+                    & SERIALIZATION_NVP(server_limits);
             }
         };
 
@@ -105,8 +109,7 @@ namespace ppbox
                     if (!proxy_addr_.host().empty()) {
                         addr = proxy_addr_;
                     } else if (!live_port_){
-                        addr.host(host_);
-                        addr.port(framework::string::parse<boost::uint16_t>(svc_));
+                        addr = jump_info_.server_host;
                     } else {
                         addr.host("127.0.0.1");
                         addr.port(live_port_);
@@ -115,9 +118,7 @@ namespace ppbox
                     head.connection = util::protocol::http_filed::Connection::keep_alive;
                 }
 
-                //TODO:
-                //head.path = "/" + pptv::base64_encode(url_, key_);
-                head.path = "/live2/" + stream_id_ + "/" + format(file_time_) + ".block";
+                head.path = "/live/" + stream_id_ + "/" + format(file_time_) + ".block";
 
                 return ec;
             }
@@ -160,21 +161,20 @@ namespace ppbox
                 std::string const & url)
             {
                 key_ = key;
+
+                //std::string tmp = pptv::base64_encode("channel={831db0b0-08a2-4e4d-9dc1-739cbab9afe3}&name=live2 test&sid=e9301e073cf94732a380b765c8b9573d@0a5adf8f23494bbf970e3ce02b1b73a2@9cd54184428347f7bd663efa39fc4891&datarate=51200@68900@71200&interval=5", key);
+
                 url_ = pptv::base64_decode(url, key);
                 if (!url_.empty()) {
                     map_find(url_, "name", name_, "&");
                     map_find(url_, "channel", channel_, "&");
+                    map_find(url_, "interval", interval_, "&");
+                    std::string sid, datarate;
+                    map_find(url_, "sid", sid, "&");
+                    slice<std::string>(sid, std::inserter(rid_, rid_.end()), "@");
+                    map_find(url_, "datarate", datarate, "&");
+                    slice<boost::uint32_t>(datarate, std::inserter(rate_, rate_.end()), "@");
                 }
-
-                name_ = "CCTV";
-                channel_ = "CCTV";
-
-                rid_.push_back("092ada2421d58467abc6b18b741fa88e");
-                rid_.push_back("192ada2421d58467abc6b18b741fa88e");
-                rid_.push_back("292ada2421d58467abc6b18b741fa88e");
-                rate_.push_back(300 * 1024);
-                rate_.push_back(400 * 1024);
-                rate_.push_back(450 * 1024);
 
                 stream_id_ = rid_[0];
             }
@@ -184,9 +184,7 @@ namespace ppbox
                 framework::string::Url url("http://localhost/");
                 url.host(dns_live2_jump_server.host());
                 url.svc(dns_live2_jump_server.svc());
-                //TODO:
-                //url.path("/live2/" + stream_id_);
-                url.path("/%cc%a9%cc%b9%c4%e1%bf%cb%ba%c5(%c0%b6%b9%e2).mp4dt");
+                url.path("/live2/" + stream_id_);
 
                 return url;
             }
@@ -196,33 +194,21 @@ namespace ppbox
             {
                 jump_info_ = jump_info;
 
-                StringToken st(jump_info.server_hosts[0], ":", false);
-                std::string h;
-                error_code ec;
-                if (!st.next_token(h, ec)) {
-                    if (!h.empty()) {
-                        host_ = h;
-                    }
-                    if (!st.remain().empty()) {
-                        svc_ = st.remain();
-                    }
-                }
-
                 local_time_ = Time::now();
 
                 server_time_ = jump_info_.server_time.to_time_t();
                 file_time_ = server_time_ - jump_info_.delay_play_time;
 
-                //TODO:需要设计上配合
                 file_time_ = file_time_ / interval_ * interval_;
             }
 
             void update()
             {
                 int n = 0;
+                boost::int64_t total_seconds = (Time::now() - local_time_).total_seconds();
                 if (file_time_ > server_time_
-                    && (Time::now() - local_time_).total_seconds() > (file_time_ - server_time_)) {
-                        n = ((Time::now() - local_time_).total_seconds() - (file_time_ - server_time_)) / interval_ * interval_;
+                    && total_seconds > (file_time_ - server_time_ + jump_info_.delay_play_time)) {
+                        n = (total_seconds - (file_time_ - server_time_ + jump_info_.delay_play_time)) / interval_ * interval_;
                 }
                 if (n == 0)
                     n = 1;
@@ -285,11 +271,8 @@ namespace ppbox
             std::vector<std::string> rid_;
             std::vector<boost::uint32_t> rate_;
 
-            std::string host_;
-            std::string svc_;
             boost::uint16_t interval_;
 
-        private:
             Live2Demuxer * live_demuxer_;
         };
 
