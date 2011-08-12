@@ -204,16 +204,16 @@ namespace ppbox
 
             void update()
             {
-                int n = 0;
+                // 当前分段已经下载的时间
+                file_time_ += interval_;
+                // 当前已经播放时长
                 boost::int64_t total_seconds = (Time::now() - local_time_).total_seconds();
-                if (file_time_ > server_time_
-                    && total_seconds > (file_time_ - server_time_ + jump_info_.delay_play_time)) {
-                        n = (total_seconds - (file_time_ - server_time_ + jump_info_.delay_play_time)) / interval_ * interval_;
+                if (total_seconds + server_time_ > file_time_ + jump_info_.delay_play_time * 2) {
+                    // 跳段时，保证比正常播放时间延迟 delay_play_time
+                    while (total_seconds + server_time_ > file_time_ + jump_info_.delay_play_time) {
+                        file_time_ += interval_;
+                    }
                 }
-                if (n == 0)
-                    n = 1;
-
-                file_time_ += (n * interval_);
 
                 boost::system::error_code ec;
                 clear_readed_segment(ec);
