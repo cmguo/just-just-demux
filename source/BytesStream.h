@@ -64,10 +64,10 @@ namespace ppbox
                 update();
 
                 iter_ = buffers_.begin();
+                assert(gptr() == egptr() 
+                    || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
                 if (iter_ != buffers_.end()) {
                     buf_ = *iter_;
-                    assert(gptr() == egptr() 
-                        || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
                 } else {
                     setg(NULL, NULL, NULL);
                 }
@@ -83,8 +83,6 @@ namespace ppbox
 
                 iter_ = buffers_.begin();
                 if (iter_ != buffers_.end()) {
-                    assert(gptr() == egptr() 
-                        || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
                     buf_ = *iter_;
                 } else {
                     setg(NULL, NULL, NULL);
