@@ -7,6 +7,7 @@
 
 #include <framework/string/Slice.h>
 #include <framework/network/NetName.h>
+#include <framework/timer/TimeConvert.h>
 
 #include <iterator>
 
@@ -104,12 +105,7 @@ namespace util
                 m_tm.tm_min    = Res1[1];
                 m_tm.tm_sec    = Res1[2];
                 m_tm.tm_isdst  = -1;
-#ifndef __FreeBSD__
-                rr_time = mktime(&m_tm) - (time_t)timezone;
-#else
-                rr_time = timegm(&m_tm);
-#endif
-                return rr_time;
+                return framework::timer::time_gm(&m_tm);
             }
 
         private:
