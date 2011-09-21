@@ -60,7 +60,7 @@ namespace ppbox
                 if (!segments().get_request(segment, beg, end, addr_, request_, ec)) {
                     util::protocol::HttpRequestHead & head = request_.head();
                     if (beg != 0 || end != (boost::uint64_t)-1) {
-                        head.range.reset(util::protocol::http_filed::Range((boost::int64_t)beg, (boost::int64_t)end));
+                        head.range.reset(util::protocol::http_field::Range((boost::int64_t)beg, (boost::int64_t)end));
                     } else {
                         head.range.reset();
                     }
@@ -83,7 +83,7 @@ namespace ppbox
                 if (!segments().get_request(segment, beg, end, addr_, request_, ec)) {
                     util::protocol::HttpRequestHead & head = request_.head();
                     if (beg != 0 || end != (boost::uint64_t)-1) {
-                        head.range.reset(util::protocol::http_filed::Range((boost::int64_t)beg, (boost::int64_t)end));
+                        head.range.reset(util::protocol::http_field::Range((boost::int64_t)beg, (boost::int64_t)end));
                     } else {
                         head.range.reset();
                     }
