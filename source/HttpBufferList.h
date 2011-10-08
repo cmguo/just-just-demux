@@ -39,9 +39,8 @@ namespace ppbox
             HttpBufferList(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size, 
-                size_t total_req = 1)
-                : BufferList(buffer_size, prepare_size, total_req)
+                boost::uint32_t prepare_size)
+                : BufferList(buffer_size, prepare_size)
                 , http_(io_svc)
             {
                 addr_.svc("80");
@@ -51,6 +50,7 @@ namespace ppbox
 
             //friend class ppbox::demux::BufferList<HttpBufferList<HttpSegments> >;
 
+            //
             boost::system::error_code open_segment(
                 size_t segment, 
                 boost::uint64_t beg, 
@@ -60,15 +60,14 @@ namespace ppbox
                 if (!segments().get_request(segment, beg, end, addr_, request_, ec)) {
                     util::protocol::HttpRequestHead & head = request_.head();
                     if (beg != 0 || end != (boost::uint64_t)-1) {
-                        head.range.reset(util::protocol::http_filed::Range((boost::int64_t)beg, (boost::int64_t)end));
+                        head.range.reset(util::protocol::http_field::Range((boost::int64_t)beg, (boost::int64_t)end));
                     } else {
                         head.range.reset();
                     }
                     std::ostringstream oss;
                     head.get_content(oss);
                     LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
-                    http_.bind_host(addr_, ec);
-                    http_.open(request_, ec);
+                    http_.reopen(addr_, request_, ec);
                 }
 
                 return ec;
@@ -84,14 +83,14 @@ namespace ppbox
                 if (!segments().get_request(segment, beg, end, addr_, request_, ec)) {
                     util::protocol::HttpRequestHead & head = request_.head();
                     if (beg != 0 || end != (boost::uint64_t)-1) {
-                        head.range.reset(util::protocol::http_filed::Range((boost::int64_t)beg, (boost::int64_t)end));
+                        head.range.reset(util::protocol::http_field::Range((boost::int64_t)beg, (boost::int64_t)end));
                     } else {
                         head.range.reset();
                     }
                     std::ostringstream oss;
                     head.get_content(oss);
                     LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
-                    http_.bind_host(addr_, ec);
+
                     http_.async_open(request_, resp);
                 } else {
                     resp(ec);
@@ -101,7 +100,9 @@ namespace ppbox
             bool is_open(
                 boost::system::error_code & ec)
             {
-                return http_.is_open(ec);
+                bool is_success = http_.is_open(ec);
+
+                return is_success;
             }
 
             boost::system::error_code cancel_segment(
@@ -117,6 +118,13 @@ namespace ppbox
             {
                 segments().on_seg_close(segment);
                 return http_.close(ec);
+            }
+
+            boost::system::error_code poll_read(
+                boost::system::error_code & ec)
+            {
+                http_.poll(ec);
+                return ec;
             }
 
             template <typename MutableBufferSequence>
@@ -145,10 +153,10 @@ namespace ppbox
             {
                 boost::uint64_t n = 0;
                 if (http_.is_open(ec)) {
-                    if (http_.response_head().content_length.is_initialized()) {
-                        n = http_.response_head().content_length.get();
-                    } else if (http_.response_head().content_range.is_initialized()) {
-                        n = http_.response_head().content_range.get().total();
+                    if (http_.get_response_head().content_length.is_initialized()) {
+                        n = http_.get_response_head().content_length.get();
+                    } else if (http_.get_response_head().content_range.is_initialized()) {
+                        n = http_.get_response_head().content_range.get().total();
                     } else {
                         ec = framework::system::logic_error::no_data;
                     }
@@ -189,7 +197,7 @@ namespace ppbox
                 return http_.stat();
             }
 
-        public:
+        private:
             HttpSegments & segments()
             {
                 return static_cast<HttpSegments &>(*this);

@@ -27,7 +27,6 @@ namespace ppbox
             Mp4BufferDemuxer(
                 Buffer & buffer)
                 : buffer_(buffer)
-                , segment_(size_t(-1))
                 , head_size_(0)
                 , seek_time_(0)
             {
@@ -113,7 +112,7 @@ namespace ppbox
                     }
                 } else if (read_front == 0) {
                     typename Buffer::read_buffer_t read_buffer = buffer_.segment_read_buffer(segment_);
-                    if (min_head_size(read_buffer) <= read_back) {
+                    if ((min_head_size(read_buffer)) <= read_back) {
                         data.resize(head_size());
                         util::buffers::buffer_copy(boost::asio::buffer(data), read_buffer, head_size());
                         ec = boost::system::error_code();
@@ -227,10 +226,10 @@ namespace ppbox
                     }
                 } else {
                     seek_time_ = time;
-                    if (head_size_ && seek_time_) { // 知道头部大小，先下载头部
+                    if (head_size_ && seek_time_) {
                         buffer_.seek(segment_, 0, head_size_, ec)
                             || is_open(ec);
-                    } else {   // 不知道头部大小，从头开始下
+                    } else {
                         buffer_.seek(segment_, 0, ec)
                             || is_open(ec);
                     }
@@ -255,6 +254,7 @@ namespace ppbox
 
                 if (!ec && !set_head(buffer_.read_buffer(), buffer_.segment_size(segment_), ec)) {
                     buffer_.drop_to(head_size(), ec);
+                    //buffer_.set_segment_begin(segment_, head_size(), ec);
                     if (seek_time_) {
                         boost::uint64_t offset = seek_to(seek_time_, ec);
                         if (!ec) {
@@ -277,8 +277,8 @@ namespace ppbox
         private:
             Buffer & buffer_;
             size_t segment_;
-            boost::uint32_t head_size_; // drag 信息中的头部大小
-            boost::uint32_t seek_time_; // 分段相对需要seek的时间
+            boost::uint32_t head_size_;
+            boost::uint32_t seek_time_;
             open_response_type resp_;
         };
 

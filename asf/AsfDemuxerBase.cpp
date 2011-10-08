@@ -6,7 +6,6 @@
 #include "ppbox/demux/asf/AsfDemuxerBase.h"
 using namespace ppbox::demux::error;
 
-#include <framework/timer/TickCounter.h>
 #include <framework/logger/LoggerStreamRecord.h>
 using namespace framework::logger;
 
@@ -71,7 +70,7 @@ namespace ppbox
                             streams_.resize(obj_data.Flag.StreamNumber + 1);
                         }
                         streams_[obj_data.Flag.StreamNumber] = obj_data;
-                        streams_[obj_data.Flag.StreamNumber].index_to_map_ = stream_map_.size();
+                        streams_[obj_data.Flag.StreamNumber].index_to_map = stream_map_.size();
                         //streams_[obj_data.Flag.StreamNumber].get_start_sample(start_samples_);
                         stream_map_.push_back(obj_data.Flag.StreamNumber);
                     }
@@ -115,7 +114,7 @@ namespace ppbox
                 buffer_parse_.offset = object_parse_.offset;
                 // 处理get_buffer_time有时没有初始化
                 buffer_parse_.payload.StreamNum = stream_map_[0];
-                buffer_parse_.payload.PresTime = streams_[buffer_parse_.payload.StreamNum].time_offset_ms_;
+                buffer_parse_.payload.PresTime = streams_[buffer_parse_.payload.StreamNum].time_offset_ms;
 
                 ParseStatus status = object_parse_;
                 while (!next_payload(status, ec)) {
@@ -125,18 +124,18 @@ namespace ppbox
                         return false;
                     }
                     AsfStream & stream = streams_[status.payload.StreamNum];
-                    if (!stream.ready_) {
-                        stream.ready_ = true;
+                    if (!stream.ready) {
+                        stream.ready = true;
                         // 一些错误的文件，没有正确的time_offset，我们自己计算
-                        stream.time_offset_ms_ = status.payload.PresTime;
-                        stream.time_offset_us_ = (boost::uint64_t)status.payload.PresTime * 1000;
+                        stream.time_offset_ms = status.payload.PresTime;
+                        stream.time_offset_us = (boost::uint64_t)status.payload.PresTime * 1000;
                         if (status.payload.StreamNum == stream_map_[0]) {
                             buffer_parse_.payload.MediaObjNum = status.payload.StreamNum;
                             buffer_parse_.payload.PresTime = status.payload.PresTime;
                         }
                         bool ready = true;
                         for (size_t i = 0; i < stream_map_.size(); ++i) {
-                            if (!streams_[stream_map_[i]].ready_) {
+                            if (!streams_[stream_map_[i]].ready) {
                                 ready = false;
                                 break;
                             }
@@ -146,7 +145,7 @@ namespace ppbox
                                 AsfStream & stream = streams_[stream_map_[i]];
                                 LOG_S(Logger::kLevelDebug, "Stream: id = " 
                                     << stream.Flag.StreamNumber << ", time = " 
-                                    << stream.time_offset_ms_ << "ms");
+                                    << stream.time_offset_ms << "ms");
                             }
                             break;
                         }
@@ -162,16 +161,6 @@ namespace ppbox
                 archive_.seekg(object_parse_.offset, std::ios_base::beg);
                 assert(archive_);
                 open_step_ = 2;
-                if (fisrt_sample_dts_ == boost::uint64_t(-1)) {
-                    fisrt_sample_dts_ = status.payload.PresTime;
-                } else {
-                    if (status.payload.PresTime < last_valid_sample_dts_
-                         && ((last_valid_sample_dts_-status.payload.PresTime)/1000) < 120) {
-                        skip_type_ = 1;
-                    } else {
-                        skip_type_ = 2;
-                    }
-                }
             }
 
             if (!ec) {
@@ -190,20 +179,6 @@ namespace ppbox
         }
 
         error_code AsfDemuxerBase::get_sample(
-            Sample & sample, 
-            error_code & ec)
-        {
-            assert(skip_type_ < 3);
-            if (0 == skip_type_ && !get_real_sample(sample, ec)) {
-                last_valid_sample_dts_ = sample.dts;
-                last_valid_sample_itrack_ = sample.itrack;
-            } else if (1 == skip_type_ && !get_end_time_sample(sample, ec)) { // EndTime
-            } else if (2 == skip_type_ && !get_key_sample(sample, ec)) { // KeyFrame
-            }
-            return ec;
-        }
-
-        error_code AsfDemuxerBase::get_real_sample(
             Sample & sample, 
             error_code & ec)
         {
@@ -255,7 +230,7 @@ namespace ppbox
                 next_object_offset_ += object_parse_.payload.PayloadLength;
                 if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
                     AsfStream & stream = streams_[object_parse_.payload.StreamNum];
-                    stream.next_id_ = object_parse_.payload.MediaObjNum;
+                    stream.next_id = object_parse_.payload.MediaObjNum;
                     sample.data.resize(object_parse_.payload.MediaObjectSize);
                     boost::uint8_t * data_buf = &sample.data[0];
                     for (size_t i = 0; i < object_payloads_.size(); ++i) {
@@ -263,64 +238,9 @@ namespace ppbox
                         archive_ >> framework::container::make_array(data_buf, object_payloads_[i].PayloadLength);
                         data_buf += object_payloads_[i].PayloadLength;
                     }
-                    sample.itrack = stream.index_to_map_;
-                    //sample.time = object_parse_.payload.PresTime - stream.time_offset_ms;
-                    //sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us;
-                    sample.time = object_parse_.payload.PresTime - fisrt_sample_dts_;
-                    sample.ustime = sample.time*1000;
-                    sample.offset = 0;
-                    sample.size = object_parse_.payload.MediaObjectSize;
-                    sample.duration = 0;
-                    sample.idesc = 0;
-                    sample.dts = object_parse_.payload.PresTime;
-                    sample.cts_delta = (boost::uint32_t)-1;
-                    sample.is_sync = object_parse_.payload.KeyFrameBit;
-                    sample.is_discontinuity = is_discontinuity_;
-                    object_payloads_.clear();
-                    is_discontinuity_ = false;
-                    next_object_offset_ = 0;
-                    break;
-                }
-            }
-            return ec = error_code();
-        }
-
-        error_code AsfDemuxerBase::get_sample_without_data(
-            Sample & sample, 
-            error_code & ec)
-        {
-            if (!is_open(ec)) {
-                return ec;
-            }
-            archive_.seekg(object_parse_.offset, std::ios_base::beg);
-            assert(archive_);
-            while (true) {
-                next_payload(object_parse_, ec);
-                if (ec) {
-                    return ec;
-                }
-                // Object not continue
-                if (false  == object_payloads_.empty() 
-                    && (object_payloads_[0].StreamNum != object_parse_.payload.StreamNum 
-                    || object_payloads_[0].MediaObjNum != object_parse_.payload.MediaObjNum)) {
-                        object_payloads_.clear();
-                        next_object_offset_ = 0;
-                        is_discontinuity_ = true;
-                }
-                if (next_object_offset_ != object_parse_.payload.OffsetIntoMediaObj) {
-                    // Payload not continue
-                    object_payloads_.clear();
-                    next_object_offset_ = 0;
-                    is_discontinuity_ = true;
-                }
-                object_payloads_.push_back(object_parse_.payload);
-                next_object_offset_ += object_parse_.payload.PayloadLength;
-                if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
-                    AsfStream & stream = streams_[object_parse_.payload.StreamNum];
-                    stream.next_id_ = object_parse_.payload.MediaObjNum;
-                    sample.itrack = stream.index_to_map_;
-                    sample.time = object_parse_.payload.PresTime - stream.time_offset_ms_;
-                    sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us_;
+                    sample.itrack = stream.index_to_map;
+                    sample.time = object_parse_.payload.PresTime - stream.time_offset_ms;
+                    sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us;
                     sample.offset = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
                     sample.duration = 0;
@@ -398,7 +318,7 @@ namespace ppbox
             }
             if (buffer_parse_.payload.StreamNum < streams_.size()) {
                 AsfStream & stream = streams_[buffer_parse_.payload.StreamNum];
-                return buffer_parse_.payload.PresTime - stream.time_offset_ms_;
+                return buffer_parse_.payload.PresTime - stream.time_offset_ms;
             } else {
                 ec = bad_file_format;
                 return 0;
@@ -410,7 +330,7 @@ namespace ppbox
         {
             if (is_open(ec) && object_parse_.payload.StreamNum < streams_.size()) {
                 AsfStream & stream = streams_[object_parse_.payload.StreamNum];
-                return object_parse_.payload.PresTime - stream.time_offset_ms_;
+                return object_parse_.payload.PresTime - stream.time_offset_ms;
             }
             return 0;
         }
@@ -437,65 +357,6 @@ namespace ppbox
                 archive_.clear();
                 return ec = file_stream_error;
             }
-        }
-
-        bool AsfDemuxerBase::is_video_sample(Sample & sample)
-        {
-            bool res = false;
-            boost::system::error_code ec;
-            boost::uint32_t stream_count = get_media_count(ec);
-            MediaInfo media_info;
-            if (!ec) {
-                for (int index = 0; index < stream_count; ++index) {
-                    get_media_info(index, media_info, ec);
-                    if (!ec) {
-                        if (media_info.type == MEDIA_TYPE_VIDE && sample.itrack == index) {
-                            res = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            return res;
-        }
-
-        error_code AsfDemuxerBase::get_key_sample(
-            Sample & sample,
-            error_code & ec)
-        {
-            while (true) {
-                get_real_sample(sample, ec);
-                if (!ec) {
-                    if (sample.is_sync && is_video_sample(sample)) {
-                        fisrt_sample_dts_ = sample.dts;
-                        skip_type_ = 0;
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-            return ec;
-        }
-
-        error_code AsfDemuxerBase::get_end_time_sample(
-            Sample & sample,
-            error_code & ec)
-        {
-            while (true) {
-                get_sample_without_data(sample, ec);
-                if (!ec) {
-                    if (sample.dts >= last_valid_sample_dts_
-                        && sample.itrack == last_valid_sample_itrack_) {
-                            get_real_sample(sample, ec);
-                            skip_type_ = 0;
-                            break;
-                    }
-                }else {
-                    break;
-                }
-            }
-            return ec;
         }
 
         error_code AsfDemuxerBase::next_payload(

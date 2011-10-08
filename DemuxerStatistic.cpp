@@ -53,8 +53,6 @@ namespace ppbox
         {
             boost::uint32_t now_time = elapse();
             boost::uint32_t elapse = now_time - last_time_;
-            LOG_S(Logger::kLevelDebug, "[change_status]: elapse=" << elapse
-                << ", now_time=" << now_time << ", last_time_=" << last_time_ );
             last_time_ = now_time;
             // 两个Buffering状态，原因相同，并且中间间隔一个playing状态，并且持续play时间（sample时间）小于3秒
             // 那么合并Buffering状态，并且如果接下来是playing状态，也合并
@@ -65,13 +63,10 @@ namespace ppbox
                     // 合并Buffering状态，此后剩下一个Buffering状态加一个playing状态
                     status_infos_[status_infos_.size() - 3].elapse += elapse;
                     status_infos_.pop_back();
-                    LOG_S(Logger::kLevelDebug, "[change_status]: merge buffering");
                     // 如果接下来是playing状态，也合并
                     if (new_state == playing) {
                         last_time_ -= status_infos_.back().elapse;
                         status_infos_.pop_back();
-
-                        LOG_S(Logger::kLevelDebug, "[change_status]: after merge buffering is playing, last_time_=" << last_time_);
                     }
             } else {
                 // 合并时间
@@ -80,12 +75,7 @@ namespace ppbox
             boost::uint16_t type = new_state;
             if (new_state == buffering) {
                 type |= block_type_;
-
-                LOG_S(Logger::kLevelDebug, "[change_status]: buffering block_type=" << block_type_);
             }
-            LOG_S(Logger::kLevelDebug, "[change_status]: new_state=" 
-                << type_str[(int)new_state & 0xff] << ", play_position=" << play_position_);
-
             StatusInfo info(type, play_position_);
             status_infos_.push_back(info);
             state_ = new_state;

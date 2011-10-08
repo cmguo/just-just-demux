@@ -166,6 +166,7 @@ namespace ppbox
 
         struct StreamProperFlag
         {
+
             boost::uint16_t StreamNumber : 7;
             boost::uint16_t Reserved : 8;
             boost::uint16_t EncryptedContentFlag : 1;
@@ -264,10 +265,10 @@ namespace ppbox
             boost::uint32_t ErrorCorrectionDataLength;
             struct StreamProperFlag Flag;
             boost::uint32_t Reserved;
+            ASF_Audio_Media_Type Audio_Media_Type;
+            ASF_Video_Media_Type Video_Media_Type;
             std::vector<boost::uint8_t> TypeSpecificData;
             std::vector<boost::uint8_t> ErrorCorrectionData;
-            ASF_Video_Media_Type Video_Media_Type;
-            ASF_Audio_Media_Type Audio_Media_Type;
 
             template <typename Archive>
             void serialize(Archive & ar)
@@ -404,15 +405,14 @@ namespace ppbox
 
         struct ASF_Packet
         {
-            boost::uint32_t MaximumDataPacketSize;
             ErrorCorrrectionData ErrorCorrorectionInfo;
-            PayLoadParsingInformation PayLoadParseInfo;
+            PayLoadParsingInformation PayLoadParseInfo;  
             boost::uint8_t PayloadNum : 6;
             boost::uint8_t PayloadLengthType : 2;
-            boost::uint32_t PayloadEnd;
+            boost::uint32_t PayloadEnd; // 
 
             ASF_Packet(
-                boost::uint32_t MaximumDataPacketSize)
+                boost::uint32_t const & MaximumDataPacketSize)
                 : MaximumDataPacketSize(MaximumDataPacketSize)
             {
             }
@@ -423,7 +423,6 @@ namespace ppbox
                 boost::uint32_t start_offset = ar.tellg();
                 ar & ErrorCorrorectionInfo
                     & PayLoadParseInfo;
-
                 if (PayLoadParseInfo.MultiplePayloadsPresent) {
                     boost::uint8_t temp = 0;
                     ar & temp;
@@ -436,9 +435,6 @@ namespace ppbox
                     }
                 } else {
                     assert(!ar || PayLoadParseInfo.PacketLenth == MaximumDataPacketSize);
-                    if (ar && PayLoadParseInfo.PacketLenth != MaximumDataPacketSize) {
-                        ar.fail();
-                    }
                     PayloadNum = 1;
                     PayloadLengthType = 0;
                     boost::uint32_t end_offset = ar.tellg();
@@ -449,6 +445,9 @@ namespace ppbox
                     PayloadEnd = start_offset + PayLoadParseInfo.PacketLenth - PayLoadParseInfo.PaddingLength;
                 }
             }
+
+        private:
+            boost::uint32_t const & MaximumDataPacketSize; // 
         };
 
         struct ASF_PayloadHeader
@@ -461,7 +460,7 @@ namespace ppbox
             boost::uint32_t MediaObjectSize;
             boost::uint32_t PresTime;
             std::vector<boost::uint8_t> ReplicateData;
-            boost::uint32_t PayloadLength;
+            boost::uint32_t PayloadLength; // 
             boost::uint32_t data_offset;
 
             ASF_PayloadHeader()

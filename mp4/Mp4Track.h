@@ -393,7 +393,7 @@ namespace ppbox
                             default:
                                 break;
                         }
-                    }
+                    } 
                     //} else if(AP4_StsdAtom* stsd = AP4_DYNAMIC_CAST(AP4_StsdAtom, track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd"))) {
                 }
             }

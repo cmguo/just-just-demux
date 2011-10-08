@@ -36,6 +36,7 @@ namespace ppbox
             if (stat_.zero_time == 0) {
                 return 0;
             } else {
+                //return ((ticker_->time_elapse() - stat_.zero_time) / 1000);
                 return (boost::uint32_t)((ticker_->elapse() - stat_.zero_time) / 1000);
             }
         }
@@ -52,8 +53,8 @@ namespace ppbox
             boost::uint64_t milli_sec = 0;
             if (ticker_->check(milli_sec)) {
                 if ((boost::uint32_t)stat_.total_bytes == stat_.speeds[0].last_bytes) {
-                    if (stat_.zero_time == 0)
-                        stat_.zero_time = milli_sec;
+                    if (stat_.zero_time == 0) 
+                        stat_.zero_time = milli_sec; 
                 } else {
                     stat_.zero_time = 0;
                 }
@@ -61,8 +62,7 @@ namespace ppbox
                     if (--stat_.speeds[i].time_left == 0) {
                         stat_.speeds[i].time_left = stat_.speeds[i].interval;
                         if (milli_sec != stat_.speeds[i].last_milli_sec) {
-                            stat_.speeds[i].cur_speed = 
-                                (boost::uint32_t)((stat_.total_bytes - stat_.speeds[i].last_bytes) * 1000 / (milli_sec - stat_.speeds[i].last_milli_sec));
+                            stat_.speeds[i].cur_speed = (boost::uint32_t)((stat_.total_bytes - stat_.speeds[i].last_bytes) * 1000 / (milli_sec - stat_.speeds[i].last_milli_sec));
                             if (stat_.speeds[i].cur_speed > stat_.speeds[i].peak_speed) {
                                 stat_.speeds[i].peak_speed = stat_.speeds[i].cur_speed;
                             }

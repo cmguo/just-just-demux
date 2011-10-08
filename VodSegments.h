@@ -47,17 +47,13 @@ namespace ppbox
                 boost::uint16_t vod_port, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size)
-#ifndef MULTI_SEQ
                 : HttpBufferList<VodSegments>(io_svc, buffer_size, prepare_size)
-#else
-                : HttpBufferList<VodSegments>(io_svc, buffer_size, prepare_size, 2)
-#endif
                 , vod_port_(vod_port)
                 , first_seg_(true)
+                , use_backup_drag_(false)
                 , bwtype_(0)
                 , url_("http://localhost/")
                 , max_dl_speed_(boost::uint32_t(-1))
-                , vod_demuxer_(NULL)
             {
             }
 
@@ -70,12 +66,13 @@ namespace ppbox
                 util::protocol::HttpRequest & request, 
                 error_code & ec)
             {
+                vod_demuxer_->seg_beg(segment);
+
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
                 if (segment < segments_.size()) {
                     if (vod_port_ 
                         && get_segment_num_try(segment, ec) > 3) {
-                            set_total_req(1);
                             first_seg_ = true;
                             vod_port_ = 0;
                     }
@@ -128,12 +125,6 @@ namespace ppbox
                     ec = item_not_exist;
                 }
                 return ec;
-            }
-
-            void on_seg_beg(
-                size_t segment)
-            {
-                vod_demuxer_->seg_beg(segment);
             }
 
             void on_seg_close(
@@ -226,6 +217,7 @@ namespace ppbox
             NetName server_host_;
             NetName proxy_addr_;
             bool first_seg_;
+            bool use_backup_drag_;
             int bwtype_;
             Time local_time_;
             time_t server_time_;
@@ -233,6 +225,7 @@ namespace ppbox
             std::vector<VodSegmentNew> segments_;
             boost::uint32_t max_dl_speed_;
 
+        private:
             VodDemuxer * vod_demuxer_;
         };
 

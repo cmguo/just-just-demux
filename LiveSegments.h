@@ -65,7 +65,6 @@ namespace ppbox
                 boost::uint32_t prepare_size)
                 : HttpBufferList<LiveSegments>(io_svc, buffer_size, prepare_size)
                 , live_port_(live_port)
-                , live_demuxer_(NULL)
             {
             }
 
@@ -78,37 +77,30 @@ namespace ppbox
                 util::protocol::HttpRequest & request, 
                 error_code & ec)
             {
+                live_demuxer_->seg_beg(segment);
+
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
-
-                set_max_try(1);
-                set_time_out(0, ec);
-                if (!proxy_addr_.host().empty()) {
-                    addr = proxy_addr_;
+                if (segment == 0) {
+                    set_time_out(0, ec);
+                    if (!proxy_addr_.host().empty()) {
+                        addr = proxy_addr_;
+                    } else {
+                        addr.host("127.0.0.1");
+                        addr.port(live_port_);
+                    }
+                    head.host.reset(addr_host(addr));
+                    head.path = "/" + pptv::base64_encode(url_, key_);
                 } else {
-                    addr.host("127.0.0.1");
-                    addr.port(live_port_);
+                    ec = item_not_exist;
                 }
-                head.host.reset(addr_host(addr));
-                head.path = "/" + pptv::base64_encode(url_, key_);
-
                 return ec;
-            }
-
-            void on_seg_beg(
-                size_t segment)
-            {
-                live_demuxer_->seg_beg(segment);
             }
 
             void on_seg_close(
                 size_t segment)
             {
                 live_demuxer_->seg_end(segment);
-
-                segment_end();
-
-                //clear_readed_segment();
             }
 
         public:
@@ -176,12 +168,14 @@ namespace ppbox
             boost::uint16_t live_port_;
             framework::network::NetName proxy_addr_;
 
+        private:
             std::string key_;
             std::string url_;
             std::string name_;
             std::string channel_;
             LiveJumpInfo jump_info_;
 
+        private:
             LiveDemuxer * live_demuxer_;
         };
 

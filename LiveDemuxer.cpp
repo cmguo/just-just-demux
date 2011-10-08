@@ -367,7 +367,7 @@ namespace ppbox
             } else {
                 demuxer_->get_sample(sample, ec);
 
-                if (ec == boost::asio::error::would_block) {
+                if (ec == would_block) {
                     block_on();
                 } else {
                     play_on(sample.time);

@@ -27,11 +27,6 @@ namespace ppbox
             typedef ppbox::demux::BufferList<FileSegments> BufferList;
 
         public:
-            typedef boost::function<void (
-                boost::system::error_code const &)
-            > response_type;
-
-        public:
             FileBufferList(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
@@ -41,7 +36,7 @@ namespace ppbox
             {
             }
 
-            //friend class ppbox::demux::BufferList<FileSegments>;
+            friend class ppbox::demux::BufferList<FileSegments>;
 
             boost::system::error_code open_segment(
                 size_t segment, 
@@ -68,17 +63,6 @@ namespace ppbox
                 return ec;
             }
 
-            void async_open_segment(
-                size_t segment, 
-                boost::uint64_t beg, 
-                boost::uint64_t end, 
-                response_type const & resp)
-            {
-                boost::system::error_code ec;
-                open_segment(segment, beg, end, ec);
-                resp(ec);
-            }
-
             bool is_open(
                 boost::system::error_code & ec)
             {
@@ -97,7 +81,6 @@ namespace ppbox
                 size_t segment, 
                 boost::system::error_code & ec)
             {
-                segments().on_seg_close(segment);
                 file_.close();
                 is_open_ = false;
                 return ec = boost::system::error_code();
@@ -114,12 +97,12 @@ namespace ppbox
                 const MutableBufferSequence & buffers,
                 boost::system::error_code & ec)
             {
-                size_t read_t = 0, read_cnt = 0;
+                size_t read_t = 0,read_cnt = 0;
                 typedef typename MutableBufferSequence::const_iterator iterator;
                 for (iterator iter = buffers.begin(); iter != buffers.end(); ++iter) {
                     char * buf_ptr = boost::asio::buffer_cast<char *>(*iter);
                     size_t buf_size = boost::asio::buffer_size(*iter);
-                    file_.read(buf_ptr, buf_size);
+                    file_.read(buf_ptr,buf_size);
                     read_t = file_.gcount();
                     read_cnt += read_t;
                     if (read_t != buf_size) {
@@ -137,13 +120,6 @@ namespace ppbox
                     }
                 }
                 return read_cnt;
-            }
-
-            template <typename MutableBufferSequence, typename ReadHandler>
-            void async_read_some(
-                const MutableBufferSequence & buffers,
-                ReadHandler handler)
-            {
             }
 
             boost::uint64_t total(
@@ -186,7 +162,7 @@ namespace ppbox
                 return false;
             }
 
-        public:
+        private:
             FileSegments & segments()
             {
                 return static_cast<FileSegments &>(*this);

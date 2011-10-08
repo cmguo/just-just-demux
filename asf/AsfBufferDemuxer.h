@@ -4,9 +4,7 @@
 #define _PPBOX_DEMUX_ASF_ASF_BUFFER_DEMUXER_H_
 
 #include "ppbox/demux/asf/AsfDemuxerBase.h"
-#include "ppbox/demux/source/BytesStream.h"
-
-#include <framework/timer/TickCounter.h>
+#include "ppbox/demux/asf/AsfBytesStream.h"
 
 #include <boost/asio/io_service.hpp>
 #include <boost/type_traits/remove_const.hpp>
@@ -28,7 +26,7 @@ namespace ppbox
         public:
             AsfBufferDemuxer(
                 Buffer & buffer)
-                : AsfDemuxerBase(*(asf_buf_ = new BytesStream<Buffer>(buffer)))
+                : AsfDemuxerBase(*(asf_buf_ = new AsfBytesStream<Buffer>(buffer)))
                 , buffer_(buffer)
                 , segment_(0)
             {
@@ -76,21 +74,9 @@ namespace ppbox
                 if (!ec) {
                     asf_buf_->drop();
                 } else if (ec == ppbox::demux::error::file_stream_error) {
-                    if (buffer_.read_segment() != buffer_.write_segment()) {    // 当前分段已经下载完成
-                        std::cout << "drop_all" << std::endl;
-                        asf_buf_->drop_all();
-                        AsfDemuxerBase::open(ec) 
-                            || AsfDemuxerBase::get_sample(sample, ec);
-                        if (ec == ppbox::demux::error::file_stream_error) {
-                            ec = asf_buf_->error();
-                        }
-                    } else {
-                        ec = asf_buf_->error();
-                    }
-
-                    if (ec && ec != boost::asio::error::would_block && buffer_.is_ignore()) {
-                        assert(ec == ppbox::demux::error::bad_file_format);
-                        ec = boost::asio::error::would_block;
+                    ec = asf_buf_->error();
+                    if (ec == boost::asio::error::eof) {
+                        ec = ppbox::demux::error::no_more_sample;
                     }
                 }
                 return ec;
@@ -100,12 +86,11 @@ namespace ppbox
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf)
             {
+                if (!is_open(ec)) {
+                    return 0;
+                }
                 asf_buf_->more(0);
                 ec_buf = asf_buf_->error();
-                if (ec_buf && ec_buf != boost::asio::error::would_block && buffer_.is_ignore()) {
-                    assert(ec == ppbox::demux::error::bad_file_format);
-                    ec_buf = boost::asio::error::would_block;
-                }
                 boost::uint32_t buffer_time = AsfDemuxerBase::get_end_time(ec);
                 return buffer_time;
             }
@@ -154,7 +139,7 @@ namespace ppbox
             }
 
         private:
-            BytesStream<Buffer> * asf_buf_;
+            AsfBytesStream<Buffer> * asf_buf_;
             Buffer & buffer_;
             size_t segment_;
 
