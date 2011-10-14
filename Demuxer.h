@@ -146,6 +146,12 @@ namespace ppbox
                 return *this;
             }
 
+            void set_param(
+                std::string const & str)
+            {
+                DemuxerStatistic::set_param(str);
+            }
+
         protected:
             void tick_on();
 

@@ -356,9 +356,18 @@ namespace ppbox
             }
             if (demuxer) {
                 boost::mutex::scoped_lock lock(mutex_);
+
+                std::string::size_type pos_param = play_link.find('?');
+                if (pos_param == std::string::npos) {
+                    pos_param = play_link.length() - pos_colon;
+                } else {
+                    demuxer->set_param(play_link.substr(pos_param+1));
+                    pos_param -= pos_colon;
+                }
+
                 // new shared_statÐèÒª¼ÓËø
                 DemuxInfo * info = new DemuxInfo(demuxer, cert_type);
-                info->play_link = play_link.substr(pos_colon);
+                info->play_link = play_link.substr(pos_colon, pos_param);
                 info->status = DemuxInfo::opening;
                 info->resp = resp;
                 demuxers_.push_back(info);

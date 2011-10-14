@@ -26,6 +26,7 @@ namespace ppbox
                 name[0] = '\0';
                 rid[0] = '\0';
                 server_host[0] = '\0';
+                param[0] = '\0';
             }
 
             void set_name(
@@ -46,11 +47,18 @@ namespace ppbox
                 strncpy(server_host, str.c_str(), sizeof(server_host));
             }
 
+            void set_param(
+                std::string const & str)
+            {
+                strncpy(param, str.c_str(), sizeof(param));
+            }
+
             char name[1024];
             boost::uint32_t bitrate;
             size_t segment;
             char rid[36];
             char server_host[64];
+            char param[1024*2];
         };
 
         struct BlockType
@@ -150,6 +158,12 @@ namespace ppbox
             DemuxData const & demux_data() const
             {
                 return demux_data_;
+            }
+
+            void set_param(
+                std::string const & str)
+            {
+                demux_data_.set_param(str);
             }
 
         public:
