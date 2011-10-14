@@ -90,7 +90,6 @@ namespace util
                     months1["Dec"] = 11;
                 }
 
-                time_t rr_time;
                 std::vector<std::string> Res;
                 framework::string::slice<std::string>(utctime, std::inserter(Res, Res.end()), " ");
                 std::vector<int> Res1;
