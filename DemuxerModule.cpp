@@ -26,6 +26,10 @@ using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxerModule", 0);
 
+#ifndef PPBOX_DNS_VOD_JUMP
+#define PPBOX_DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
+#endif
+
 namespace ppbox
 {
     namespace demux
@@ -91,10 +95,18 @@ namespace ppbox
 
         DemuxerModule::DemuxerModule(
             util::daemon::Daemon & daemon)
+#ifdef PPBOX_DISABLE_CERTIFY           
+            : ppbox::common::CommonModuleBase<DemuxerModule>(daemon, "DemuxerModule")
+#else  
             : ppbox::certify::CertifyUserModuleBase<DemuxerModule>(daemon, "DemuxerModule")
+#endif
             , dac_(util::daemon::use_module<ppbox::dac::Dac>(daemon))
+#ifndef PPBOX_DISABLE_LIVE            
             , live_(util::daemon::use_module<ppbox::live::Live>(daemon))
+#endif            
+#ifndef PPBOX_DISABLE_VOD
             , vod_(util::daemon::use_module<ppbox::vod::Vod>(daemon))
+#endif
             , stats_(NULL)
             , timer_(NULL)
         {
@@ -117,11 +129,11 @@ namespace ppbox
                 .get_by_id(SHARED_OBJECT_ID_DEMUX);
             new (stats_) framework::container::List<SharedStatistics>;
 
-#ifdef API_PPLIVE
-            const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
-#else
-            const NetName dns_vod_jump_server("(tcp)(v4)jump.150hi.com:80");
-#endif
+//#ifdef API_PPLIVE
+//            const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
+//else
+            const NetName dns_vod_jump_server(PPBOX_DNS_VOD_JUMP);
+//#endif
 
             framework::network::ResolverService & service = 
                 boost::asio::use_service<framework::network::ResolverService>(io_svc());
@@ -145,7 +157,11 @@ namespace ppbox
             timer_ = new framework::timer::PeriodicTimer(
                 timer_queue(), 1000, boost::bind(&DemuxerModule::handle_timer, this));
             timer_->start();
+#ifdef PPBOX_DISABLE_CERTIFY
+			return error_code();
+#else
             return start_certify();
+#endif
         }
 
         void DemuxerModule::shutdown()
@@ -153,7 +169,9 @@ namespace ppbox
             timer_->stop();
             delete timer_;
             timer_ = NULL;
+#ifndef PPBOX_DISABLE_CERTIFY			
             stop_certify();
+#endif
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
@@ -167,6 +185,9 @@ namespace ppbox
 
         void DemuxerModule::certify_startup()
         {
+ #ifdef PPBOX_DISABLE_CERTIFY
+ 			return;
+ #else
             boost::mutex::scoped_lock lock(mutex_);
             cond_.notify_all();
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
@@ -179,11 +200,15 @@ namespace ppbox
                     demuxer->on_extern_error(ec);
                 }
             }
+#endif			
         }
 
         void DemuxerModule::certify_shutdown(
             error_code const & ec)
         {
+#ifdef PPBOX_DISABLE_CERTIFY
+ 			return;
+#else   
             boost::mutex::scoped_lock lock(mutex_);
             cond_.notify_all();
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
@@ -191,6 +216,7 @@ namespace ppbox
                 Demuxer & demuxer = *(*iter)->demuxer;
                 demuxer.on_extern_error(ec);
             }
+#endif			
         }
 
         void DemuxerModule::certify_failed(
@@ -335,12 +361,18 @@ namespace ppbox
             switch (demux_type) {
                 case DemuxerType::vod:
                     cert_type = certify::CertifyType::vod;
+#ifdef PPBOX_DISABLE_VOD
+                    demuxer = new VodDemuxer(io_svc(), 0, buffer_size_, prepare_size_);
+#else
                     demuxer = new VodDemuxer(io_svc(), vod_.port(), buffer_size_, prepare_size_);
+#endif
                     break;
+#ifndef PPBOX_DISABLE_LIVE
                 case DemuxerType::live:
                     cert_type = certify::CertifyType::live;
                     demuxer = new LiveDemuxer(io_svc(), live_.port(), buffer_size_, prepare_size_);
                     break;
+#endif
                 case DemuxerType::mp4:
                     cert_type = certify::CertifyType::local;
                     demuxer = new Mp4FileDemuxer(io_svc(), buffer_size_, prepare_size_);
@@ -381,37 +413,49 @@ namespace ppbox
             DemuxInfo * info)
         {
             error_code ec;
-
+#ifndef PPBOX_DISABLE_CERTIFY
             if (is_alive()) {
                 LOG_S(Logger::kLevelEvent, "ppbox_alive: success");
             } else {
                 LOG_S(Logger::kLevelAlarm, "ppbox_alive: failure");
             }
+#endif
 
+#ifndef PPBOX_DISABLE_VOD
             if (vod_.is_alive()) {
                 LOG_S(Logger::kLevelEvent, "vod_worker: success");
             } else {
                 LOG_S(Logger::kLevelAlarm, "vod_worker: failure");
             }
+#endif
 
+#ifndef PPBOX_DISABLE_LIVE
             if (live_.is_alive()) {
                 LOG_S(Logger::kLevelEvent, "live_worker: success");
             } else {
                 LOG_S(Logger::kLevelAlarm, "live_worker: failure");
             }
-
+#endif
             //while (info->status == DemuxInfo::opening && !is_certified(ec)) {
             //    cond_.wait(lock);
             //}
-            is_certified(ec);
+#ifndef PPBOX_DISABLE_CERTIFY
+			is_certified(ec);
+#endif			
 
             if (info->status == DemuxInfo::canceled) {
                 ec = boost::asio::error::operation_aborted;
             }
             Demuxer * demuxer = info->demuxer;
             std::string key;
-            ec || cert_.certify_url(info->cert_type, info->play_link, key, ec)
-                || demuxer->set_time_out(5 * 1000, ec) // 5 seconds
+#ifdef PPBOX_DISABLE_CERTIFY
+			key = info->cert_type == ppbox::certify::CertifyType::vod ? "kioe257ds":"pplive";
+#endif			
+            ec
+#ifndef PPBOX_DISABLE_CERTIFY			   	
+				|| cert_.certify_url(info->cert_type, info->play_link, key, ec)
+#endif
+				|| demuxer->set_time_out(5 * 1000, ec) // 5 seconds
                 || (!http_proxy_.host().empty() && demuxer->set_http_proxy(http_proxy_, ec));
             if (!ec) {
                 demuxer->set_non_block(true, ec);

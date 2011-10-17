@@ -19,18 +19,26 @@ using namespace framework::timer;
 
 using namespace boost::system;
 
+#ifndef PPBOX_DNS_VOD_JUMP
+#define PPBOX_DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
+#endif
+
+#ifndef PPBOX_DNS_VOD_DRAG
+#define PPBOX_DNS_VOD_DRAG "(tcp)(v4)drag.150hi.com:80"
+#endif
+
 namespace ppbox
 {
     namespace demux
     {
 
-#ifdef API_PPLIVE
-        static const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
-        static const NetName dns_vod_drag_server("(tcp)(v4)drag.api.pplive.com:80");
-#else
-        static const NetName dns_vod_jump_server("(tcp)(v4)jump.150hi.com:80");
-        static const NetName dns_vod_drag_server("(tcp)(v4)drag.150hi.com:80");
-#endif
+//#ifdef API_PPLIVE
+//        static const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
+//       static const NetName dns_vod_drag_server("(tcp)(v4)drag.api.pplive.com:80");
+//#else
+        static const NetName dns_vod_jump_server(PPBOX_DNS_VOD_JUMP);
+        static const NetName dns_vod_drag_server(PPBOX_DNS_VOD_DRAG);
+//#endif
 
         static inline std::string addr_host(
             NetName const & addr)

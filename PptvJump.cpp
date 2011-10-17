@@ -24,6 +24,10 @@ using namespace boost::asio::error;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("PptvJump", 0);
 
+#ifndef JUMP_TYPE
+#define JUMP_TYPE "ppbox"
+#endif
+
 namespace ppbox
 {
     namespace demux
@@ -108,7 +112,9 @@ namespace ppbox
             framework::string::Url url_t = url;
 
             url_t.param("t", format(rand()));
-            url_t.param("type", "ppbox");
+            url_t.param("type", JUMP_TYPE);
+		
+            std::cout<<"jump type:"<<JUMP_TYPE<<std::endl;
 
             unsigned long dns_ip = get_dns_info();
             if (dns_ip) {

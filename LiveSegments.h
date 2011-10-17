@@ -19,16 +19,20 @@ using namespace framework::system::logic_error;
 
 using namespace boost::system;
 
+#ifndef PPBOX_DNS_LIVE_JUMP
+#define PPBOX_DNS_LIVE_JUMP "(tcp)(v4)livejump.150hi.com:80"
+#endif
+
 namespace ppbox
 {
     namespace demux
     {
 
-#ifdef API_PPLIVE
-        static const NetName dns_live_jump_server("(tcp)(v4)j.api.pplive.com:80");
-#else
-        static const NetName dns_live_jump_server("(tcp)(v4)livejump.150hi.com:80");
-#endif
+//#ifdef API_PPLIVE
+//        static const NetName dns_live_jump_server("(tcp)(v4)j.api.pplive.com:80");
+//#else
+        static const NetName dns_live_jump_server(PPBOX_DNS_LIVE_JUMP);
+//#endif
 
         struct LiveJumpInfo
         {

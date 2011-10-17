@@ -55,7 +55,11 @@ namespace ppbox
         class Demuxer;
 
         class DemuxerModule
+#ifdef PPBOX_DISABLE_CERTIFY
+			: public ppbox::common::CommonModuleBase<DemuxerModule>
+#else
             : public ppbox::certify::CertifyUserModuleBase<DemuxerModule>
+#endif            
         {
         public:
             typedef boost::function<void (
@@ -158,8 +162,13 @@ namespace ppbox
 
         private:
             dac::Dac & dac_;
+#ifndef PPBOX_DISABLE_LIVE
             live::Live & live_;
+#endif
+
+#ifndef PPBOX_DISABLE_VOD
             vod::Vod & vod_;
+#endif
 
         private:
             std::map<std::string, DemuxerType::Enum> type_map_;
