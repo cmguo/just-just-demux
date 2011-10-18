@@ -1,10 +1,10 @@
-// LiveDemuxer.cpp
+// Live2Demuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/LiveDemuxer.h"
+#include "ppbox/demux/Live2Demuxer.h"
 #include "ppbox/demux/PptvJump.h"
-#include "ppbox/demux/LiveSegments.h"
-#include "ppbox/demux/asf/AsfBufferDemuxer.h"
+#include "ppbox/demux/Live2Segments.h"
+#include "ppbox/demux/flv/FlvBufferDemuxer.h"
 using namespace ppbox::demux::error;
 
 #include <util/archive/XmlIArchive.h>
@@ -25,31 +25,31 @@ using namespace boost::system;
 using namespace boost::asio;
 using namespace boost::asio::error;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("LiveDemuxer", 0)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Live2Demuxer", 0)
 
 namespace ppbox
 {
     namespace demux
     {
 
-        class LiveDemuxerImpl
-            : public AsfBufferDemuxer<LiveSegments>
+        class Live2DemuxerImpl
+            : public FlvBufferDemuxer<Live2Segments>
         {
         public:
-            LiveDemuxerImpl(
-                LiveSegments & buf)
-                : AsfBufferDemuxer<LiveSegments>(buf)
+            Live2DemuxerImpl(
+                Live2Segments & buf)
+                : FlvBufferDemuxer<Live2Segments>(buf)
             {
             }
         };
 
-        LiveDemuxer::LiveDemuxer(
+        Live2Demuxer::Live2Demuxer(
             boost::asio::io_service & io_svc, 
             boost::uint16_t live_port, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size)
-            : Demuxer(io_svc, (buffer_ = new LiveSegments(io_svc, live_port, buffer_size, prepare_size))->buffer_stat())
-            , demuxer_(new LiveDemuxerImpl(*buffer_))
+            : Demuxer(io_svc, (buffer_ = new Live2Segments(io_svc, live_port, buffer_size, prepare_size))->buffer_stat())
+            , demuxer_(new Live2DemuxerImpl(*buffer_))
             , jump_(new PptvJump(io_svc, JumpType::live))
             , open_step_(StepType::not_open)
         {
@@ -57,7 +57,7 @@ namespace ppbox
             buffer_->set_live_demuxer(this);
         }
 
-        LiveDemuxer::~LiveDemuxer()
+        Live2Demuxer::~Live2Demuxer()
         {
             if (jump_) {
                 delete jump_;
@@ -73,7 +73,7 @@ namespace ppbox
             }
         }
 
-        void LiveDemuxer::async_open(
+        void Live2Demuxer::async_open(
             std::string const & name, 
             open_response_type const & resp)
         {
@@ -82,55 +82,36 @@ namespace ppbox
 
             open_step_ = StepType::opening;
 
-            handle_async_open(boost::system::error_code());
+            handle_async_open(error_code());
         }
 
-        void LiveDemuxer::open_logs_end(
+        void Live2Demuxer::open_logs_end(
             ppbox::common::HttpStatistics const & http_stat, 
             int index, 
             error_code const & ec)
         {
-            open_logs_[index] = http_stat;
+            if (&http_stat != &open_logs_[index])
+                open_logs_[index] = http_stat;
             open_logs_[index].total_elapse = open_logs_[index].elapse();
             open_logs_[index].last_last_error = ec;
         }
 
-        static char const * type_str[] = {
-            "not_open", 
-            "opening", 
-            "jump", 
-            "head_normal", 
-            "finish",
-        };
-
-        void LiveDemuxer::handle_async_open(
+        void Live2Demuxer::handle_async_open(
             error_code const & ecc)
         {
-            LOG_S(Logger::kLevelDebug, "[handle_async_open] step: " 
-                << type_str[open_step_] << ", ec: " << ecc.message());
-
-            if (ecc && open_step_ == StepType::jump) {
-                open_logs_end(jump_->http_stat(), 0, ecc);
-
-                LOG_S(Logger::kLevelDebug, "[handle_async_open] jump ec: " << ecc.message());
-
-                LOG_S(Logger::kLevelAlarm, "jump: failure");
-
-                open_step_ = StepType::head_normal;
-
-                buffer_->set_max_try(1);
-
-                demuxer_->async_open(
-                    boost::bind(&LiveDemuxer::handle_async_open, this, _1));
-                return;
-            }
-
             error_code ec = ecc;
             if (ec) {
                 if (ec != boost::asio::error::would_block) {
+                    if (open_step_ == StepType::jump) {
+                        LOG_S(Logger::kLevelAlarm, "jump: failure");
+                        open_logs_end(jump_->http_stat(), 0, ec);
+                        LOG_S(Logger::kLevelDebug, "jump failure (" << open_logs_[0].total_elapse << " milliseconds)");
+                    }
+
                     if (open_step_ == StepType::head_normal) {
                         LOG_S(Logger::kLevelAlarm, "data: failure");
-                        //seg_end(buffer_->segment());
+                        open_logs_end(open_logs_[1], 1, ec);
+                        LOG_S(Logger::kLevelDebug, "data failure (" << open_logs_[1].total_elapse << " milliseconds)");
                     }
 
                     open_end(ec);
@@ -172,29 +153,30 @@ namespace ppbox
 
                         jump_->async_get(
                             buffer_->get_jump_url(), 
-                            boost::bind(&LiveDemuxer::handle_async_open, this, _1));
+                            boost::bind(&Live2Demuxer::handle_async_open, this, _1));
                         return;
                     }
                     break;
                 }
             case StepType::jump:
                 {
-                    LiveJumpInfo jump_info;
+                    Live2JumpInfo jump_info;
                     parse_jump(jump_info, jump_->get_buf(), ec);
                     open_logs_end(jump_->http_stat(), 0, ec);
+                    LOG_S(Logger::kLevelDebug, "jump used (" << open_logs_[0].total_elapse << " milliseconds)");
 
                     if (!ec) {
+                        LOG_S(Logger::kLevelEvent, "jump: success");
+
                         set_info_by_jump(jump_info);
 
                         open_step_ = StepType::head_normal;
 
-                        buffer_->set_max_try(1);
-
                         demuxer_->async_open(
-                            boost::bind(&LiveDemuxer::handle_async_open, this, _1));
+                            boost::bind(&Live2Demuxer::handle_async_open, this, _1));
                         return;
                     } else {
-                        LOG_S(Logger::kLevelDebug, "[handle_async_open] jump ec: " << ec.message());
+                        LOG_S(Logger::kLevelDebug, "jump ec: " << ec.message());
 
                         LOG_S(Logger::kLevelAlarm, "jump: failure");
                     }
@@ -205,7 +187,7 @@ namespace ppbox
                     LOG_S(Logger::kLevelEvent, "data: success");
 
                     seg_end(buffer_->segment());
-                    LOG_S(Logger::kLevelDebug, "open asf head succeed (" << open_logs_[1].total_elapse << " milliseconds)");
+                    LOG_S(Logger::kLevelDebug, "data used (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::finish;
                     break;
@@ -224,13 +206,11 @@ namespace ppbox
             response(ec);
         }
 
-        void LiveDemuxer::parse_jump(
-            LiveJumpInfo & jump_info,
+        void Live2Demuxer::parse_jump(
+            Live2JumpInfo & jump_info,
             boost::asio::streambuf & buf, 
             error_code & ec)
         {
-            LOG_S(Logger::kLevelEvent, "jump: success");
-
             if (!ec) {
                 std::string buffer = boost::asio::buffer_cast<char const *>(buf.data());
                 LOG_S(Logger::kLevelDebug2, "[parse_jump] jump buffer: " << buffer);
@@ -243,20 +223,19 @@ namespace ppbox
             }
         }
 
-        void LiveDemuxer::set_info_by_jump(
-            LiveJumpInfo & jump_info)
+        void Live2Demuxer::set_info_by_jump(
+            Live2JumpInfo & jump_info)
         {
             LOG_S(Logger::kLevelDebug, "jump succeed (" << open_logs_[0].total_elapse << " milliseconds)");
-            LOG_S(Logger::kLevelDebug, "proto_type: " << jump_info.proto_type);
-            LOG_S(Logger::kLevelDebug, "buffer_size: " << jump_info.buffer_size);
-            demux_data().set_server_host(format(jump_info.server_hosts));
-            for (size_t i = 0; i < jump_info.server_hosts.size(); ++i) {
-                LOG_S(Logger::kLevelDebug, "server host: " << jump_info.server_hosts[i]);
-            }
+            demux_data().set_server_host(jump_info.server_host.to_string());
+            LOG_S(Logger::kLevelDebug, "server host: " << format(jump_info.server_hosts));
+            LOG_S(Logger::kLevelDebug, "delay play time: " << jump_info.delay_play_time);
+            time_t server_time = jump_info.server_time.to_time_t();
+            LOG_S(Logger::kLevelDebug, "server time: " << ::ctime(&server_time));
             buffer_->set_jump_info(jump_info);
         }
 
-        void LiveDemuxer::response(
+        void Live2Demuxer::response(
             error_code const & ec)
         {
             open_response_type resp;
@@ -265,39 +244,39 @@ namespace ppbox
             io_svc_.post(boost::bind(resp, ec));
         }
 
-        bool LiveDemuxer::is_open(
+        bool Live2Demuxer::is_open(
             error_code & ec)
         {
             return demuxer_->is_open(ec);
         }
 
-        error_code LiveDemuxer::cancel(
+        error_code Live2Demuxer::cancel(
             error_code & ec)
         {
             jump_->cancel();
             return buffer_->cancel(ec);
         }
 
-        error_code LiveDemuxer::pause(
+        error_code Live2Demuxer::pause(
             error_code & ec)
         {
             return ec = error::not_support;
         }
 
-        error_code LiveDemuxer::resume(
+        error_code Live2Demuxer::resume(
             error_code & ec)
         {
             return ec = error::not_support;
         }
 
-        error_code LiveDemuxer::close(
+        error_code Live2Demuxer::close(
             error_code & ec)
         {
             DemuxerStatistic::close();
             return buffer_->close(ec);
         }
 
-        size_t LiveDemuxer::get_media_count(
+        size_t Live2Demuxer::get_media_count(
             error_code & ec)
         {
             size_t count = demuxer_->get_media_count(ec);
@@ -310,7 +289,7 @@ namespace ppbox
             return count;
         }
 
-        error_code LiveDemuxer::get_media_info(
+        error_code Live2Demuxer::get_media_info(
             size_t index, 
             MediaInfo & info, 
             error_code & ec)
@@ -325,14 +304,14 @@ namespace ppbox
             return ec;
         }
 
-        boost::uint32_t LiveDemuxer::get_duration(
+        boost::uint32_t Live2Demuxer::get_duration(
             error_code & ec)
         {
             ec = not_supported;
             return 0;
         }
 
-        boost::uint32_t LiveDemuxer::get_end_time(
+        boost::uint32_t Live2Demuxer::get_end_time(
             error_code & ec, 
             error_code & ec_buf)
         {
@@ -344,13 +323,13 @@ namespace ppbox
             }
         }
 
-        boost::uint32_t LiveDemuxer::get_cur_time(
+        boost::uint32_t Live2Demuxer::get_cur_time(
             error_code & ec)
         {
             return demuxer_->get_cur_time(ec);
         }
 
-        error_code LiveDemuxer::seek(
+        error_code Live2Demuxer::seek(
             boost::uint32_t time, 
             error_code & ec)
         {
@@ -358,7 +337,7 @@ namespace ppbox
             return ec;
         }
 
-        error_code LiveDemuxer::get_sample(
+        error_code Live2Demuxer::get_sample(
             Sample & sample, 
             error_code & ec)
         {
@@ -367,7 +346,7 @@ namespace ppbox
             } else {
                 demuxer_->get_sample(sample, ec);
 
-                if (ec == boost::asio::error::would_block) {
+                if (ec == would_block) {
                     block_on();
                 } else {
                     play_on(sample.time);
@@ -381,21 +360,21 @@ namespace ppbox
             return ec;
         }
 
-        error_code LiveDemuxer::set_non_block(
+        error_code Live2Demuxer::set_non_block(
             bool non_block, 
             error_code & ec)
         {
             return buffer_->set_non_block(non_block, ec);
         }
 
-        error_code LiveDemuxer::set_time_out(
+        error_code Live2Demuxer::set_time_out(
             boost::uint32_t time_out, 
             error_code & ec)
         {
             return buffer_->set_time_out(time_out, ec);
         }
 
-        error_code LiveDemuxer::set_http_proxy(
+        error_code Live2Demuxer::set_http_proxy(
             framework::network::NetName const & addr, 
             error_code & ec)
         {
@@ -404,7 +383,7 @@ namespace ppbox
             return ec;
         }
 
-        void LiveDemuxer::seg_beg(
+        void Live2Demuxer::seg_beg(
             size_t segment)
         {
             if (segment == 0) {
@@ -412,7 +391,7 @@ namespace ppbox
             }
         }
 
-        void LiveDemuxer::seg_end(
+        void Live2Demuxer::seg_end(
             size_t segment)
         {
             if (segment == 0) {
@@ -420,6 +399,7 @@ namespace ppbox
                 if (open_logs_[1].try_times == 1)
                     open_logs_[1].response_data_time = open_logs_[1].total_elapse;
             }
+
         }
 
     }

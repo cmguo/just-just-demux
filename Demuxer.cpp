@@ -94,7 +94,7 @@ namespace ppbox
         void Demuxer::on_extern_error(
             boost::system::error_code const & ec)
         {
-            extern_error_ = ec;
+            //extern_error_ = ec;
         }
 
         size_t Demuxer::get_segment_count(

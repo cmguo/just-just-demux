@@ -15,8 +15,10 @@ namespace ppbox
                 none, 
                 vod, 
                 live, 
+                live2, 
                 mp4, 
                 asf, 
+                flv, 
             };
         };
 

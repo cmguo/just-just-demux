@@ -16,17 +16,23 @@ namespace ppbox
         {
         public:
             AsfStream()
+                : ready_(false)
+                , next_id_(0)
+                , index_to_map_((boost::uint32_t)-1)
+                , time_offset_us_((boost::uint64_t)-1)
+                , time_offset_ms_((boost::uint64_t)-1)
             {
             }
 
             AsfStream(
                 ASF_Stream_Properties_Object_Data const & property)
                 : ASF_Stream_Properties_Object_Data(property)
-                , ready(false)
-                , next_id(0)
+                , ready_(false)
+                , next_id_(0)
+                , index_to_map_((boost::uint32_t)-1)
             {
-                time_offset_us = TimeOffset / 10;
-                time_offset_ms = (boost::uint32_t)(time_offset_us / 1000);
+                time_offset_us_ = TimeOffset / 10;
+                time_offset_ms_ = (boost::uint32_t)(time_offset_us_ / 1000);
                 parse();
             }
 /*
@@ -107,11 +113,11 @@ namespace ppbox
             }
 
         public:
-            bool ready;
-            boost::uint32_t index_to_map;
-            boost::uint32_t next_id;
-            boost::uint32_t time_offset_ms;
-            boost::uint64_t time_offset_us;
+            bool ready_;
+            boost::uint32_t next_id_;
+            boost::uint32_t index_to_map_;
+            boost::uint64_t time_offset_us_;
+            boost::uint32_t time_offset_ms_;
         };
 
     } // namespace demux

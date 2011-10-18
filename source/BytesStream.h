@@ -1,7 +1,7 @@
-// AsfBytesStream.h
+// BytesStream.h
 
-#ifndef _PPBOX_DEMUX_ASF_ASF_BYTES_STREAM_H_
-#define _PPBOX_DEMUX_ASF_ASF_BYTES_STREAM_H_
+#ifndef _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
+#define _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 
 #include <util/buffers/BufferSize.h>
 #include <util/buffers/StlBuffer.h>
@@ -14,7 +14,7 @@ namespace ppbox
     {
 
         template <typename Buffer>
-        class AsfBytesStream
+        class BytesStream
             : public util::buffers::StlStream<boost::uint8_t>
         {
         public:
@@ -23,10 +23,10 @@ namespace ppbox
             typedef typename read_buffer_t::const_iterator const_iterator;
 
             typedef typename util::buffers::StlBuffer<
-                AsfBytesStream, util::buffers::detail::_read> buffer_type;
+                BytesStream, util::buffers::detail::_read> buffer_type;
 
         public:
-            AsfBytesStream(
+            BytesStream(
                 Buffer & buffer)
                 : buffer_(buffer)
                 , size_(0)
@@ -44,34 +44,6 @@ namespace ppbox
             {
                 return ec_;
             }
-
-            //void init()
-            //{
-            //    Checker ck(*this);
-            //    size_ = 0;
-            //    pos_ = 0;
-            //    end_ = 0;
-            //    setg(NULL, NULL, NULL);
-            //    prepare(0);
-            //    iter_ = buffers_.begin();
-            //    if (iter_ != buffers_.end()) {
-            //        buf_ = *iter_;
-            //    } else {
-            //        setg(NULL, NULL, NULL);
-            //    }
-            //}
-
-            //void async_init(
-            //    response_type const & resp)
-            //{
-            //    Checker ck(*this);
-            //    size_ = 0;
-            //    pos_ = 0;
-            //    end_ = 0;
-            //    setg(NULL, NULL, NULL);
-
-            //    async_prepare(0, 0, 0, resp);
-            //}
 
             void more(
                 boost::uint32_t amount = 0)
@@ -100,6 +72,23 @@ namespace ppbox
                     setg(NULL, NULL, NULL);
                 }
                 pos_ = pos;
+            }
+
+            void drop_all()
+            {
+                Checker ck(*this);
+                buffer_.drop_all(ec_);
+
+                update();
+
+                iter_ = buffers_.begin();
+                if (iter_ != buffers_.end()) {
+                    buf_ = *iter_;
+                } else {
+                    setg(NULL, NULL, NULL);
+                }
+                pos_ = 0;
+                end_ = size_;
             }
 
             void update_new()
@@ -150,7 +139,7 @@ namespace ppbox
             struct Checker
             {
                 Checker(
-                    AsfBytesStream const & stream)
+                    BytesStream const & stream)
                     : stream_(stream)
                 {
                     stream_.check();
@@ -162,7 +151,7 @@ namespace ppbox
                 }
 
             private:
-                AsfBytesStream const & stream_;
+                BytesStream const & stream_;
             };
 
             void check() const
@@ -173,7 +162,8 @@ namespace ppbox
                     if (i == iter_) {
                         assert(pos == pos_);
                         assert(eback() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*i));
-                        assert((size_t)(egptr() - eback()) == boost::asio::buffer_size(*i));
+                        size_t size = boost::asio::buffer_size(*i);
+                        assert((size_t)(egptr() - eback()) == size);
                         break;
                     }
                     pos += boost::asio::buffer_size(*i);
@@ -282,16 +272,16 @@ namespace ppbox
 
         private:
             Buffer & buffer_;
-            read_buffer_t buffers_;
-            boost::uint32_t size_;
-            const_iterator iter_;
-            pos_type pos_;
-            pos_type end_;
-            buffer_type buf_;
+            read_buffer_t buffers_; // 有效数据
+            boost::uint32_t size_;  // buffers_数据的大小
+            const_iterator iter_;   // 当前的内存段
+            pos_type pos_;          // 与iter_对应分段的开头
+            pos_type end_;          // 有效数据的结尾
+            buffer_type buf_;       // 当前的内存段
             boost::system::error_code ec_;
         };
 
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_ASF_ASF_BYTES_STREAM_H_
+#endif // _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_

@@ -31,7 +31,16 @@ namespace ppbox
                 return ec;
             }
 
-        public:
+            void on_seg_beg(
+                size_t segment)
+            {
+            }
+
+            void on_seg_close(
+                size_t segment)
+            {
+            }
+
             void set_file_name(
                 boost::filesystem::path const & file)
             {

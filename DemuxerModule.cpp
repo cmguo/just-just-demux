@@ -6,6 +6,7 @@
 #include "ppbox/demux/DemuxerStatistic.h"
 #include "ppbox/demux/VodDemuxer.h"
 #include "ppbox/demux/LiveDemuxer.h"
+#include "ppbox/demux/Live2Demuxer.h"
 #include "ppbox/demux/FileDemuxer.h"
 #include "ppbox/demux/EmptyDemuxer.h"
 using namespace ppbox::demux;
@@ -117,6 +118,7 @@ namespace ppbox
 
             type_map_["ppvod"] = DemuxerType::vod;
             type_map_["pplive"] = DemuxerType::live;
+            type_map_["pplive2"] = DemuxerType::live2;
             type_map_["ppfile-mp4"] = DemuxerType::mp4;
             type_map_["ppfile-asf"] = DemuxerType::asf;
 
@@ -373,6 +375,10 @@ namespace ppbox
                     demuxer = new LiveDemuxer(io_svc(), live_.port(), buffer_size_, prepare_size_);
                     break;
 #endif
+                case DemuxerType::live2:
+                    cert_type = certify::CertifyType::live;
+                    demuxer = new Live2Demuxer(io_svc(), 0, buffer_size_, prepare_size_);
+                    break;
                 case DemuxerType::mp4:
                     cert_type = certify::CertifyType::local;
                     demuxer = new Mp4FileDemuxer(io_svc(), buffer_size_, prepare_size_);

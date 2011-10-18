@@ -70,8 +70,8 @@ namespace ppbox
                 if (!canceled_ && (++try_times_ == 1 || util::protocol::HttpClient::recoverable(ec))) {
                     LOG_S(Logger::kLevelDebug, "[handle_fetch] ec: " << ec.message());
                     http_stat_.begin_try();
-                    http_.get_request_head().host.reset(server_host_.host_svc());
-                    http_.async_fetch(http_.get_request_head(),
+                    http_.request_head().host.reset(server_host_.host_svc());
+                    http_.async_fetch(http_.request_head(),
                         boost::bind(&PptvDrag::handle_fetch, shared_from_this(), _1));
                     return;
                 }
@@ -94,7 +94,7 @@ namespace ppbox
         {
             response_type resp;
             resp.swap(resp_);
-            resp(ec, http_.get_response().data());
+            resp(ec, http_.response().data());
         }
 
     } // namespace demux
