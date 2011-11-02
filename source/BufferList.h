@@ -710,6 +710,40 @@ namespace ppbox
                 return peek(read_.offset - read_.seg_beg, size, data, ec);
             }
 
+            boost::system::error_code peek(
+                boost::uint64_t offset, 
+                boost::uint32_t size, 
+                std::deque<boost::asio::const_buffer> & data, 
+                boost::system::error_code & ec)
+            {
+                offset += read_.seg_beg;
+                assert(offset >= read_.offset && offset + size <= read_.seg_end);
+                if (offset < read_.offset) {
+                    ec = framework::system::logic_error::out_of_range;
+                } else if (offset + size > read_.seg_end) {
+                    ec = boost::asio::error::eof;
+                } else {
+                    if (offset + size <= write_.offset) {
+                        prepare_at_least(0, ec);
+                    } else {
+                        prepare_at_least((boost::uint32_t)(offset + size - write_.offset), ec);
+                    }
+                    if (offset + size <= write_.offset) {
+                        read(offset, size, data);
+                        ec = boost::system::error_code();
+                    }
+                }
+                return ec;
+            }
+
+            boost::system::error_code peek(
+                boost::uint32_t size, 
+                std::deque<boost::asio::const_buffer> & data, 
+                boost::system::error_code & ec)
+            {
+                return peek(read_.offset - read_.seg_beg, size, data, ec);
+            }
+
             boost::system::error_code read(
                 boost::uint64_t offset, 
                 boost::uint32_t size, 
@@ -1544,6 +1578,24 @@ namespace ppbox
                     size_t size1 = buffer_end() - p.buffer;
                     memcpy(dst, p.buffer, size1);
                     memcpy((char *)dst + size1, buffer_beg(), size - size1);
+                }
+            }
+
+            void read(
+                boost::uint64_t offset,
+                boost::uint32_t size,
+                std::deque<boost::asio::const_buffer> & data)
+            {
+                assert(offset + size <= data_end_);
+                Position p = read_;
+                move_front_to(p, offset);
+                data.clear();
+                if (p.buffer + size <= buffer_end()) {
+                    data.push_back(boost::asio::buffer(p.buffer, size));
+                } else {
+                    size_t size1 = buffer_end() - p.buffer;
+                    data.push_back(boost::asio::buffer(p.buffer, size1));
+                    data.push_back(boost::asio::buffer(buffer_beg(), size - size1));
                 }
             }
 

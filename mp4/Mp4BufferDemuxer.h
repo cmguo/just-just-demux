@@ -173,46 +173,33 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 if (!is_open(ec)) {
-                } else if (Mp4DemuxerBase::get_sample(sample, ec)) {
+                } else if (buffer_.drop_to(Mp4DemuxerBase::min_offset(), ec) || 
+                    Mp4DemuxerBase::get_sample(sample, ec)) {
                     if (ec == ppbox::demux::error::no_more_sample) {
                         boost::system::error_code ec1;
                         buffer_.drop_all(ec1);
                         if (ec1)
                             ec = ec1;
                     }
-#ifndef PPBOX_DEMUX_MP4_TIME_ORDER
-#  ifdef PPBOX_DEMUX_RETURN_SKIP_DATA
-                } else if (sample.offset > buffer_.read_front()) {
+#if defined(PPBOX_DEMUX_MP4_NO_TIME_ORDER) && defined(PPBOX_DEMUX_RETURN_SKIP_DATA)
+                } else if (sample.blocks[0].offset > buffer_.read_front()) {
                     boost::system::error_code ec1;
                     put_back_sample(sample, ec1);
                     assert(!ec1);
                     sample.itrack = (boost::uint32_t)-1;
-                    //sample.time = (boost::uint32_t)-1;
-                    sample.size = (boost::uint32_t)(sample.offset - buffer_.read_front());
-                    sample.offset -= sample.size;
+                    boost::uint32_t size = (boost::uint32_t)(sample.blocks[0].offset - buffer_.read_front());
+                    boost::uint64_t offset = sample.blocks[0].offset - size;
                     sample.is_sync = false;
-                    buffer_.read(sample.size, sample.data, ec);
-#  endif
-                } else {
-                    buffer_.drop_to(sample.offset, ec) ||
-                        buffer_.read(sample.size, sample.data, ec);
-                    if (ec) {
-                        boost::system::error_code ec1;
-                        put_back_sample(sample, ec1);
-                        assert(!ec1);
-                    }
-                }
-#else
-                } else {
-                    buffer_.peek(sample.offset, sample.size, sample.data, ec) ||
-                        buffer_.drop_to(Mp4DemuxerBase::min_offset(), ec);
-                    if (ec) {
-                        boost::system::error_code ec1;
-                        put_back_sample(sample, ec1);
-                        assert(!ec1);
-                    }
-                }
+                    buffer_.peek(size, sample.data, ec);
 #endif
+                } else {
+                    buffer_.peek(sample.blocks[0].offset, sample.blocks[0].size, sample.data, ec);
+                    if (ec) {
+                        boost::system::error_code ec1;
+                        put_back_sample(sample, ec1);
+                        assert(!ec1);
+                    }
+                }
                 return ec;
             }
 

@@ -225,6 +225,7 @@ namespace ppbox
                 ec = out_of_range;
             } else {
                 info = *tracks_[index];
+                info.index = index;
             }
             return ec;
         }
@@ -288,20 +289,20 @@ namespace ppbox
             SampleListItem & ap4_sample = *sample_list_->first();
             ec = error_code();
             sample.itrack = ap4_sample.itrack;
-            sample.offset = ap4_sample.GetOffset();
+            sample.blocks.clear();
+            sample.data.clear();
+            sample.blocks.push_back(FileBlock(ap4_sample.GetOffset(), ap4_sample.GetSize()));
             sample.size = ap4_sample.GetSize();
-            sample.duration = ap4_sample.GetDuration();
             sample.idesc = ap4_sample.GetDescriptionIndex();
             sample.dts = ap4_sample.GetDts();
-            sample.cts_delta = ap4_sample.GetCtsDelta();
+            sample.pts = ap4_sample.GetDts() + ap4_sample.GetCtsDelta();
             sample.is_sync = ap4_sample.IsSync();
             sample.ustime = ap4_sample.ustime;
             sample.time = ap4_sample.time;
 
             sample_put_back_ = false;
-
-            min_offset_ = ap4_sample.GetOffset() + ap4_sample.GetSize();
-#ifdef PPBOX_DEMUX_MP4_TIME_ORDER
+            min_offset_ = ap4_sample.GetOffset();
+#ifndef PPBOX_DEMUX_MP4_NO_TIME_ORDER
             for (SampleListItem * sample = sample_list_->next(&ap4_sample); sample; sample = sample_list_->next(sample)) {
                 if (sample->GetOffset() < min_offset_) {
                     min_offset_ = sample->GetOffset();

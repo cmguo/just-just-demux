@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_DEMUXER_BASE_H_
 
 #include <boost/detail/endian.hpp>
+#include <boost/asio/buffer.hpp>
 
 namespace ppbox
 {
@@ -68,6 +69,7 @@ namespace ppbox
                 boost::uint32_t sub_type;
                 char sub_type_char[4];
             };
+            boost::uint32_t index;
             boost::uint32_t time_scale;
             boost::uint64_t duration;
         };
@@ -89,23 +91,58 @@ namespace ppbox
                 AudioInfo audio_format;
             };
             std::vector<boost::uint8_t> format_data; // 格式说明的内容
+            void * attachment; // 附件信息
+        };
+
+        struct FileBlock
+        {
+            FileBlock(boost::uint64_t o, boost::uint32_t s)
+                : offset(o)
+                , size(s)
+            {
+            }
+
+            boost::uint64_t offset;
+            boost::uint32_t size;
         };
 
         struct Sample
         {
+            Sample const & operator= (Sample const & sample)
+            {
+                itrack = sample.itrack;
+                idesc = sample.idesc;
+                flags = sample.flags;
+                time = sample.time;
+                ustime = sample.ustime;
+                dts = sample.dts;
+                pts = sample.pts;
+                size = sample.size;
+                is_sync = sample.is_sync;
+                blocks = sample.blocks;
+                media_info = sample.media_info;
+                context = sample.context;
+                data = sample.data;
+                return *this;
+            }
+
             boost::uint32_t itrack;
-            boost::uint32_t time;   // 毫秒
-            boost::uint64_t ustime; // 微妙
-            boost::uint64_t offset;
-            boost::uint32_t size;
-            boost::uint32_t duration;
             boost::uint32_t idesc;
+            boost::uint32_t flags;
+            boost::uint32_t time;
+            boost::uint64_t ustime;
             boost::uint64_t dts;
-            boost::uint32_t cts_delta;
-            bool is_sync;
-            bool is_discontinuity;
-            std::vector<boost::uint8_t> data;
+            boost::uint64_t pts;
+            boost::uint32_t size;
+            bool is_sync;   // refine add dis_contiuny
+            std::vector<FileBlock> blocks;
+            MediaInfo const * media_info;
+            void * context;
+            std::deque<boost::asio::const_buffer> data;
         };
+
+
+
 
     } // namespace demux
 } // namespace ppbox

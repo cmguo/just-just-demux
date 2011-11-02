@@ -104,7 +104,7 @@ namespace ppbox
             }
 
             boost::system::error_code seek(
-                boost::uint32_t time, 
+                boost::uint32_t & time, 
                 boost::system::error_code & ec)
             {
                 ec = framework::system::logic_error::not_supported;

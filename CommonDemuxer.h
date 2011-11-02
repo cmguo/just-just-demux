@@ -118,7 +118,7 @@ namespace ppbox
             }
 
             virtual boost::system::error_code seek(
-                boost::uint32_t time, 
+                boost::uint32_t & time, 
                 boost::system::error_code & ec)
             {
                 BufferDemuxer::seek(time, ec);

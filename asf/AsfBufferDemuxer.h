@@ -72,9 +72,23 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 asf_buf_->more(0);
+                asf_buf_->drop();
                 AsfDemuxerBase::get_sample(sample, ec);
                 if (!ec) {
-                    asf_buf_->drop();
+                    sample.data.clear();
+                    for(std::vector<FileBlock>::iterator iter = sample.blocks.begin();
+                        iter != sample.blocks.end();
+                        iter++) {
+                            std::deque<boost::asio::const_buffer> datas;
+                            buffer_.peek((*iter).offset, (*iter).size, datas, ec);
+                            if (!ec) {
+                                for (boost::uint32_t i = 0; i < datas.size(); i++) {
+                                    sample.data.push_back(datas[i]);
+                                }
+                            } else {
+                                break;
+                            }
+                    }
                 } else if (ec == ppbox::demux::error::file_stream_error) {
                     if (buffer_.read_segment() != buffer_.write_segment()) {    // 当前分段已经下载完成
                         std::cout << "drop_all" << std::endl;

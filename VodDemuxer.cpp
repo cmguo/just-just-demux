@@ -100,7 +100,7 @@ namespace ppbox
         bool VodDemuxer::is_open(
             error_code & ec)
         {
-            return is_open(false, ec);
+            return is_open(false, ec);;
         }
 
         bool VodDemuxer::is_open(
@@ -377,6 +377,16 @@ namespace ppbox
 
                     open_step_ = StepType::drag_normal;
 
+                    // 初始化infos
+                    error_code lec;
+                    boost::uint32_t stream_count = get_media_count(lec);
+                    if (!lec) {
+                        MediaInfo info;
+                        for(boost::uint32_t i = 0; i < stream_count; ++i) {
+                            get_media_info(i, info, lec);
+                        }
+                    }
+
                     LOG_S(Logger::kLevelEvent, "drag: start");
 
                     drag_->async_get(
@@ -645,7 +655,7 @@ namespace ppbox
         }
 
         error_code VodDemuxer::seek(
-            boost::uint32_t time, 
+            boost::uint32_t & time, 
             error_code & ec)
         {
             boost::uint32_t seek_time = seek_time_;
@@ -663,6 +673,15 @@ namespace ppbox
                             if (seek_time != (boost::uint32_t)-1) {
                                 DemuxerStatistic::seek(time, ec);
                             }
+
+                            // 设置timescal对应的offset
+                            if (!ec || ec == boost::asio::error::would_block) {
+                                for(boost::uint32_t index = 0; index < media_info_.size(); ++index) {
+                                    media_info_[index].duration = 
+                                        segments_[i]->duration_offset_us * media_info_[index].time_scale / 1000000;
+                                }
+                            }
+
                             return ec;
                         }
                     }
@@ -745,6 +764,11 @@ namespace ppbox
                                 LOG_S(framework::logger::Logger::kLevelDebug, 
                                     "[get_sample] get_sample: " << tc.elapse());
                             }
+                            // 设置timescal对应的offset
+                            for(boost::uint32_t i = 0; i < media_info_.size(); ++i) {
+                                media_info_[i].duration = 
+                                    segments_[seg_read]->duration_offset_us * media_info_[i].time_scale / 1000000;
+                            }
 
                             // 清楚前后mp4头占用的内存
                             release_head_buffer(2, seg_read, keep_count_);
@@ -761,6 +785,16 @@ namespace ppbox
                     if (!ec) {
                         sample.time += segments_[seg_read]->duration_offset;
                         sample.ustime += segments_[seg_read]->duration_offset_us;
+
+                        if (sample.itrack != boost::uint32_t(-1)) {
+                            sample.pts += media_info_[sample.itrack].duration;
+                            sample.dts += media_info_[sample.itrack].duration;
+                        }
+
+                        if (sample.itrack != sample.itrack) {
+                            sample.pts += media_info_[sample.itrack].duration;
+                            sample.dts += media_info_[sample.itrack].duration;
+                        }
                         play_on(sample.time);
                     }
                 } else {

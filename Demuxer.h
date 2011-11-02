@@ -80,7 +80,7 @@ namespace ppbox
                 boost::system::error_code & ec) = 0;
 
             virtual boost::system::error_code seek(
-                boost::uint32_t time, 
+                boost::uint32_t & time, 
                 boost::system::error_code & ec) = 0;
 
             virtual boost::uint32_t get_end_time(
