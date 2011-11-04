@@ -53,6 +53,9 @@ PROJECT_LINK_FLAGS		:= $(PROJECT_LINK_FLAGS)
 ## 该项目依赖的其他项目
 
 PROJECT_DEPENDS			:= \
+				/ppbox/certify \
+				/ppbox/vod \
+				/ppbox/live \
 				/bento4 \
 				/base/tinyxml \
 				$(PROJECT_DEPENDS) \
