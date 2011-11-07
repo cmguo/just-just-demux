@@ -123,7 +123,7 @@ namespace ppbox
                 SampleTimeLess
             > SampleTimeList;
 
-#ifdef PPBOX_DEMUX_MP4_ NO_TIME_ORDER
+#ifdef PPBOX_DEMUX_MP4_NO_TIME_ORDER
             typedef SampleOffsetList SampleList;
 #else
             typedef SampleTimeList SampleList;

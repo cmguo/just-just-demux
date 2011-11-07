@@ -70,7 +70,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             boost::system::error_code seek(
-                boost::uint32_t time, 
+                boost::uint32_t & time, 
                 boost::system::error_code & ec);
 
             boost::uint32_t get_end_time(

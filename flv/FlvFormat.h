@@ -1,5 +1,9 @@
+// FlvFormat.h
+
 #ifndef _PPBOX_DEMUX_FLV_FLV_FORMAT_H_
 #define _PPBOX_DEMUX_FLV_FLV_FORMAT_H_
+
+#include <util/archive/BigEndianBinaryIArchive.h>
 
 #include <string>
 
@@ -96,9 +100,9 @@ namespace ppbox
         struct FrameType
         {
             enum Enum {
-                FLV_FRAME_KEY        = 1 << FLV_VIDEO_FRAMETYPE_OFFSET,
-                FLV_FRAME_INTER      = 2 << FLV_VIDEO_FRAMETYPE_OFFSET,
-                FLV_FRAME_DISP_INTER = 3 << FLV_VIDEO_FRAMETYPE_OFFSET,
+                FLV_FRAME_KEY        = 1,
+                FLV_FRAME_INTER      = 2,
+                FLV_FRAME_DISP_INTER = 3,
             };
         };
 
@@ -109,6 +113,7 @@ namespace ppbox
                 AMF_DATA_TYPE_BOOL        = 0x01,
                 AMF_DATA_TYPE_STRING      = 0x02,
                 AMF_DATA_TYPE_OBJECT      = 0x03,
+                AMF_DATA_TYPE_MOVIECLIP   = 0x04,
                 AMF_DATA_TYPE_NULL        = 0x05,
                 AMF_DATA_TYPE_UNDEFINED   = 0x06,
                 AMF_DATA_TYPE_REFERENCE   = 0x07,
@@ -120,6 +125,38 @@ namespace ppbox
                 AMF_DATA_TYPE_UNSUPPORTED = 0x0d,
             };
         };
+
+        typedef util::archive::BigEndianBinaryIArchive<boost::uint8_t> FLVArchive;
+
+        /*return 1 : little-endian, return 0:big-endian*/
+        static bool endian(void)
+        {
+            union
+            {
+                boost::uint32_t a;
+                boost::uint8_t  b;
+            } c;
+            c.a = 1;
+            return (c.b == 1);
+        }
+
+        static boost::uint32_t BigEndianUint24ToHostUint32(
+            boost::uint8_t in[3])
+        {
+            boost::uint32_t value = 0;
+            boost::uint8_t *p = (boost::uint8_t*)&value;
+            if (endian()) {
+                *p = in[2];
+                *(p+1) = in[1];
+                *(p+2) = in[0];
+            } else {
+                *p = 0;
+                *(p+1) = in[0];
+                *(p+2) = in[1];
+                *(p+3) = in[2];
+            }
+            return value;
+        }
 
         struct FlvMetadata
         {

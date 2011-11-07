@@ -330,7 +330,7 @@ namespace ppbox
         }
 
         error_code Live2Demuxer::seek(
-            boost::uint32_t time, 
+            boost::uint32_t & time, 
             error_code & ec)
         {
             ec = not_supported;

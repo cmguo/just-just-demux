@@ -4,10 +4,7 @@
 #define _PPBOX_DEMUX_FLV_FLV_DEMUXER_BASE_H_
 
 #include "ppbox/demux/DemuxerBase.h"
-#include "ppbox/demux/flv/FlvTagType.h"
-#include "ppbox/demux/flv/FlvFormat.h"
-
-#include <vector>
+#include "ppbox/demux/flv/FlvStream.h"
 
 namespace ppbox
 {
@@ -26,7 +23,7 @@ namespace ppbox
                 , timestamp_offset_ms_(0)
                 , reopen_(false)
             {
-                streams_info_.resize(2);
+                streams_.resize(2);
             }
 
             ~FlvDemuxerBase()
@@ -58,7 +55,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             boost::uint32_t get_end_time(
-                boost::uint32_t total_size, 
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
@@ -69,51 +65,8 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            boost::system::error_code parse_metadata(
-                boost::uint8_t const * buffer,
-                boost::uint32_t size,
-                boost::system::error_code & ec);
-
             boost::system::error_code parse_stream(
                 boost::system::error_code & ec);
-
-            boost::system::error_code parse_amf_array(
-                boost::uint8_t const *buffer,
-                boost::uint32_t size,
-                boost::uint32_t & length,
-                boost::system::error_code & ec);
-
-            void parse_audio_config(
-                boost::uint8_t audio_config);
-
-            boost::int32_t get_amf_string(
-                boost::uint8_t const * buffer,
-                boost::uint32_t size,
-                std::string & value);
-
-            boost::int32_t get_amf_bool(
-                boost::uint8_t const * buffer,
-                boost::uint32_t size,
-                bool & value);
-
-            boost::int32_t get_amf_number(
-                boost::uint8_t const * buffer,
-                boost::uint32_t size,
-                double & value);
-
-            boost::int32_t get_amf_array(
-                boost::uint8_t const * buffer,
-                boost::uint32_t size,
-                boost::uint32_t & array_size);
-
-            boost::int32_t get_amf_unknow(
-                boost::uint8_t const * buffer,
-                boost::uint32_t size);
-
-            bool find_amf_array(
-                boost::uint8_t const * p,
-                boost::uint32_t size,
-                boost::uint32_t & pos);
 
             boost::system::error_code get_tag(
                 FlvTag & flv_tag,
@@ -122,14 +75,17 @@ namespace ppbox
         private:
             FLVArchive archive_;
 
-            boost::uint32_t open_step_;
+            FlvHeader flv_header_;
             FlvMetadata     metadata_;
+            std::vector<FlvStream> streams_;
+            std::vector<size_t> stream_map_; // Map index to AsfStream
+            FlvTag flv_tag_;
+
+            boost::uint32_t open_step_;
             boost::uint32_t header_offset_;
             boost::uint32_t parse_offset_;
-            boost::uint32_t timestamp_offset_ms_;
+            boost::uint32_t timestamp_offset_ms_;	
             bool reopen_;
-            Sample sample_;
-            std::vector<MediaInfo> streams_info_;
         };
 
     } // namespace demux

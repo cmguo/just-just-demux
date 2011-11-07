@@ -105,12 +105,7 @@ namespace ppbox
                     return 0;
                 }
 
-                boost::uint32_t total_download_size = 0;
-                total_download_size = boost::uint32_t(buffer_.write_offset() - buffer_.read_offset());
-                boost::uint32_t buffer_time = FlvDemuxerBase::get_end_time(
-                    total_download_size,
-                    ec);
-                return buffer_time;
+                return 0;
             }
 
             boost::system::error_code seek(
