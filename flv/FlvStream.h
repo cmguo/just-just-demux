@@ -18,8 +18,9 @@ namespace ppbox
         {
         public:
             FlvStream()
-                : index_to_map((boost::uint32_t)-1)
+                : ready(false)
             {
+                index = (size_t)-1;
             }
 
             FlvStream(
@@ -28,6 +29,7 @@ namespace ppbox
                 : FlvTag(tag)
                 , ready(false)
             {
+                index = (size_t)-1;
                 parse(codec_data);
             }
 
@@ -40,28 +42,30 @@ namespace ppbox
                         type = MEDIA_TYPE_VIDE;
 
                         switch (VideoTag.CodecID) {
-                            case 0:
+                            case 7:
                                 sub_type = VIDEO_TYPE_AVC1;
                                 format_type = MediaInfo::video_avc_packet;
                                 break;
                             default:
-                                format_type = 0;
                                 sub_type = VIDEO_TYPE_NONE;
+                                format_type = 0;
                                 break;
                         }
+                        time_scale = 1000;
                         format_data = codec_data;
                     } else if (TagType::FLV_TAG_TYPE_AUDIO == Type) {
                         type = MEDIA_TYPE_AUDI;
                         switch (AudioTag.SoundFormat) {
-                            case 0:
-                                format_type = MediaInfo::audio_iso_mp4;
+                            case 10:
                                 sub_type = AUDIO_TYPE_MP4A;
+                                format_type = MediaInfo::audio_iso_mp4;
                                 break;
                             default:
-                                format_type = 0;
                                 sub_type = AUDIO_TYPE_NONE;
+                                format_type = 0;
                                 break;
                         }
+                        time_scale = 1000;
                         boost::uint32_t frequency[4] = {5500, 11025, 22050, 44100};
                         boost::uint32_t size[2] = {8, 16};
                         boost::uint32_t channel[2] = {1, 2};
@@ -75,7 +79,6 @@ namespace ppbox
 
         public:
             bool ready;
-            boost::uint32_t index_to_map;
         };
 
     } // namespace demux

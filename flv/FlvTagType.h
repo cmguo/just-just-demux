@@ -22,7 +22,6 @@ namespace ppbox
             boost::uint8_t TypeFlagsReserved2 : 1;
             boost::uint8_t TypeFlagsVideo : 1;
             boost::uint32_t DataOffset;
-            boost::uint32_t Pre0Tagsize;
 
             template <typename Archive>
             void serialize(
@@ -35,7 +34,6 @@ namespace ppbox
                 ar & Version;
                 ar & temp;
                 ar & DataOffset;
-                ar & Pre0Tagsize;
                 TypeFlagsReserved = (temp & 0xF8) >> 3;
                 TypeFlagsAudio = (temp & 0x04) >> 2;
                 TypeFlagsReserved2 = (temp & 0x02) >> 1;
@@ -89,7 +87,7 @@ namespace ppbox
 
         struct FlvDataTag
         {
-            FlvDataString Name;
+            FlvDataValue Name;
             FlvDataValue Value;
 
             template <typename Archive>
@@ -107,6 +105,7 @@ namespace ppbox
             {
             }
 
+            boost::uint32_t PreTagSize;
             boost::uint8_t  Reserved : 2;
             boost::uint8_t  Filter : 1;
             boost::uint8_t  Type : 5;
@@ -116,7 +115,6 @@ namespace ppbox
             FlvAudioTag AudioTag;
             FlvVideoTag VideoTag;
             FlvDataTag DataTag;
-            boost::uint32_t PreTagSize;
             boost::uint64_t data_offset;
 
             boost::uint8_t input[3];
@@ -124,6 +122,7 @@ namespace ppbox
             void serialize(
                 Archive & ar)
             {
+                ar & PreTagSize;
                 boost::uint8_t temp1 = 0, temp2 = 0, temp3 = 0;
                 ar & temp1;
                 Reserved = (temp1 & 0xC0) >> 6;
@@ -146,22 +145,21 @@ namespace ppbox
                 ar & temp1 & temp2 & temp3;
                 input[0] = temp1; input[1] = temp2; input[2] = temp3;
                 StreamID = BigEndianUint24ToHostUint32(input);
+                data_offset = ar.tellg();
                 if (Type == TagType::FLV_TAG_TYPE_AUDIO) {
-                    if (DataSize <= 2)
-                        ar.fail();
                     ar & AudioTag;
-                    DataSize -= 2;
                 } else if (Type == TagType::FLV_TAG_TYPE_VIDEO) {
-                    if (DataSize <= 5)
-                        ar.fail();
                     ar & VideoTag;
-                    DataSize -= 5;
                 } else if (Type == TagType::FLV_TAG_TYPE_META) {
                     ar & DataTag;
                 }
-                data_offset = ar.tellg();
+                if (DataSize + data_offset < ar.tellg()) {
+                    ar.fail();
+                } else {
+                    DataSize = DataSize + data_offset - ar.tellg();
+                    data_offset = ar.tellg();
+                }
                 ar.seekg(DataSize, std::ios_base::cur);
-                ar & PreTagSize;
             }
         };
 

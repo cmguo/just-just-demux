@@ -57,14 +57,16 @@ namespace ppbox
                         ec = error::bad_file_format;
                         return false;
                 }
-                streams_.resize((size_t)TagType::FLV_TAG_TYPE_META);
+                streams_.clear();
+                stream_map_.clear();
+                streams_.resize((size_t)TagType::FLV_TAG_TYPE_META + 1);
                 if (flv_header_.TypeFlagsAudio) {
+                    streams_[(size_t)TagType::FLV_TAG_TYPE_AUDIO].index = stream_map_.size();
                     stream_map_.push_back((size_t)TagType::FLV_TAG_TYPE_AUDIO);
-                    streams_[(size_t)TagType::FLV_TAG_TYPE_AUDIO].index_to_map = stream_map_.size();
                 }
                 if (flv_header_.TypeFlagsVideo) {
+                    streams_[(size_t)TagType::FLV_TAG_TYPE_VIDEO].index = stream_map_.size();
                     stream_map_.push_back((size_t)TagType::FLV_TAG_TYPE_VIDEO);
-                    streams_[(size_t)TagType::FLV_TAG_TYPE_VIDEO].index_to_map = stream_map_.size();
                 }
                 open_step_ = 1;
             }
@@ -75,9 +77,9 @@ namespace ppbox
                     std::vector<boost::uint8_t> codec_data;
                     archive_.seekg(std::streamoff(flv_tag_.data_offset), std::ios_base::beg);
                     util::serialization::serialize_collection(archive_, codec_data, flv_tag_.DataSize);
-                    boost::uint32_t index_to_map = streams_[(size_t)flv_tag_.Type].index_to_map;
+                    boost::uint32_t index = streams_[(size_t)flv_tag_.Type].index;
                     streams_[(size_t)flv_tag_.Type] = FlvStream(flv_tag_, codec_data);
-                    streams_[(size_t)flv_tag_.Type].index_to_map = index_to_map;
+                    streams_[(size_t)flv_tag_.Type].index = index;
                     streams_[(size_t)flv_tag_.Type].ready = true;
                     bool ready = true;
                     for (size_t i = 0; i < stream_map_.size(); ++i) {
@@ -92,14 +94,27 @@ namespace ppbox
                 if (ec) {
                     return false;
                 }
-                open_step_ = 2;
+                parse_offset_ = (boost::uint32_t)archive_.tellg();
+                if (timestamp_offset_ms_ == 0)
+                    open_step_ = 2;
+                else
+                    open_step_ = 3;
             }
 
             if (open_step_ == 2) {
-                if (get_tag(flv_tag_, ec))
-                    return ec;
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 assert(archive_);
+                while (!get_tag(flv_tag_, ec)) {
+                    if (flv_tag_.Type < streams_.size() &&
+                        streams_[(size_t)flv_tag_.Type].index < stream_map_.size()) {
+                            break;
+                    }
+                    parse_offset_ = (boost::uint32_t)archive_.tellg();
+                }
+                if (ec) {
+                    return false;
+                }
+                archive_.seekg(parse_offset_, std::ios_base::beg);
                 timestamp_offset_ms_ = flv_tag_.Timestamp;
                 open_step_ = 3;
             }
@@ -111,18 +126,16 @@ namespace ppbox
             FlvTag & flv_tag_,
             error_code & ec)
         {
-            archive_ >> flv_tag_;
-            ec.clear();
-            if (!archive_) {
+            if (archive_ >> flv_tag_) {
+                ec.clear();
+                return ec;
+            } else if (archive_.failed()) {
                 archive_.clear();
-                ec = error::file_stream_error;
+                return ec = error::bad_file_format;
             } else {
-                if (flv_tag_.DataSize+11 != flv_tag_.PreTagSize) {
-                    archive_.clear();
-                    ec = error::bad_file_format;
-                }
+                archive_.clear();
+                return ec = error::file_stream_error;
             }
-            return ec;
         }
 
         error_code FlvDemuxerBase::parse_stream(
@@ -177,6 +190,7 @@ namespace ppbox
             archive_.seekg(parse_offset_, std::ios_base::beg);
             framework::timer::TickCounter tc;
             if (get_tag(flv_tag_, ec)) {
+                archive_.seekg(parse_offset_, std::ios_base::beg);
                 return ec;
             }
             if (tc.elapsed() > 10) {
@@ -184,19 +198,27 @@ namespace ppbox
             }
             parse_offset_ = (boost::uint32_t)archive_.tellg();
             if (flv_tag_.Type < streams_.size() && 
-                streams_[(size_t)flv_tag_.Type].index_to_map < stream_map_.size()) {
+                streams_[(size_t)flv_tag_.Type].index < stream_map_.size()) {
                     FlvStream const & stream = streams_[(size_t)flv_tag_.Type];
-                    sample.itrack = stream.index_to_map;
+                    sample.itrack = stream.index;
                     sample.idesc = 0;
                     sample.flags = 0;
                     sample.time = flv_tag_.Timestamp - timestamp_offset_ms_;
                     sample.ustime = sample.time * 1000;
                     sample.dts = flv_tag_.Timestamp;
-                    sample.pts = (boost::uint32_t)-1;
+                    sample.duration = 0;
+                    sample.cts_delta = 
+                        flv_tag_.Type == TagType::FLV_TAG_TYPE_VIDEO 
+                            ? (flv_tag_.VideoTag.CodecID == 7 ? flv_tag_.VideoTag.CompositionTime : (boost::uint32_t)-1) 
+                            : 0;
                     sample.is_sync = flv_tag_.Type == TagType::FLV_TAG_TYPE_AUDIO 
                         || flv_tag_.VideoTag.FrameType == FrameType::FLV_FRAME_KEY;
                     sample.size = flv_tag_.DataSize;
+                    sample.blocks.clear();
                     sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
+            } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_META) {
+                 LOG_S(Logger::kLevelDebug, "[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
+                 return get_sample(sample, ec);
             } else {
                 ec = bad_file_format;
             }
@@ -206,7 +228,7 @@ namespace ppbox
         size_t FlvDemuxerBase::get_media_count(error_code & ec)
         {
             if (is_open(ec)) {
-                return streams_.size();
+                return stream_map_.size();
             } else {
                 return 0;
             }
@@ -218,10 +240,10 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
-                if (index >= streams_.size()) {
+                if (index >= stream_map_.size()) {
                     ec = framework::system::logic_error::out_of_range;
                 } else {
-                    info = streams_[index];
+                    info = streams_[stream_map_[index]];
                 }
             }
             return ec;

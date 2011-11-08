@@ -26,7 +26,7 @@ namespace ppbox
         public:
             FlvBufferDemuxer(
                 Buffer & buffer)
-                : FlvDemuxerBase(*(stream_buf_ = new BytesStream<Buffer>(buffer)))
+                : FlvDemuxerBase(*(stream_ = new BytesStream<Buffer>(buffer)))
                 , buffer_(buffer)
                 , segment_(0)
             {
@@ -34,9 +34,9 @@ namespace ppbox
 
             ~FlvBufferDemuxer()
             {
-                if (stream_buf_) {
-                    delete stream_buf_;
-                    stream_buf_ = NULL;
+                if (stream_) {
+                    delete stream_;
+                    stream_ = NULL;
                 }
             }
 
@@ -44,12 +44,12 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 segment_ = buffer_.add_segment(ec);
-                stream_buf_->more(0);
+                stream_->more(0);
                 FlvDemuxerBase::open(ec);
                 if (!ec) {
-                    stream_buf_->drop();
+                    stream_->drop();
                 } else if (ec == ppbox::demux::error::file_stream_error) {
-                    ec = stream_buf_->error();
+                    ec = stream_->error();
                     if (ec == boost::asio::error::eof) {
                         FlvDemuxerBase::open(ec);
                     }
@@ -64,7 +64,7 @@ namespace ppbox
 
                 boost::system::error_code ec;
                 segment_ = buffer_.add_segment(ec);
-
+                FlvDemuxerBase::open(ec);
                 handle_async(boost::system::error_code());
             }
 
@@ -72,22 +72,31 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec)
             {
-                stream_buf_->more(0);
-                FlvDemuxerBase::get_sample(sample, ec);
-                if (!ec) {
-                    stream_buf_->drop();
-                } else if (ec == ppbox::demux::error::file_stream_error) {
-                    if (buffer_.read_segment() != buffer_.write_segment()) {    // 当前分段已经下载完成
-                        stream_buf_->drop_all();
-                        FlvDemuxerBase::open(ec) 
-                           || FlvDemuxerBase::get_sample(sample, ec);
-                        if (ec == ppbox::demux::error::file_stream_error) {
-                            ec = stream_buf_->error();
-                        }
-                    } else {
-                        ec = stream_buf_->error();
+                stream_->more(0);
+                stream_->drop();
+                while (FlvDemuxerBase::get_sample(sample, ec)) {
+                    if (ec == ppbox::demux::error::file_stream_error) {
+                        if (buffer_.read_segment() != buffer_.write_segment()) {    // 当前分段已经下载完成
+                            std::cout << "drop_all" << std::endl;
+                            stream_->drop_all();
+                            FlvDemuxerBase::open(ec); 
+                        } else {
+                            ec = stream_->error();
+                            break;
+                        }
                     }
                 }
+                if (!ec) {
+                    sample.data.clear();
+                    for(std::vector<FileBlock>::iterator iter = sample.blocks.begin();
+                        iter != sample.blocks.end();
+                        iter++) {
+                            buffer_.peek((*iter).offset, (*iter).size, sample.data, ec);
+                            if (ec) {
+                                break;
+                            }
+                    }
+                }
                 return ec;
             }
 
@@ -95,14 +104,11 @@ namespace ppbox
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf)
             {
-                stream_buf_->more(0);
-                ec_buf = stream_buf_->error();
+                stream_->more(0);
+                ec_buf = stream_->error();
 
-                if (!is_open(ec)) {
-                    if (ec == ppbox::demux::error::file_stream_error) {
-                        ec = stream_buf_->error();
-                    }
-                    return 0;
+                if (is_open(ec)) {
+                    return buffer_.write_segment() * 5000;
                 }
 
                 return 0;
@@ -125,21 +131,16 @@ namespace ppbox
             {
                 boost::system::error_code ec = ecc;
                 if (!ec) {
-                    stream_buf_->update_new();
-
-                    FlvDemuxerBase::open(ec);
-                    if (!ec) {
-                        stream_buf_->drop();
+                    stream_->update_new();
+                    if (FlvDemuxerBase::is_open(ec)) {
+                        stream_->drop();
                     } else if (ec == ppbox::demux::error::file_stream_error) {
                         //ec = asf_buf_->error();
-
                         buffer_.async_prepare_at_least(0, 
                             boost::bind(&FlvBufferDemuxer::handle_async, this, _1));
-
                         return;
                     }
                 }
-
                 response(ec);
             }
 
@@ -152,7 +153,7 @@ namespace ppbox
             }
 
         private:
-            BytesStream<Buffer> * stream_buf_;
+            BytesStream<Buffer> * stream_;
             Buffer & buffer_;
             size_t segment_;
 
