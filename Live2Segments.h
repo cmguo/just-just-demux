@@ -134,25 +134,26 @@ namespace ppbox
             {
                 live_demuxer_->seg_end(segment);
 
-                if (write_at_end()) {
-                    LOG_S(framework::logger::Logger::kLevelDebug, "[on_seg_close] write_at_end");
-
-                    update();
-                }
-
                 LOG_S(framework::logger::Logger::kLevelDebug, 
                     "[on_seg_close] segment: " << segment << ", file_time_: " << file_time_);
             }
 
-            bool recoverable(
-                boost::system::error_code const & ec)
+            void on_error(
+                boost::system::error_code & ec)
             {
-                if (ec == http_error::not_found) {
-                    pause(5 * 1000);
-                    return true;
-                }
+                LOG_S(framework::logger::Logger::kLevelDebug, 
+                    "[on_error] ec: " << ec.message());
 
-                return util::protocol::HttpClient::recoverable(ec);
+                if (ec == source_error::no_more_segment) {
+                    update();
+                    ec.clear();
+                    add_segment(ec);
+                    clear_readed_segment(ec);
+                } else if (ec == http_error::not_found) {
+                    pause(5 * 1000);
+                    ec.clear();
+                    //ec = boost::asio::error::would_block;
+                }
             }
 
         public:
@@ -214,9 +215,6 @@ namespace ppbox
                         file_time_ += interval_;
                     }
                 }
-
-                boost::system::error_code ec;
-                clear_readed_segment(ec);
             }
 
             void set_http_proxy(

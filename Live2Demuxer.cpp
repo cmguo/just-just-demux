@@ -334,6 +334,8 @@ namespace ppbox
             error_code & ec)
         {
             ec = not_supported;
+            if (0 == time)
+                ec.clear();
             return ec;
         }
 

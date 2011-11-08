@@ -787,12 +787,10 @@ namespace ppbox
                         sample.ustime += segments_[seg_read]->duration_offset_us;
 
                         if (sample.itrack != boost::uint32_t(-1)) {
-                            sample.pts += media_info_[sample.itrack].duration;
                             sample.dts += media_info_[sample.itrack].duration;
                         }
 
                         if (sample.itrack != sample.itrack) {
-                            sample.pts += media_info_[sample.itrack].duration;
                             sample.dts += media_info_[sample.itrack].duration;
                         }
                         play_on(sample.time);

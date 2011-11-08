@@ -144,7 +144,7 @@ namespace ppbox
                 vod_demuxer_->seg_beg(segment);
             }
 
-            void on_seg_close(
+            void on_seg_end(
                 size_t segment)
             {
                 vod_demuxer_->seg_end(segment);
