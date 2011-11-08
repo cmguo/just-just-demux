@@ -295,7 +295,7 @@ namespace ppbox
             sample.size = ap4_sample.GetSize();
             sample.idesc = ap4_sample.GetDescriptionIndex();
             sample.dts = ap4_sample.GetDts();
-            sample.pts = ap4_sample.GetDts() + ap4_sample.GetCtsDelta();
+            sample.cts_delta = ap4_sample.GetCtsDelta();
             sample.is_sync = ap4_sample.IsSync();
             sample.ustime = ap4_sample.ustime;
             sample.time = ap4_sample.time;
