@@ -108,31 +108,14 @@ namespace ppbox
 
         struct Sample
         {
-            Sample const & operator= (Sample const & sample)
-            {
-                itrack = sample.itrack;
-                idesc = sample.idesc;
-                flags = sample.flags;
-                time = sample.time;
-                ustime = sample.ustime;
-                dts = sample.dts;
-                pts = sample.pts;
-                size = sample.size;
-                is_sync = sample.is_sync;
-                blocks = sample.blocks;
-                media_info = sample.media_info;
-                context = sample.context;
-                data = sample.data;
-                return *this;
-            }
-
             boost::uint32_t itrack;
             boost::uint32_t idesc;
             boost::uint32_t flags;
             boost::uint32_t time;
             boost::uint64_t ustime;
             boost::uint64_t dts;
-            boost::uint64_t pts;
+            boost::uint32_t cts_delta;
+            boost::uint32_t duration;
             boost::uint32_t size;
             bool is_sync;   // refine add dis_contiuny
             std::vector<FileBlock> blocks;
