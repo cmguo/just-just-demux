@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_SOURCE_BUFFER_LIST_H_
 
 #include "ppbox/demux/source/BufferStatistic.h"
+#include "ppbox/demux/source/SourceError.h"
 
 #include <util/buffers/Buffers.h>
 
@@ -489,7 +490,7 @@ namespace ppbox
                     if (is_error) {
                         if (ec == boost::asio::error::eof) {
                             open_segment(true, ec);
-                            if (ec == boost::asio::error::eof)
+                            if (ec && !handle_error(ec))
                                 break;
                         } else {
                             open_segment(false, ec);
@@ -501,6 +502,7 @@ namespace ppbox
                 return ec;
             }
 
+            // 返回false表示不能再继续了
             bool handle_error(
                 boost::system::error_code& ec)
             {
@@ -514,6 +516,8 @@ namespace ppbox
                         if (segments_[write_.segment].can_retry()) {
                             return true;
                         }
+                    } else {
+                        return false;
                     }
                 } else if (ec == boost::asio::error::eof) {
                     if (write_.offset >= write_hole_.this_end) {
@@ -538,10 +542,7 @@ namespace ppbox
                     }
                 }
                 source().on_error(ec);
-                if (!ec) {
-                    return true;
-                }
-                return false;
+                return !ec;
             }
 
             void on_error(
@@ -1309,7 +1310,7 @@ namespace ppbox
                 }
                 if (pos.segment >= segments_.size() || pos.offset >= seek_end_) {
                     hole.this_end = hole.next_beg = pos.offset;
-                    return ec = boost::asio::error::eof;
+                    return ec = source_error::no_more_segment;
                 }
 
                 // W     e^b    e----b      e---
@@ -1332,11 +1333,6 @@ namespace ppbox
                 bool is_next_segment, 
                 boost::system::error_code & ec)
             {
-                if (Time::now() <= expire_pause_time_) {
-                    ec = boost::asio::error::would_block;
-                    return ec;
-                }
-
                 if (is_next_segment) {
                     reset_zero_interval();
                     time_block_ = 0;
@@ -1347,11 +1343,14 @@ namespace ppbox
                     close_all_segment(ec);
                 }
 
+                if (Time::now() <= expire_pause_time_) {
+                    ec = boost::asio::error::would_block;
+                    return ec;
+                }
+
                 send_request(is_next_segment, ec);
-                if (ec) {
-                    source().on_error(ec);
-                    if (!ec)
-                        ec = boost::asio::error::would_block;
+
+                if (ec && !source().continuable(ec)) {
                     return ec;
                 }
 
@@ -1364,10 +1363,10 @@ namespace ppbox
 
                 LOG_S(framework::logger::Logger::kLevelAlarm, 
                     "[open_segment] write_.segment: " << write_.segment << 
-                    " write_.offset: " << write_.offset - write_.seg_beg << 
-                    " write_hole_.this_end: " << write_hole_.this_end - write_.seg_beg);
+                    " write_.offset: " << write_.offset << 
+                    " write_hole_.this_end: " << write_hole_.this_end);
 
-                source().segments().on_seg_beg(write_.segment);
+                source().on_seg_beg(write_.segment);
                 source_closed_ = false;
 
                 return ec;
@@ -1395,7 +1394,7 @@ namespace ppbox
                 sended_req_++;
                 ++segments_[write_.segment].num_try;
 
-                source().segments().on_seg_beg(write_.segment);
+                source().on_seg_beg(write_.segment);
                 source().async_open_segment(
                     write_.segment, 
                     write_.offset - write_.seg_beg, 
@@ -1408,17 +1407,21 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 if (sended_req_) {
+                    source().close_segment(write_.segment, ec);
                     sended_req_--;
                 } else {
                     return ec;
                 }
 
                 if (!source_closed_) {
-                    source().close_segment(write_.segment, ec);
+                    LOG_S(framework::logger::Logger::kLevelAlarm, 
+                        "[close_segment] write_.segment: " << write_.segment << 
+                        " write_.offset: " << write_.offset << 
+                        " write_hole_.this_end: " << write_hole_.this_end);
+                    source().on_seg_beg(write_.segment);
                     source_closed_ = true;
-                } else {
-                    ec = boost::system::error_code();
                 }
+
                 return ec;
             }
 
@@ -1435,9 +1438,17 @@ namespace ppbox
                 for (size_t i = 0; i < sended_req_; ++i) {
                     source().close_segment(write_.segment, ec);
                 }
-
-                source_closed_ = true;
                 sended_req_ = 0;
+
+                if (!source_closed_) {
+                    LOG_S(framework::logger::Logger::kLevelAlarm, 
+                        "[close_segment] write_.segment: " << write_.segment << 
+                        " write_.offset: " << write_.offset << 
+                        " write_hole_.this_end: " << write_hole_.this_end);
+                    source().on_seg_beg(write_.segment);
+                    source_closed_ = true;
+                }
+
                 return ec;
             }
 
@@ -1867,7 +1878,7 @@ namespace ppbox
                             data_end_ = write_hole_tmp_.this_end;
                         }
                         if (next_write_hole(write_tmp_, write_hole_tmp_, ec)) {
-                            if (sended_req_ && ec == boost::asio::error::eof) {
+                            if (sended_req_ && ec == source_error::no_more_segment) {
                                 ec.clear();
                             }
                             data_end_ = data_end_tmp;
@@ -1879,19 +1890,16 @@ namespace ppbox
                     source().open_segment(write_tmp_.segment, write_tmp_.offset - write_tmp_.seg_beg, 
                         write_hole_tmp_.this_end == boost::uint64_t(-1) || write_hole_tmp_.this_end == write_tmp_.seg_end ? 
                         boost::uint64_t(-1) : write_hole_tmp_.this_end - write_tmp_.seg_beg, ec);
-                    if (ec){
-                        if (source().continuable(ec)){
-                            ec.clear();
+                    if (ec) {
+                        if (source().continuable(ec)) {
+                            if (sended_req_) // 如果已经发过一个请求
+                                ec.clear();
                         } else {
                             LOG_S(framework::logger::Logger::kLevelAlarm, 
                                 "[open_segment] source().open_segment: " << ec.message() << 
                                 " --- failed " << segments_[write_tmp_.segment].num_try << " times");
                             write_tmp_ = write_tmp;
                             write_hole_tmp_ = write_hole_tmp;
-                            source().on_error(ec);
-                            if (!ec && !sended_req_) {
-                                ec = boost::asio::error::would_block;
-                            }
                             break;
                         }
                     }

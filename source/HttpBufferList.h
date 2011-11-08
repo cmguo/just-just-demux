@@ -129,7 +129,6 @@ namespace ppbox
                 size_t segment, 
                 boost::system::error_code & ec)
             {
-                segments().on_seg_close(segment);
                 return http_.close(ec);
             }
 
