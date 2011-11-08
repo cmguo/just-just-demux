@@ -18,10 +18,10 @@ namespace ppbox
             AsfStream()
                 : ready(false)
                 , next_id(0)
-                , index_to_map((boost::uint32_t)-1)
                 , time_offset_us((boost::uint64_t)-1)
-                , time_offset_ms((boost::uint64_t)-1)
+                , time_offset_ms((boost::uint32_t)-1)
             {
+                index = (size_t)-1;
             }
 
             AsfStream(
@@ -29,8 +29,8 @@ namespace ppbox
                 : ASF_Stream_Properties_Object_Data(property)
                 , ready(false)
                 , next_id(0)
-                , index_to_map((boost::uint32_t)-1)
             {
+                index = (size_t)-1;
                 time_offset_us = TimeOffset / 10;
                 time_offset_ms = (boost::uint32_t)(time_offset_us / 1000);
                 parse();

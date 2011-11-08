@@ -70,7 +70,7 @@ namespace ppbox
                             streams_.resize(obj_data.Flag.StreamNumber + 1);
                         }
                         streams_[obj_data.Flag.StreamNumber] = obj_data;
-                        streams_[obj_data.Flag.StreamNumber].index_to_map = stream_map_.size();
+                        streams_[obj_data.Flag.StreamNumber].index = stream_map_.size();
                         //streams_[obj_data.Flag.StreamNumber].get_start_sample(start_samples_);
                         stream_map_.push_back(obj_data.Flag.StreamNumber);
                     }
@@ -185,9 +185,7 @@ namespace ppbox
             if (!is_open(ec)) {
                 return ec;
             }
-            boost::uint32_t beg = archive_.tellg();
             archive_.seekg(object_parse_.offset, std::ios_base::beg);
-            sample.blocks.clear();
             //assert(archive_);
             /*
             if (!start_samples_.empty()) {
@@ -212,7 +210,7 @@ namespace ppbox
                 //    }
                 //}
                 if (ec) {
-                    archive_.seekg(beg, std::ios_base::beg);
+                    archive_.seekg(object_parse_.offset, std::ios_base::beg);
                     return ec;
                 }
                 // Object not continue
@@ -234,21 +232,17 @@ namespace ppbox
                 if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
                     AsfStream & stream = streams_[object_parse_.payload.StreamNum];
                     stream.next_id = object_parse_.payload.MediaObjNum;
-                    //sample.data.resize(object_parse_.payload.MediaObjectSize);
-                    //boost::uint8_t * data_buf = &sample.data[0];
+                    sample.blocks.clear();
                     for (size_t i = 0; i < object_payloads_.size(); ++i) {
-                        //archive_.seekg(object_payloads_[i].data_offset, std::ios_base::beg);
-                        //archive_ >> framework::container::make_array(data_buf, object_payloads_[i].PayloadLength);
-                        //data_buf += object_payloads_[i].PayloadLength;
                         sample.blocks.push_back(FileBlock(object_payloads_[i].data_offset, object_payloads_[i].PayloadLength));
                     }
-                    sample.itrack = stream.index_to_map;
+                    sample.itrack = stream.index;
                     sample.time = object_parse_.payload.PresTime - stream.time_offset_ms;
                     sample.size = object_parse_.payload.MediaObjectSize;
                     sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us;
                     sample.idesc = 0;
                     sample.dts = object_parse_.payload.PresTime - stream.time_offset_ms;
-                    sample.pts = boost::uint64_t(-1);
+                    sample.cts_delta = boost::uint64_t(-1);
                     sample.is_sync = object_parse_.payload.KeyFrameBit;
                     object_payloads_.clear();
                     is_discontinuity_ = false;
@@ -277,7 +271,6 @@ namespace ppbox
                     ec = framework::system::logic_error::out_of_range;
                 } else {
                     info = streams_[stream_map_[index]];
-                    info.index = index;
                     // 添加直播的配置信息
                     if (MEDIA_TYPE_VIDE == info.type) {
                         info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
