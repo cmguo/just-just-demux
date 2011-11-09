@@ -190,9 +190,11 @@ namespace ppbox
                     boost::uint32_t size = (boost::uint32_t)(sample.blocks[0].offset - buffer_.read_front());
                     boost::uint64_t offset = sample.blocks[0].offset - size;
                     sample.is_sync = false;
+                    sample.data.clear();
                     buffer_.peek(size, sample.data, ec);
 #endif
                 } else {
+                    sample.data.clear();
                     buffer_.peek(sample.blocks[0].offset, sample.blocks[0].size, sample.data, ec);
                     if (ec) {
                         boost::system::error_code ec1;
