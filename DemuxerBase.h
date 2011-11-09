@@ -108,6 +108,12 @@ namespace ppbox
 
         struct Sample
         {
+            enum FlagEnum
+            {
+                 sync = 1, 
+                 discontinuity = 2,
+            };
+
             boost::uint32_t itrack;
             boost::uint32_t idesc;
             boost::uint32_t flags;
@@ -117,7 +123,6 @@ namespace ppbox
             boost::uint32_t cts_delta;
             boost::uint32_t duration;
             boost::uint32_t size;
-            bool is_sync;   // refine add dis_contiuny
             std::vector<FileBlock> blocks;
             MediaInfo const * media_info;
             void * context;

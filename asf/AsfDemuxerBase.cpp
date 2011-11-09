@@ -232,18 +232,23 @@ namespace ppbox
                 if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
                     AsfStream & stream = streams_[object_parse_.payload.StreamNum];
                     stream.next_id = object_parse_.payload.MediaObjNum;
+                    sample.itrack = stream.index;
+		    sample.idesc = 0;
+                    sample.flags = 0;
+                    if (object_parse_.payload.KeyFrameBit)
+                        sample.flags |= Sample::sync;
+                    if (is_discontinuity_)
+                        sample.flags |= Sample::discontinuity;
+                    sample.time = object_parse_.payload.PresTime - stream.time_offset_ms;
+                    sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us;
+                    sample.dts = object_parse_.payload.PresTime - stream.time_offset_ms;
+                    sample.cts_delta = boost::uint64_t(-1);
+		    sample.duration = 0;
+                    sample.size = object_parse_.payload.MediaObjectSize;
                     sample.blocks.clear();
                     for (size_t i = 0; i < object_payloads_.size(); ++i) {
                         sample.blocks.push_back(FileBlock(object_payloads_[i].data_offset, object_payloads_[i].PayloadLength));
                     }
-                    sample.itrack = stream.index;
-                    sample.time = object_parse_.payload.PresTime - stream.time_offset_ms;
-                    sample.size = object_parse_.payload.MediaObjectSize;
-                    sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us;
-                    sample.idesc = 0;
-                    sample.dts = object_parse_.payload.PresTime - stream.time_offset_ms;
-                    sample.cts_delta = boost::uint64_t(-1);
-                    sample.is_sync = object_parse_.payload.KeyFrameBit;
                     object_payloads_.clear();
                     is_discontinuity_ = false;
                     next_object_offset_ = 0;

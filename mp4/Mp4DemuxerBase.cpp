@@ -289,16 +289,17 @@ namespace ppbox
             SampleListItem & ap4_sample = *sample_list_->first();
             ec = error_code();
             sample.itrack = ap4_sample.itrack;
-            sample.blocks.clear();
-            sample.data.clear();
-            sample.blocks.push_back(FileBlock(ap4_sample.GetOffset(), ap4_sample.GetSize()));
-            sample.size = ap4_sample.GetSize();
             sample.idesc = ap4_sample.GetDescriptionIndex();
+            sample.flags = 0;
+            if (ap4_sample.IsSync())
+                sample.flags |= Sample::sync;
+            sample.time = ap4_sample.time;
+            sample.ustime = ap4_sample.ustime;
             sample.dts = ap4_sample.GetDts();
             sample.cts_delta = ap4_sample.GetCtsDelta();
-            sample.is_sync = ap4_sample.IsSync();
-            sample.ustime = ap4_sample.ustime;
-            sample.time = ap4_sample.time;
+            sample.size = ap4_sample.GetSize();
+            sample.blocks.clear();
+            sample.blocks.push_back(FileBlock(ap4_sample.GetOffset(), ap4_sample.GetSize()));
 
             sample_put_back_ = false;
             min_offset_ = ap4_sample.GetOffset();

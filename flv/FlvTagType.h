@@ -59,7 +59,8 @@ namespace ppbox
                 SoundRate = (temp & 0x0C) >> 2;
                 SoundSize = (temp & 0x02) >> 1;
                 SoundType = temp & 0x01;
-                ar & AACPacketType;
+                if (SoundFormat == SoundCodec::FLV_CODECID_AAC)
+                    ar & AACPacketType;
             }
         };
 
@@ -78,10 +79,14 @@ namespace ppbox
                 ar & temp;
                 FrameType = (temp & 0xF0) >> 4;
                 CodecID  = (temp & 0x0F);
-                ar & AVCPacketType;
-                boost::uint8_t temp2[3];
-                ar & framework::container::make_array(temp2);
-                CompositionTime = BigEndianUint24ToHostUint32(temp2);
+                if (CodecID == VideoCodec::FLV_CODECID_H264) {
+                    ar & AVCPacketType;
+                    boost::uint8_t temp2[3];
+                    ar & framework::container::make_array(temp2);
+                    CompositionTime = BigEndianUint24ToHostUint32(temp2);
+                } else {
+                    CompositionTime = 0;
+                }
             }
         };
 
@@ -116,6 +121,8 @@ namespace ppbox
             FlvVideoTag VideoTag;
             FlvDataTag DataTag;
             boost::uint64_t data_offset;
+            boost::uint32_t cts_delta;
+            boost::uint8_t is_sync;
 
             boost::uint8_t input[3];
             template <typename Archive>
@@ -148,10 +155,16 @@ namespace ppbox
                 data_offset = ar.tellg();
                 if (Type == TagType::FLV_TAG_TYPE_AUDIO) {
                     ar & AudioTag;
+                    cts_delta = 0;
+                    is_sync = true;
                 } else if (Type == TagType::FLV_TAG_TYPE_VIDEO) {
                     ar & VideoTag;
+                    cts_delta = VideoTag.CompositionTime;
+                    is_sync = VideoTag.FrameType == FrameType::FLV_FRAME_KEY;
                 } else if (Type == TagType::FLV_TAG_TYPE_META) {
                     ar & DataTag;
+                    cts_delta = 0;
+                    is_sync = true;
                 }
                 if (DataSize + data_offset < ar.tellg()) {
                     ar.fail();

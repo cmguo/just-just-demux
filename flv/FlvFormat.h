@@ -56,17 +56,17 @@ namespace ppbox
         {
             enum Enum {
                 FLV_SAMPLESSIZE_8BIT  = 0,
-                FLV_SAMPLESSIZE_16BIT = 1 << FLV_AUDIO_SAMPLESSIZE_OFFSET,
+                FLV_SAMPLESSIZE_16BIT = 1,
             };
         };
 
-        struct SoundSamplerateType
+        struct SoundSampleRateType
         {
             enum Enum {
                 FLV_SAMPLERATE_SPECIAL = 0, 
-                FLV_SAMPLERATE_11025HZ = 1 << FLV_AUDIO_SAMPLERATE_OFFSET,
-                FLV_SAMPLERATE_22050HZ = 2 << FLV_AUDIO_SAMPLERATE_OFFSET,
-                FLV_SAMPLERATE_44100HZ = 3 << FLV_AUDIO_SAMPLERATE_OFFSET,
+                FLV_SAMPLERATE_11025HZ = 1,
+                FLV_SAMPLERATE_22050HZ = 2,
+                FLV_SAMPLERATE_44100HZ = 3,
             };
         };
 

@@ -203,16 +203,13 @@ namespace ppbox
                     sample.itrack = stream.index;
                     sample.idesc = 0;
                     sample.flags = 0;
+                    if (flv_tag_.is_sync)
+                        sample.flags |= Sample::sync;
                     sample.time = flv_tag_.Timestamp - timestamp_offset_ms_;
                     sample.ustime = sample.time * 1000;
                     sample.dts = flv_tag_.Timestamp;
+                    sample.cts_delta = flv_tag_.cts_delta;
                     sample.duration = 0;
-                    sample.cts_delta = 
-                        flv_tag_.Type == TagType::FLV_TAG_TYPE_VIDEO 
-                            ? (flv_tag_.VideoTag.CodecID == 7 ? flv_tag_.VideoTag.CompositionTime : (boost::uint32_t)-1) 
-                            : 0;
-                    sample.is_sync = flv_tag_.Type == TagType::FLV_TAG_TYPE_AUDIO 
-                        || flv_tag_.VideoTag.FrameType == FrameType::FLV_FRAME_KEY;
                     sample.size = flv_tag_.DataSize;
                     sample.blocks.clear();
                     sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
