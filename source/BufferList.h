@@ -1600,7 +1600,6 @@ namespace ppbox
                 assert(offset + size <= data_end_);
                 Position p = read_;
                 move_front_to(p, offset);
-                data.clear();
                 if (p.buffer + size <= buffer_end()) {
                     data.push_back(boost::asio::buffer(p.buffer, size));
                 } else {
