@@ -24,6 +24,7 @@ namespace ppbox
         class Track;
 
         class Mp4DemuxerBase
+            : public DemuxerBase
         {
         public:
             typedef framework::container::Array<
@@ -31,18 +32,17 @@ namespace ppbox
             > buffer_t;
 
         public:
-            Mp4DemuxerBase();
+            Mp4DemuxerBase(
+                std::basic_streambuf<boost::uint8_t> & buf);
 
             ~Mp4DemuxerBase();
 
         public:
-            size_t min_head_size(
-                buffer_t const & head_buf);
+            boost::system::error_code open(
+                boost::system::error_code & ec);
 
-            size_t head_size() const
-            {
-                return head_size_;
-            }
+            bool is_open(
+                boost::system::error_code & ec);
 
             bool head_valid() const
             {
@@ -54,13 +54,7 @@ namespace ppbox
                 return min_offset_;
             }
 
-            boost::system::error_code set_head(
-                buffer_t const & head_buf, 
-                boost::uint64_t total_size, 
-                boost::system::error_code & ec);
-
-            boost::system::error_code get_head(
-                std::vector<boost::uint8_t> & head_buf, 
+            boost::system::error_code parse_head(
                 boost::system::error_code & ec);
 
             size_t get_media_count(
@@ -87,7 +81,7 @@ namespace ppbox
                 Sample const & sample, 
                 boost::system::error_code & ec);
 
-            boost::uint64_t seek_to(
+            boost::uint64_t seek(
                 boost::uint32_t & time, 
                 boost::system::error_code & ec);
 
@@ -95,7 +89,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             boost::uint32_t get_end_time(
-                boost::uint64_t offset, 
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
@@ -104,10 +97,11 @@ namespace ppbox
             void release(void);
 
         private:
-            boost::uint32_t head_size_;
             boost::uint32_t bitrate_;
 
         private:
+            std::istream is_;
+            boost::uint32_t open_step_;
             AP4_File * file_;
             std::vector<Track *> tracks_;
 

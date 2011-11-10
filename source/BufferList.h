@@ -3,6 +3,7 @@
 #ifndef _PPBOX_DEMUX_SOURCE_BUFFER_LIST_H_
 #define _PPBOX_DEMUX_SOURCE_BUFFER_LIST_H_
 
+#include "ppbox/demux/source/SegmentsBase.h"
 #include "ppbox/demux/source/BufferStatistic.h"
 #include "ppbox/demux/source/SourceError.h"
 
@@ -26,11 +27,9 @@ namespace ppbox
     namespace demux
     {
 
-        template <
-            typename Source
-        >
         class BufferList
             : public BufferObserver
+            , public BufferStatistic
         {
         protected:
             FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("BufferList", 0);
@@ -46,49 +45,6 @@ namespace ppbox
 
                 boost::uint64_t this_end;
                 boost::uint64_t next_beg;
-            };
-
-            struct Segment
-            {
-                Segment(
-                    boost::uint64_t total, 
-                    size_t max_try)
-                    : begin(0)
-                    , total(total)
-                    , total_state(is_valid)
-                    , num_try(0)
-                    , max_try(max_try)
-                {
-                }
-
-                Segment(
-                    size_t max_try = size_t(-1))
-                    : begin(0)
-                    , total((boost::uint64_t)-1)
-                    , total_state(not_init)
-                    , num_try(0)
-                    , max_try(max_try)
-                {
-                }
-
-                bool can_retry() const
-                {
-                    return num_try < max_try;
-                }
-
-                enum TotalStateEnum
-                {
-                    not_init, 
-                    not_exist, 
-                    is_valid, 
-                    by_guess, 
-                };
-
-                boost::uint64_t begin;
-                boost::uint64_t total;
-                TotalStateEnum total_state;
-                size_t num_try;
-                size_t max_try;
             };
 
             struct Position
@@ -166,64 +122,6 @@ namespace ppbox
                 boost::uint64_t seg_end;
             };
 
-            class Segments
-            {
-            public:
-                Segments()
-                    : num_del_(0)
-                    , segment_(0, 0)
-                {
-                }
-
-                Segment & operator[](
-                    boost::uint32_t index)
-                {
-                    if (index < num_del_)
-                        return segment_;
-
-                    return segments_[index - num_del_];
-                }
-
-                Segment const & operator[](
-                    boost::uint32_t index) const
-                {
-                    if (index < num_del_)
-                        return segment_;
-
-                    return segments_[index - num_del_];
-                }
-
-                size_t size() const
-                {
-                    return segments_.size() + num_del_;
-                }
-
-                void push_back(
-                    const Segment & segment)
-                {
-                    segments_.push_back(segment);
-                }
-
-                void pop_front()
-                {
-                    if (segments_.size() >= 2) {
-                        segments_[1].total += segments_[0].total;
-                        ++num_del_;
-                        segments_.pop_front();
-                    }
-                }
-
-                size_t num_del() const
-                {
-                    return num_del_;
-                }
-
-            private:
-                size_t num_del_;
-                std::deque<Segment> segments_;
-                Segment segment_;
-            };
-
         public:
             typedef boost::function<void (
                 boost::system::error_code const &,
@@ -234,8 +132,10 @@ namespace ppbox
             BufferList(
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size, 
+                SegmentsBase * segments,
                 size_t total_req = 1)
-                : max_try_(size_t(-1))
+                : segments_(segments)
+                , max_try_(size_t(-1))
                 , buffer_(NULL)
                 , buffer_size_(framework::memory::MemoryPage::align_page(buffer_size))
                 , prepare_size_(prepare_size)
@@ -252,7 +152,7 @@ namespace ppbox
             {
                 buffer_ = (char *)memory_.alloc_block(buffer_size_);
                 //TODO:
-                //segments_.reserve(seg_num);
+                //segments_->reserve(seg_num);
                 read_.buffer = buffer_beg();
                 read_.offset = 0;
                 read_.segment = 0;
@@ -265,91 +165,6 @@ namespace ppbox
             {
                 if (buffer_)
                     memory_.free_block(buffer_, buffer_size_);
-            }
-
-            size_t add_segment(
-                boost::system::error_code & ec)
-            {
-                size_t index = segments_.size();
-                segments_.push_back(Segment(max_try_));
-
-                add_request(ec);
-
-                return index;
-            }
-
-            size_t add_segment(
-                boost::uint64_t total, 
-                boost::system::error_code & ec)
-            {
-                size_t index = segments_.size();
-                segments_.push_back(Segment(total, max_try_));
-                if (index == read_.segment)
-                    offset_to_segment(read_, ec);
-
-                add_request(ec);
-
-                return index;
-            }
-
-            size_t add_segments(
-                size_t num, 
-                boost::system::error_code & ec)
-            {
-                size_t index = segments_.size();
-                segments_.insert(segments_.end(), num, Segment(max_try_));
-
-                add_request(ec);
-
-                return index;
-            }
-
-            size_t add_segments(
-                std::vector<boost::uint64_t> const & segment_sizes, 
-                boost::system::error_code & ec)
-            {
-                size_t index = segments_.size();
-                for (size_t i = 0; i < segment_sizes.size(); ++i) {
-                    segments_.push_back(Segment(segment_sizes[i], max_try_));
-                }
-                if (index == read_.segment)
-                    offset_to_segment(read_, ec);
-
-                add_request(ec);
-
-                return index;
-            }
-
-            void set_segment_begin(
-                size_t segment, 
-                boost::uint64_t begin, 
-                boost::system::error_code & ec)
-            {
-                assert(segment < segments_.size());
-                if (segment < segments_.size()) {
-                    if (begin >= segments_[segment].begin) {
-                        segments_[segment].begin = begin;
-                        ec = boost::system::error_code();
-                    } else {
-                        ec = framework::system::logic_error::invalid_argument;
-                    }
-                } else {
-                    ec = framework::system::logic_error::out_of_range;
-                }
-            }
-
-            void set_segment_max_try(
-                size_t segment, 
-                size_t max_try, 
-                boost::system::error_code & ec)
-            {
-                assert(segment < segments_.size());
-                if (segment < segments_.size()) {
-                    segments_[segment].max_try = max_try;
-                    ec = boost::system::error_code();
-                } else {
-                    ec = framework::system::logic_error::out_of_range;
-                }
             }
 
             // 目前只发生在，seek到一个分段，还没有该分段头部数据时，
@@ -380,16 +195,6 @@ namespace ppbox
                 return seek_to(position.offset, ec);
             }
 
-            boost::system::error_code poll(
-                boost::system::error_code & ec)
-            {
-                if (source_closed_) {
-                    return ec = boost::asio::error::eof;
-                } else {
-                    return source().poll_read(ec);
-                }
-            }
-
             void pause(
                 boost::uint32_t time)
             {
@@ -408,18 +213,11 @@ namespace ppbox
                 max_try_ = max_try;
             }
 
-            boost::uint32_t get_segment_num_try(
-                boost::uint32_t index,
-                boost::system::error_code & ec) const
-            {
-                return segments_[write_.segment].num_try;
-            }
-
             boost::system::error_code cancel(
                 boost::system::error_code & ec)
             {
                 source_error_ = boost::asio::error::operation_aborted;
-                return source().cancel_segment(write_.segment, ec);
+                return segments_->segment_cancel(write_.segment, ec);
             }
 
             boost::system::error_code close(
@@ -441,16 +239,15 @@ namespace ppbox
                         ec = boost::asio::error::no_buffer_space;
                         break;
                     } else if (source_closed_ && open_segment(true, ec)) {
-                    } else if (source().is_open(ec)) {
-                        // 请求的分段打开成功，更新 segments_ 信息
+                    } else if (segments_->segment_is_open(ec)) {
+                        // 请求的分段打开成功，更新 (*segments_) 信息
                         update_segments(ec);
 
                         framework::timer::TimeCounter tc;
-                        size_t bytes_transferred = boost::asio::read(
-                            source(), 
-                            write_buffer(amount), 
-                            boost::asio::transfer_at_least(amount), 
-                            ec);
+                        size_t bytes_transferred = segments_->segment_read(
+                            write_buffer(amount),
+                            ec
+                            );
                         if (tc.elapse() > 10) {
                             LOG_S(framework::logger::Logger::kLevelDebug, 
                                 "[prepare] read elapse: " << tc.elapse() 
@@ -458,10 +255,10 @@ namespace ppbox
                         }
                         increase_download_byte(bytes_transferred);
                         move_front(write_, bytes_transferred);
-                        if (ec && !source().continuable(ec)) {
+                        if (ec && !segments_->continuable(ec)) {
                             LOG_S(framework::logger::Logger::kLevelAlarm, 
                                 "[prepare] read_some: " << ec.message() << 
-                                " --- failed " << segments_[write_.segment].num_try << " times");
+                                " --- failed " << (*segments_)[write_.segment].num_try << " times");
                             if (ec == boost::asio::error::eof) {
                                 LOG_S(framework::logger::Logger::kLevelDebug, 
                                     "[prepare] read eof, write_.offset: " << write_.offset
@@ -471,10 +268,10 @@ namespace ppbox
                         if (data_end_ < write_.offset)
                             data_end_ = write_.offset;
                     } else {
-                        if (!source().continuable(ec)) {
+                        if (!segments_->continuable(ec)) {
                             LOG_S(framework::logger::Logger::kLevelAlarm, 
                                 "[prepare] open_segment: " << ec.message() << 
-                                " --- failed " << segments_[write_.segment].num_try << " times");
+                                " --- failed " << (*segments_)[write_.segment].num_try << " times");
                         } else {
                             increase_download_byte(0);
                         }
@@ -486,11 +283,11 @@ namespace ppbox
                         break;
                     }
 
-                    bool is_error = handle_error(ec);
+                    bool is_error = on_error(ec);
                     if (is_error) {
                         if (ec == boost::asio::error::eof) {
                             open_segment(true, ec);
-                            if (ec && !handle_error(ec))
+                            if (ec && !on_error(ec))
                                 break;
                         } else {
                             open_segment(false, ec);
@@ -500,54 +297,6 @@ namespace ppbox
                     }
                 }
                 return ec;
-            }
-
-            // 返回false表示不能再继续了
-            bool handle_error(
-                boost::system::error_code& ec)
-            {
-                if (source().continuable(ec)) {
-                    time_block_ = get_zero_interval();
-                    if (time_out_ > 0 && time_block_ > time_out_) {
-                        LOG_S(framework::logger::Logger::kLevelAlarm,
-                            "source.read_some: timeout" << 
-                            " --- failed " << segments_[write_.segment].num_try << " times");
-                        ec = boost::asio::error::timed_out;
-                        if (segments_[write_.segment].can_retry()) {
-                            return true;
-                        }
-                    } else {
-                        return false;
-                    }
-                } else if (ec == boost::asio::error::eof) {
-                    if (write_.offset >= write_hole_.this_end) {
-                        return true;
-                    } else if (segments_[write_.segment].total_state == Segment::not_exist) {
-                        segments_[write_.segment].total_state = Segment::by_guess;
-                        write_.seg_end = write_.offset;
-                        write_hole_.this_end = write_.offset;
-                        if (read_.segment == write_.segment)
-                            read_.seg_end = write_.seg_end;
-                        segments_[write_.segment].total = write_.seg_end - write_.seg_beg;
-                        LOG_S(framework::logger::Logger::kLevelInfor, 
-                            "[handle_error] guess segment size " << segments_[write_.segment].total);
-                        return true;
-                    } else if (segments_[write_.segment].can_retry()) {
-                        ec = boost::asio::error::connection_aborted;
-                        return true;
-                    }
-                } else if(source().recoverable(ec)) {
-                    if (segments_[write_.segment].can_retry()) {
-                        return true;
-                    }
-                }
-                source().on_error(ec);
-                return !ec;
-            }
-
-            void on_error(
-                boost::system::error_code& ec)
-            {
             }
 
             void async_prepare(
@@ -564,10 +313,10 @@ namespace ppbox
                 size_t bytes_transferred)
             {
                 boost::system::error_code ec = ecc;
-                if (ec && !source().continuable(ec) && bytes_transferred > 0) {
+                if (ec && !segments_->continuable(ec) && bytes_transferred > 0) {
                     LOG_S(framework::logger::Logger::kLevelAlarm, 
                         "[handle_async] read_some: " << ec.message() << 
-                        " --- failed " << segments_[write_.segment].num_try << " times");
+                        " --- failed " << (*segments_)[write_.segment].num_try << " times");
                     if (ec == boost::asio::error::eof) {
                         LOG_S(framework::logger::Logger::kLevelDebug, 
                             "[handle_async] read eof, write_.offset: " << write_.offset
@@ -590,7 +339,7 @@ namespace ppbox
                     ec = source_error_;
                 }
                 if (ec) {
-                    bool is_error = handle_error(ec);
+                    bool is_error = on_error(ec);
                     if (is_error) {
                         if (ec == boost::asio::error::eof) {
                             reset_zero_interval();
@@ -614,10 +363,8 @@ namespace ppbox
                     return;
                 } else {
                     update_segments(ec);
-                    boost::asio::async_read(
-                        source(), 
-                        write_buffer(amount_), 
-                        boost::asio::transfer_at_least(amount_), 
+                    segments_->segment_async_read(
+                        write_buffer(amount_),
                         boost::bind(&BufferList::handle_async, this, _1, _2));
                     return;
                 }
@@ -630,8 +377,8 @@ namespace ppbox
                 write_tmp_ = write_;
                 write_tmp_.buffer = NULL;
                 write_hole_tmp_ = write_hole_;
-                boost::system::error_code ecc = boost::system::error_code();
-                send_request(true, ecc);
+                //boost::system::error_code ecc = boost::system::error_code();
+                //send_request(true, ecc);
                 open_response_type resp;
                 resp.swap(resp_);
                 resp(ec, 0);
@@ -654,10 +401,10 @@ namespace ppbox
             boost::system::error_code prepare_all(
                 boost::system::error_code & ec)
             {
-                if (write_.segment >= segments_.size()) {
+                if (write_.segment >= segments_->total_segments()) {
                     return ec = boost::asio::error::eof;
                 }
-                Segment & segment = segments_[write_.segment];
+                Segment & segment = (*segments_)[write_.segment];
                 if (segment.total_state != Segment::is_valid) {
                     do {
                         prepare(prepare_size_, ec);
@@ -798,13 +545,19 @@ namespace ppbox
             boost::system::error_code drop_all(
                 boost::system::error_code & ec)
             {
-                if (segments_[read_.segment].total_state < Segment::is_valid) {
+                if ((*segments_)[read_.segment].total_state < Segment::is_valid) {
                     assert(read_.segment == write_.segment);
                     write_.seg_end = write_.offset;
                     read_.seg_end = write_.offset;
-                    segments_[read_.segment].total_state = Segment::by_guess;
-                    segments_[read_.segment].total = read_.seg_end - read_.seg_beg;
-                    LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << segments_[write_.segment].total);
+                    (*segments_)[read_.segment].total_state = Segment::by_guess;
+                    (*segments_)[read_.segment].file_length = read_.seg_end - read_.seg_beg;
+                    LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << (*segments_)[read_.segment].file_length);
+                }
+                if (read_.seg_end == (boost::uint64_t)-1) {
+                    size_t seg = read_.segment ;
+                    offset_to_segment(read_, ec);
+                    if (read_.segment == seg + 1)
+                        return ec;
                 }
                 read_seek_to(read_.seg_end, ec) || 
                     offset_to_segment(read_, ec);
@@ -814,21 +567,12 @@ namespace ppbox
             // 当前所有分段是否下载完成
             bool write_at_end()
             {
-                return write_.offset == write_.seg_end && (write_.segment + 1) == segments_.size();
-            }
-
-            void clear_readed_segment(
-                boost::system::error_code & ec)
-            {
-                while (segments_.num_del() < read_.segment) {
-                    segments_.pop_front();
-                    LOG_S(framework::logger::Logger::kLevelInfor, "[clear_readed_segment] segments deleted number " << segments_.num_del());
-                }
+                return write_.offset == write_.seg_end && (write_.segment + 1) == segments_->total_segments();
             }
 
             void clear()
             {
-                segments_.clear();
+                //segments_->clear();
                 read_.buffer = buffer_beg();
                 read_.offset = 0;
                 read_.segment = 0;
@@ -860,7 +604,7 @@ namespace ppbox
                 if (read_.seg_end > write_.offset) {
                     return (boost::uint32_t)(write_.offset - read_.offset);
                 } else {
-                    return (boost::uint32_t)(read_.seg_end - read_.offset); // total
+                    return (boost::uint32_t)(read_.seg_end - read_.offset); // file_length
                 }
             }
 
@@ -869,7 +613,7 @@ namespace ppbox
             {
                 if (read_.segment == segment) {
                     return read_avail();
-                } else if (segment < read_.segment || segment >= segments_.size()) {
+                } else if (segment < read_.segment || segment >= segments_->total_segments()) {
                     return (boost::uint32_t)0;
                 } else {
                     PositionEx position(segment, 0);
@@ -888,10 +632,10 @@ namespace ppbox
                             end = hole.next_beg;
                         if (beg >= position.offset) {
                             return (boost::uint32_t)0;
-                        } else if (segments_[segment].total_state != Segment::is_valid) {
+                        } else if ((*segments_)[segment].total_state != Segment::is_valid) {
                             return (boost::uint32_t)0;
-                        } else if (position.offset + segments_[segment].total < end) {
-                            return (boost::uint32_t)segments_[segment].total;
+                        } else if (position.offset + (*segments_)[segment].file_length < end) {
+                            return (boost::uint32_t)(*segments_)[segment].file_length;
                         } else {
                             return (boost::uint32_t)(end - position.offset);
                         }
@@ -904,7 +648,7 @@ namespace ppbox
                 if (read_.seg_end > write_.offset) {
                     return (boost::uint64_t)(write_.offset - read_.seg_beg);
                 } else {
-                    return (boost::uint64_t)(read_.seg_end - read_.seg_beg); // total
+                    return (boost::uint64_t)(read_.seg_end - read_.seg_beg); // file_length
                 }
             }
 
@@ -928,8 +672,8 @@ namespace ppbox
             {
                 if (read_.segment == segment) {
                     return read_front();
-                } else if (segment < segments_.size()) {
-                    return segments_[segment].begin;
+                } else if (segment < segments_->total_segments()) {
+                    return (*segments_)[segment].begin;
                 } else {
                     return boost::uint64_t(0);
                 }
@@ -938,8 +682,8 @@ namespace ppbox
             boost::uint64_t segment_size(
                 size_t segment) const
             {
-                if (segment < segments_.size()) {
-                    return segments_[segment].total;
+                if (segment < segments_->total_segments()) {
+                    return (*segments_)[segment].file_length;
                 } else {
                     return boost::uint64_t(-1);
                 }
@@ -1085,6 +829,20 @@ namespace ppbox
             read_buffer_t segment_read_buffer(
                 size_t segment) const
             {
+                boost::uint64_t beg = 0;
+                boost::uint64_t end = 0;
+                if (segment == read_.segment) {
+                    return read_buffer();
+                } else if (segment == write_.segment) {
+                    beg = write_.seg_beg;
+                    end = write_.offset;
+                }
+                return read_buffer(beg, end);
+            }
+
+            /*read_buffer_t segment_read_buffer(
+                size_t segment) const
+            {
                 boost::uint64_t beg = segment_read_front(segment);
                 boost::uint64_t end = segment_read_back(segment);
                 boost::system::error_code ec;
@@ -1093,13 +851,27 @@ namespace ppbox
                 offset_of_segment(position_beg, ec);
                 offset_of_segment(position_end, ec);
                 return read_buffer(position_beg.offset, position_end.offset);
+            }*/
+
+            void add_request(
+                boost::system::error_code & ec)
+            {
+                if (sended_req_ && resp_.empty()) {
+                    send_request(true, ec);
+                }
+            }
+
+            boost::uint32_t get_segment_num_try(
+                boost::system::error_code & ec) const
+            {
+                return (*segments_)[write_.segment].num_try;
             }
 
             void set_total_req(
                 size_t num)
             {
                 total_req_ = num;
-                if (segments_.size() > 0) {
+                if (segments_->total_segments()> 0) {
                     boost::system::error_code ec;
                     send_request(true, ec);
                 }
@@ -1109,7 +881,7 @@ namespace ppbox
             {
                 if (total_req_ > 1) {
                     total_req_--;
-                    if (segments_.size() > 0) {
+                    if (segments_->total_segments()> 0) {
                         boost::system::error_code ec;
                         send_request(true, ec);
                     }
@@ -1123,12 +895,54 @@ namespace ppbox
             }
 
         private:
-            Source & source()
+            // 返回false表示不能再继续了
+            bool on_error(
+                boost::system::error_code& ec)
             {
-                return static_cast<Source &>(*this);
+                if (segments_->continuable(ec)) {
+                    time_block_ = get_zero_interval();
+                    if (time_out_ > 0 && time_block_ > time_out_) {
+                        LOG_S(framework::logger::Logger::kLevelAlarm,
+                            "source.read_some: timeout" << 
+                            " --- failed " << (*segments_)[write_.segment].num_try << " times");
+                        ec = boost::asio::error::timed_out;
+                        if (can_retry()) {
+                            return true;
+                        }
+                    }  else {
+                        return false;
+                    }
+                } else if (ec == boost::asio::error::eof) {
+                    if (write_.offset >= write_hole_.this_end) {
+                        return true;
+                    } else if ((*segments_)[write_.segment].total_state == Segment::not_exist) {
+                        (*segments_)[write_.segment].total_state = Segment::by_guess;
+                        write_.seg_end = write_.offset;
+                        write_hole_.this_end = write_.offset;
+                        if (read_.segment == write_.segment)
+                            read_.seg_end = write_.seg_end;
+                        (*segments_)[write_.segment].file_length = write_.seg_end - write_.seg_beg;
+                        LOG_S(framework::logger::Logger::kLevelInfor, 
+                            "[on_error] guess segment size " << (*segments_)[write_.segment].file_length);
+                        return true;
+                    } else if (can_retry()) {
+                        ec = boost::asio::error::connection_aborted;
+                        return true;
+                    }
+                } else if(segments_->recoverable(ec)) {
+                    if (can_retry()) {
+                        return true;
+                    }
+                }
+                segments_->on_error(ec);
+                return !ec;
             }
 
-        private:
+            bool can_retry() const
+            {
+                return (*segments_)[write_.segment].num_try < max_try_;
+            }
+
             boost::system::error_code seek_to(
                 boost::uint64_t offset, 
                 boost::system::error_code & ec)
@@ -1308,7 +1122,7 @@ namespace ppbox
                     hole.this_end = hole.next_beg = pos.offset;
                     return ec;
                 }
-                if (pos.segment >= segments_.size() || pos.offset >= seek_end_) {
+                if (pos.segment >= segments_->total_segments()|| pos.offset >= seek_end_) {
                     hole.this_end = hole.next_beg = pos.offset;
                     return ec = source_error::no_more_segment;
                 }
@@ -1337,7 +1151,7 @@ namespace ppbox
                     reset_zero_interval();
                     time_block_ = 0;
                     close_segment(ec);
-                    segments_[write_.segment].num_try = 0;
+                    (*segments_)[write_.segment].num_try = 0;
                 } else {
                     reset_zero_interval();
                     close_all_segment(ec);
@@ -1350,7 +1164,9 @@ namespace ppbox
 
                 send_request(is_next_segment, ec);
 
-                if (ec && !source().continuable(ec)) {
+                if (ec && !segments_->continuable(ec)) {
+                    if (!ec)
+                        ec = boost::asio::error::would_block;
                     return ec;
                 }
 
@@ -1363,10 +1179,10 @@ namespace ppbox
 
                 LOG_S(framework::logger::Logger::kLevelAlarm, 
                     "[open_segment] write_.segment: " << write_.segment << 
-                    " write_.offset: " << write_.offset << 
-                    " write_hole_.this_end: " << write_hole_.this_end);
+                    " write_.offset: " << write_.offset - write_.seg_beg << 
+                    " write_hole_.this_end: " << write_hole_.this_end - write_.seg_beg);
 
-                source().on_seg_beg(write_.segment);
+                segments_->on_seg_beg(write_.segment);
                 source_closed_ = false;
 
                 return ec;
@@ -1384,7 +1200,7 @@ namespace ppbox
                         resp(ec, 0);
                         return;
                     }
-                    segments_[write_.segment].num_try = 0;
+                    (*segments_)[write_.segment].num_try = 0;
                 } else {
                     reset_zero_interval();
                     close_segment(ec);
@@ -1392,10 +1208,10 @@ namespace ppbox
 
                 source_closed_ = false;
                 sended_req_++;
-                ++segments_[write_.segment].num_try;
+                ++(*segments_)[write_.segment].num_try;
 
-                source().on_seg_beg(write_.segment);
-                source().async_open_segment(
+                segments_->on_seg_beg(write_.segment);
+                segments_->segment_async_open(
                     write_.segment, 
                     write_.offset - write_.seg_beg, 
                     write_hole_.this_end == boost::uint64_t(-1) || write_hole_.this_end == write_.seg_end ? 
@@ -1407,7 +1223,7 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 if (sended_req_) {
-                    source().close_segment(write_.segment, ec);
+                    segments_->segment_close(write_.segment, ec);
                     sended_req_--;
                 } else {
                     return ec;
@@ -1418,10 +1234,8 @@ namespace ppbox
                         "[close_segment] write_.segment: " << write_.segment << 
                         " write_.offset: " << write_.offset << 
                         " write_hole_.this_end: " << write_hole_.this_end);
-                    source().on_seg_beg(write_.segment);
                     source_closed_ = true;
                 }
-
                 return ec;
             }
 
@@ -1436,7 +1250,7 @@ namespace ppbox
                 }
 
                 for (size_t i = 0; i < sended_req_; ++i) {
-                    source().close_segment(write_.segment, ec);
+                    segments_->segment_close(write_.segment, ec);
                 }
                 sended_req_ = 0;
 
@@ -1445,7 +1259,7 @@ namespace ppbox
                         "[close_segment] write_.segment: " << write_.segment << 
                         " write_.offset: " << write_.offset << 
                         " write_hole_.this_end: " << write_hole_.this_end);
-                    source().on_seg_beg(write_.segment);
+                    segments_->on_seg_end(write_.segment);
                     source_closed_ = true;
                 }
 
@@ -1707,21 +1521,21 @@ namespace ppbox
                 boost::system::error_code & ec) const
             {
                 boost::uint64_t offset = position.offset;
-                assert((position.segment < segments_.size() && offset <= segments_[position.segment].total)
-                     || (position.segment == segments_.size() && offset == 0));
-                if ((position.segment >= segments_.size() || offset > segments_[position.segment].total)
-                    && (position.segment != segments_.size() || offset != 0))
+                assert((position.segment < segments_->total_segments()&& offset <= (*segments_)[position.segment].file_length)
+                     || (position.segment == segments_->total_segments()&& offset == 0));
+                if ((position.segment >= segments_->total_segments()|| offset > (*segments_)[position.segment].file_length)
+                    && (position.segment != segments_->total_segments()|| offset != 0))
                         return ec = framework::system::logic_error::out_of_range;
                 for (size_t i = 0; i < position.segment; ++i) {
-                    if (segments_[i].total_state < Segment::is_valid)
+                    if ((*segments_)[i].total_state < Segment::is_valid)
                         return ec = framework::system::logic_error::out_of_range;
-                    offset += segments_[i].total;
+                    offset += (*segments_)[i].file_length;
                 }
                 position.seg_beg = offset - position.offset;
                 position.seg_end = 
-                    (position.segment < segments_.size() && 
-                    segments_[position.segment].total_state >= Segment::is_valid) ? 
-                    position.seg_beg + segments_[position.segment].total : boost::uint64_t(-1);
+                    (position.segment < segments_->total_segments()&& 
+                    (*segments_)[position.segment].total_state >= Segment::is_valid) ? 
+                    position.seg_beg + (*segments_)[position.segment].file_length : boost::uint64_t(-1);
                 position.offset = offset;
                 return ec = boost::system::error_code();
             }
@@ -1732,19 +1546,19 @@ namespace ppbox
             {
                 boost::uint64_t offset = position.offset;
                 size_t segment = 0;
-                for (segment = 0; segment < segments_.size() 
-                    && segments_[segment].total_state >= Segment::is_valid 
-                    && segments_[segment].total <= offset; ++segment)
-                    offset -= segments_[segment].total;
+                for (segment = 0; segment < segments_->total_segments()
+                    && (*segments_)[segment].total_state >= Segment::is_valid 
+                    && (*segments_)[segment].file_length <= offset; ++segment)
+                    offset -= (*segments_)[segment].file_length;
                 // 增加offset==0，使得position.offset为所有分段总长时，也认为是有效的
-                assert(segment < segments_.size() || offset == 0);
-                if (segment < segments_.size() || offset == 0) {
+                assert(segment < segments_->total_segments()|| offset == 0);
+                if (segment < segments_->total_segments()|| offset == 0) {
                     position.segment = segment;
                     position.seg_beg = position.offset - offset;
                     position.seg_end = 
-                        (segment < segments_.size() && 
-                        segments_[position.segment].total_state >= Segment::is_valid) ? 
-                            position.seg_beg + segments_[position.segment].total : boost::uint64_t(-1);
+                        (segment < segments_->total_segments()&& 
+                        (*segments_)[position.segment].total_state >= Segment::is_valid) ? 
+                            position.seg_beg + (*segments_)[position.segment].file_length : boost::uint64_t(-1);
                     return ec = boost::system::error_code();
                 } else {
                     return ec = framework::system::logic_error::out_of_range;
@@ -1846,14 +1660,14 @@ namespace ppbox
             void update_segments(
                 boost::system::error_code & ec)
             {
-                if (segments_[write_.segment].total_state == Segment::not_init) {
-                    segments_[write_.segment].total = source().total(ec);
+                if ((*segments_)[write_.segment].total_state == Segment::not_init) {
+                    (*segments_)[write_.segment].file_length = segments_->total(ec);
                     if (ec) {
-                        segments_[write_.segment].total = boost::uint64_t(-1);
-                        segments_[write_.segment].total_state = Segment::not_exist;
+                        (*segments_)[write_.segment].file_length = boost::uint64_t(-1);
+                        (*segments_)[write_.segment].total_state = Segment::not_exist;
                     } else {
-                        segments_[write_.segment].total_state = Segment::is_valid;
-                        write_.seg_end = write_.seg_beg + segments_[write_.segment].total;
+                        (*segments_)[write_.segment].total_state = Segment::is_valid;
+                        write_.seg_end = write_.seg_beg + (*segments_)[write_.segment].file_length;
                         if (write_hole_.this_end >= write_.seg_end)
                             write_hole_.this_end = write_.seg_end;
                         if (read_.segment == write_.segment)
@@ -1881,22 +1695,24 @@ namespace ppbox
                                 ec.clear();
                             }
                             data_end_ = data_end_tmp;
+                            write_tmp_ = write_tmp;
+                            write_hole_tmp_ = write_hole_tmp;
                             break;
                         }
                         data_end_ = data_end_tmp;
                     }
-                    ++segments_[write_tmp_.segment].num_try;
-                    source().open_segment(write_tmp_.segment, write_tmp_.offset - write_tmp_.seg_beg, 
+                    ++(*segments_)[write_tmp_.segment].num_try;
+                    segments_->segment_open(write_tmp_.segment, write_tmp_.offset - write_tmp_.seg_beg, 
                         write_hole_tmp_.this_end == boost::uint64_t(-1) || write_hole_tmp_.this_end == write_tmp_.seg_end ? 
                         boost::uint64_t(-1) : write_hole_tmp_.this_end - write_tmp_.seg_beg, ec);
                     if (ec) {
-                        if (source().continuable(ec)) {
+                        if (segments_->continuable(ec)) {
                             if (sended_req_) // 如果已经发过一个请求
                                 ec.clear();
                         } else {
                             LOG_S(framework::logger::Logger::kLevelAlarm, 
-                                "[open_segment] source().open_segment: " << ec.message() << 
-                                " --- failed " << segments_[write_tmp_.segment].num_try << " times");
+                                "[open_segment] segments_->open_segment: " << ec.message() << 
+                                " --- failed " << (*segments_)[write_tmp_.segment].num_try << " times");
                             write_tmp_ = write_tmp;
                             write_hole_tmp_ = write_hole_tmp;
                             break;
@@ -1908,23 +1724,15 @@ namespace ppbox
                 return ec;
             }
 
-            void add_request(
-                boost::system::error_code & ec)
-            {
-                if (sended_req_ && resp_.empty()) {
-                    send_request(true, ec);
-                }
-            }
-
         private:
+            SegmentsBase * segments_;
             size_t max_try_;    // 尝试重连最大次数，决定不断点续传的标志
-            Segments segments_;
             char * buffer_;
             boost::uint32_t buffer_size_;   // buffer_ 分配的大小
             boost::uint32_t prepare_size_;  // 下载一次，最大的读取数据大小
             boost::uint32_t time_block_;    // 阻塞次数（秒）
             boost::uint32_t time_out_;      // 超时时间（秒）
-            bool source_closed_;            // ture，可以调用 open_segment(), 调用 source().open_segment()如果失败，为false
+            bool source_closed_;            // ture，可以调用 open_segment(), 调用 segments_->open_segment()如果失败，为false
             boost::system::error_code source_error_;    // 下载的错误码
             boost::uint64_t data_beg_;
             boost::uint64_t data_end_;

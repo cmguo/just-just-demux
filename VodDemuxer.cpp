@@ -5,7 +5,6 @@
 #include "ppbox/demux/PptvJump.h"
 #include "ppbox/demux/PptvDrag.h"
 #include "ppbox/demux/VodSegments.h"
-#include "ppbox/demux/mp4/Mp4BufferDemuxer.h"
 using namespace ppbox::demux::error;
 
 #include <ppbox/common/Environment.h>
@@ -14,6 +13,7 @@ using namespace ppbox::demux::error;
 #include <util/serialization/stl/vector.h>
 #include <util/archive/XmlIArchive.h>
 #include <util/archive/ArchiveBuffer.h>
+#include <util/buffers/BufferCopy.h>
 
 #include <framework/string/Parse.h>
 #include <framework/string/StringToken.h>
@@ -40,39 +40,23 @@ namespace ppbox
     namespace demux
     {
 
-        class VodSegmentDemuxer
-            : public Mp4BufferDemuxer<VodSegments>
-            , public VodSegmentNew
-        {
-        public:
-            VodSegmentDemuxer(
-                VodSegmentNew const & segment, 
-                VodSegments & buf, 
-                error_code & ec)
-                : Mp4BufferDemuxer<VodSegments>(buf)
-                , VodSegmentNew(segment)
-            {
-                open(segment.head_length, segment.file_length, ec);
-            }
-        };
-
         VodDemuxer::VodDemuxer(
             boost::asio::io_service & io_svc, 
             boost::uint16_t ppap_port, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size)
-            : Demuxer(io_svc, (buffer_ = new VodSegments(io_svc, ppap_port, buffer_size, prepare_size))->buffer_stat())
+            : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new VodSegments(io_svc, ppap_port))
             , video_(NULL)
             , jump_(new PptvJump(io_svc, JumpType::vod))
             , drag_(new PptvDrag(io_svc))
             , drag_info_(new VodDragInfoNew())
-            , seek_time_(0)
             , keep_count_(0)
             , open_step_(StepType::not_open)
             , pending_error_(would_block)
         {
             set_play_type(DemuxerType::vod);
-            buffer_->set_vod_demuxer(this);
+            segments_->set_vod_demuxer(this);
+            segments_->set_buffer_list(buffer_);
 
             // 计算 keep count, 假设每个影片端的大小至少为15M
             keep_count_ = buffer_size / 15 * 1024 * 1024;
@@ -83,9 +67,6 @@ namespace ppbox
 
         VodDemuxer::~VodDemuxer()
         {
-            for (size_t i = 0; i < segments_.size(); ++i) {
-                delete segments_[i];
-            }
             if (jump_) {
                 delete jump_;
                 jump_ = NULL;
@@ -94,13 +75,20 @@ namespace ppbox
                 delete video_;
                 video_ = NULL;
             }
-            delete buffer_;
+            if (segments_) {
+                delete segments_;
+                segments_ = NULL;
+            }
+            if (buffer_) {
+                delete buffer_;
+                buffer_ = NULL;
+            }
         }
 
         bool VodDemuxer::is_open(
             error_code & ec)
         {
-            return is_open(false, ec);;
+            return is_open(false, ec);
         }
 
         bool VodDemuxer::is_open(
@@ -198,7 +186,7 @@ namespace ppbox
             time_t server_time = jump_info.server_time.to_time_t();
             LOG_S(Logger::kLevelDebug, "server time: " << ::ctime(&server_time));
             demux_data().set_server_host(jump_info.server_host.host_svc());
-            buffer_->set_server_host_time(
+            segments_->set_server_host_time(
                 jump_info.server_host, 
                 jump_info.server_time.to_time_t(), 
                 jump_info.BWType);
@@ -260,7 +248,7 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    Demuxer::open_beg(name_);
+                    PptvDemuxer::open_beg(name_);
 
                     open_logs_.resize(3);
 
@@ -291,7 +279,7 @@ namespace ppbox
                     if (!ec) {
                         LOG_S(Logger::kLevelDebug, "url: " << url);
 
-                        buffer_->set_name(url);
+                        segments_->set_name(url);
                         open_logs_[0].reset();
 
                         open_step_ = StepType::jump;
@@ -299,7 +287,7 @@ namespace ppbox
                         LOG_S(Logger::kLevelEvent, "jump: start");
 
                         jump_->async_get(
-                            buffer_->get_jump_url(), 
+                            segments_->get_jump_url(), 
                             boost::bind(&VodDemuxer::handle_async_open, this, _1));
                         return;
                     } else {
@@ -328,8 +316,8 @@ namespace ppbox
                             LOG_S(Logger::kLevelEvent, "drag: start");
 
                             drag_->async_get(
-                                buffer_->get_drag_url(), 
-                                buffer_->get_server_host(), 
+                                segments_->get_drag_url(), 
+                                segments_->get_server_host(), 
                                 boost::bind(&VodDemuxer::handle_async_open, this, _1));
                             return;
                         } else {
@@ -347,16 +335,16 @@ namespace ppbox
                                 open_step_ = StepType::head_abnormal;
                             }
 
-                            buffer_->set_segments(std::vector<VodSegmentNew>(1, jump_info.firstseg));
-                            segments_.push_back(new VodSegmentDemuxer(jump_info.firstseg, *buffer_, ec));
+                            segments_->add_segment(jump_info.firstseg);
 
                             if (!ec) {
                                 LOG_S(Logger::kLevelDebug, "jump has first drag info");
 
                                 LOG_S(Logger::kLevelEvent, "data: start");
 
-                                segments_[0]->async_open(
+                                BufferDemuxer::async_open(
                                     boost::bind(&VodDemuxer::handle_async_open, this, _1));
+
                                 return;
                             }
                         }
@@ -372,7 +360,7 @@ namespace ppbox
                     LOG_S(Logger::kLevelEvent, "data: success");
 
                     // 假造的seg_end
-                    seg_end(buffer_->segment());
+                    seg_end(segments_->segment());
                     LOG_S(Logger::kLevelDebug, "data used (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::drag_normal;
@@ -390,8 +378,8 @@ namespace ppbox
                     LOG_S(Logger::kLevelEvent, "drag: start");
 
                     drag_->async_get(
-                        buffer_->get_drag_url(), 
-                        buffer_->get_server_host(), 
+                        segments_->get_drag_url(), 
+                        segments_->get_server_host(), 
                         boost::bind(&VodDemuxer::handle_drag, drag_info_, _1, _2));
                     break;
                 }
@@ -411,7 +399,7 @@ namespace ppbox
 
                             LOG_S(Logger::kLevelEvent, "data: start");
 
-                            segments_[0]->async_open(
+                            BufferDemuxer::async_open(
                                 boost::bind(&VodDemuxer::handle_async_open, this, _1));
                             return;
                         }
@@ -428,7 +416,7 @@ namespace ppbox
                     LOG_S(Logger::kLevelEvent, "data: success");
 
                     // 假造的seg_end
-                    seg_end(buffer_->segment());
+                    seg_end(segments_->segment());
                     LOG_S(Logger::kLevelDebug, "data used (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::finish;
@@ -563,7 +551,7 @@ namespace ppbox
                 if (media_info_.size() >= 2) {
                     return media_info_.size();
                 } else {
-                    return segments_[buffer_->read_segment()]->get_media_count(ec);
+                    return BufferDemuxer::get_media_count(ec);
                 }
             }
             return 0;
@@ -583,7 +571,7 @@ namespace ppbox
                 if (media_info_.size() >= 2) {
                     info = media_info_[index];
                 } else {
-                    segments_[buffer_->read_segment()]->get_media_info(index, info, ec);
+                    BufferDemuxer::get_media_info(index, info, ec);
                     if (!ec && media_info_.size() == index) {
                         media_info_.push_back(info);
                     }
@@ -614,22 +602,10 @@ namespace ppbox
             if ((ec = extern_error_)) {
                 return 0;
             } else if (is_open(seek_time_, ec)) {
-                size_t seg_write = buffer_->write_segment();
-                if (seg_write < segments_.size()) {
-                    boost::uint32_t buffer_time = 
-                        segments_[seg_write]->get_end_time(ec, ec_buf);
-                    return segments_[seg_write]->duration_offset + buffer_time;
-                } else {
-                    // 下载结束
-                    ec.clear();
-                    if (!(ec_buf = pending_error_)) {
-                        ec_buf = boost::asio::error::eof;
-                    }
-                    return segments_.back()->duration_offset + segments_.back()->duration;
-                }
+                return BufferDemuxer::get_end_time(ec, ec_buf);
             } else if (ec == would_block) {
                 ec_buf = ec;
-                return segments_.back()->duration_offset + segments_.back()->duration;
+                return (*segments_)[segments_->total_segments() - 1].duration_offset + (*segments_)[segments_->total_segments() - 1].duration;
             } else {
                 ec_buf = ec;
                 return 0;
@@ -640,15 +616,9 @@ namespace ppbox
             error_code & ec)
         {
             if (is_open(seek_time_, ec)) {
-                size_t seg_read = buffer_->read_segment();
-                if (seg_read < segments_.size()) {
-                    return segments_[seg_read]->duration_offset + segments_[seg_read]->get_cur_time(ec);
-                } else {
-                    ec.clear();
-                    return segments_.back()->duration_offset + segments_.back()->duration;
-                }
+                return BufferDemuxer::get_cur_time(ec);
             } else if (ec == would_block) {
-                return segments_.back()->duration_offset + segments_.back()->duration;
+                return (*segments_)[segments_->total_segments() - 1].duration_offset + (*segments_)[segments_->total_segments() - 1].duration;
             } else {
                 return 0;
             }
@@ -663,71 +633,7 @@ namespace ppbox
             if (seek_time == (boost::uint32_t)-1 // do not call is_open when called by is_open
                 || is_open(ec)) {
                 if (time < video_->duration) {
-                    for (size_t i = 0; i < segments_.size(); ++i) {
-                        if (time < segments_[i]->duration_offset + segments_[i]->duration) {
-                            demux_data().segment = i;
-                            time -= segments_[i]->duration_offset;
-                            segments_[i]->seek(time, ec);
-                            time += segments_[i]->duration_offset;
-                            // seek_time_ == -1说明是get_drag里面调用的seek
-                            if (seek_time != (boost::uint32_t)-1) {
-                                DemuxerStatistic::seek(time, ec);
-                            }
-
-                            // 设置timescal对应的offset
-                            if (!ec || ec == boost::asio::error::would_block) {
-                                for(boost::uint32_t index = 0; index < media_info_.size(); ++index) {
-                                    media_info_[index].duration = 
-                                        segments_[i]->duration_offset_us * media_info_[index].time_scale / 1000000;
-                                }
-                            }
-
-                            return ec;
-                        }
-                    }
-
-                    if (pending_error_) {
-                        ec = pending_error_;
-                        if (ec == would_block) {
-                            seek_time_ = time;
-                            DemuxerStatistic::seek(time, ec);
-                        }
-                    } else {
-                        ec = bad_file_format;
-                    }
-                } else {
-                    ec = out_of_range;
-                }
-            }
-            return ec;
-        }
-
-        size_t VodDemuxer::get_segment_count(
-            boost::system::error_code & ec)
-        {
-            if (is_open(ec))
-                return segments_.size();
-            return 0;
-        }
-
-        error_code VodDemuxer::get_segment_info(
-            SegmentInfo & info, 
-            bool need_head_data, 
-            error_code & ec)
-        {
-            if (is_open(ec)) {
-                if (info.index == size_t(-1)) {
-                    info.index = buffer_->read_segment();
-                }
-                if (info.index < segments_.size()) {
-                    VodSegmentDemuxer * demuxer = segments_[info.index];
-                    info.duration = demuxer->duration;
-                    info.duration_offset = demuxer->duration_offset;
-                    info.file_length = demuxer->file_length;
-                    info.head_length = demuxer->head_length;
-                    ec = error_code();
-                    if (need_head_data)
-                        demuxer->get_head_data(info.head_data, ec);
+                    BufferDemuxer::seek(time, ec);
                 } else {
                     ec = out_of_range;
                 }
@@ -746,61 +652,12 @@ namespace ppbox
             //}
             if ((ec = extern_error_)) {
             } else if (is_open(seek_time_, ec)) {
-                size_t seg_read = buffer_->read_segment();
-                assert(seg_read < segments_.size());
-                if (seg_read < segments_.size()) {
-                    segments_[seg_read]->get_sample(sample, ec);
-                    if (ec == no_more_sample) {
-                        if (++seg_read < segments_.size()) {
-                            LOG_S(Logger::kLevelDebug, 
-                                "segment: " << seg_read << 
-                                " duration: " << segments_[seg_read]->duration);
-                            demux_data().segment = seg_read;
-                            boost::uint32_t seek_time = 0;
-                            framework::timer::TimeCounter tc;
-                            segments_[seg_read]->seek(seek_time, ec) 
-                                || segments_[seg_read]->get_sample(sample, ec);
-                            if (tc.elapse() > 10) {
-                                LOG_S(framework::logger::Logger::kLevelDebug, 
-                                    "[get_sample] get_sample: " << tc.elapse());
-                            }
-                            // 设置timescal对应的offset
-                            for(boost::uint32_t i = 0; i < media_info_.size(); ++i) {
-                                media_info_[i].duration = 
-                                    segments_[seg_read]->duration_offset_us * media_info_[i].time_scale / 1000000;
-                            }
-
-                            // 清楚前后mp4头占用的内存
-                            release_head_buffer(2, seg_read, keep_count_);
-                            if (tc.elapse() > 10) {
-                                LOG_S(framework::logger::Logger::kLevelDebug, 
-                                    "[get_sample] release_head_buffer: " << tc.elapse());
-                            }
-                        } else {
-                            if (pending_error_) {
-                                ec = pending_error_;
-                            }
-                        }
-                    }
-                    if (!ec) {
-                        sample.time += segments_[seg_read]->duration_offset;
-                        sample.ustime += segments_[seg_read]->duration_offset_us;
-
-                        if (sample.itrack != boost::uint32_t(-1)) {
-                            sample.dts += media_info_[sample.itrack].duration;
-                        }
-
-                        if (sample.itrack != sample.itrack) {
-                            sample.dts += media_info_[sample.itrack].duration;
-                        }
-                        play_on(sample.time);
-                    }
-                } else {
-                    if (pending_error_) {
-                        ec = pending_error_;
-                    } else {
-                        ec = out_of_range;
-                    }
+                BufferDemuxer::get_sample(sample, ec);
+                if (!ec) {
+                    Segment read_segment = (*segments_)[buffer_->read_segment()];
+                    sample.time += read_segment.duration_offset;
+                    sample.ustime += read_segment.duration_offset_us;
+                    play_on(sample.time);
                 }
             }
             if (ec == would_block) {
@@ -816,21 +673,21 @@ namespace ppbox
             bool non_block, 
             error_code & ec)
         {
-            return buffer_->set_non_block(non_block, ec);
+            return segments_->set_non_block(non_block, ec);
         }
 
         error_code VodDemuxer::set_time_out(
             boost::uint32_t time_out, 
             error_code & ec)
         {
-            return buffer_->set_time_out(time_out, ec);
+            return segments_->set_time_out(time_out, ec);
         }
 
         error_code VodDemuxer::set_http_proxy(
             framework::network::NetName const & addr, 
             error_code & ec)
         {
-            buffer_->set_http_proxy(addr);
+            segments_->set_http_proxy(addr);
             return ec = error_code();
         }
 
@@ -843,24 +700,22 @@ namespace ppbox
             set_info_by_video(drag_info.video);
 
             std::vector<VodSegmentNew> & segments = drag_info.segments;
-            buffer_->set_segments(segments);
             for (size_t i = 0; !ec && i < segments.size(); ++i) {
-                if (i == 0 && segments_.size() > 0)
+                if (i == 0 && segments_->total_segments() > 0)
                     continue;
-
-                segments_.push_back(new VodSegmentDemuxer(segments[i], *buffer_, ec));
+                segments_->add_segment(segments[i]);
             }
         }
 
         void VodDemuxer::seg_beg(
             size_t segment)
         {
-            if (segment < segments_.size()) {
+            if (segment < segments_->total_segments()) {
                 if (segment == 0) {
                     open_logs_[1].begin_try();
                 }
-                if (segments_[segment]->va_rid.size() >= 32) {
-                    demux_data().set_rid(segments_[segment]->va_rid);
+                if ((* segments_)[segment].va_rid.size() >= 32) {
+                    demux_data().set_rid((* segments_)[segment].va_rid);
                 }
             }
         }
@@ -868,9 +723,9 @@ namespace ppbox
         void VodDemuxer::seg_end(
             size_t segment)
         {
-            if (segment < segments_.size()) {
+            if (segment < segments_->total_segments()) {
                 if (segment == 0) {
-                    open_logs_[1].end_try(buffer_->http_stat());
+                    open_logs_[1].end_try(segments_->http_stat());
                     if (open_logs_[1].try_times == 1)
                         open_logs_[1].response_data_time = open_logs_[1].total_elapse;
                 }
@@ -888,28 +743,6 @@ namespace ppbox
                 ec.clear();
             }
             return ec;
-        }
-
-        void VodDemuxer::release_head_buffer(
-            boost::uint32_t before,
-            boost::uint32_t cur,
-            boost::uint32_t after)
-        {
-            boost::int32_t before_end = cur - before;
-            if (before_end > 0) {
-                for (boost::int32_t i = 0; i < before_end; ++i) {
-                    segments_[i]->release();
-                    //LOG_S(Logger::kLevelAlarm, "before cur: " << cur << "release segment: " << i << " head");
-                }
-            }
-
-            boost::int32_t after_befin = cur+after+1;
-            if (after_befin < (boost::int32_t)segments_.size()) {
-                for (size_t i = after_befin; i < segments_.size(); ++i) {
-                    segments_[i]->release();
-                    //LOG_S(Logger::kLevelAlarm, "after cur: " << cur << "release segment: " << i << " head");
-                }
-            }
         }
 
     } // namespace demux

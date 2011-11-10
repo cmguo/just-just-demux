@@ -3,6 +3,8 @@
 #ifndef _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 #define _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 
+#include "ppbox/demux/source/BufferList.h"
+
 #include <util/buffers/BufferSize.h>
 #include <util/buffers/StlBuffer.h>
 
@@ -13,27 +15,28 @@ namespace ppbox
     namespace demux
     {
 
-        template <typename Buffer>
         class BytesStream
             : public util::buffers::StlStream<boost::uint8_t>
         {
         public:
-            typedef typename Buffer::read_buffer_t read_buffer_t;
+            typedef BufferList::read_buffer_t read_buffer_t;
 
-            typedef typename read_buffer_t::const_iterator const_iterator;
+            typedef read_buffer_t::const_iterator const_iterator;
 
-            typedef typename util::buffers::StlBuffer<
+            typedef util::buffers::StlBuffer<
                 BytesStream, util::buffers::detail::_read> buffer_type;
 
         public:
             BytesStream(
-                Buffer & buffer)
+                BufferList & buffer,
+                size_t segment)
                 : buffer_(buffer)
                 , size_(0)
                 , iter_(buffers_.begin())
                 , pos_(0)
                 , end_(0)
                 , buf_(*this)
+                , segment_(segment)
                 , ec_(boost::asio::error::would_block)
             {
                 setg(NULL, NULL, NULL);
@@ -60,6 +63,7 @@ namespace ppbox
                 off_type off = pos + off_type(size_) - end_;
                 assert(off >= 0);
                 buffer_.drop(off, ec_);
+                assert(!ec_);
 
                 update();
 
@@ -78,7 +82,7 @@ namespace ppbox
             {
                 Checker ck(*this);
                 buffer_.drop_all(ec_);
-
+                assert(!ec_);
                 update();
 
                 iter_ = buffers_.begin();
@@ -119,6 +123,42 @@ namespace ppbox
                 }
             }
 
+            void seek(
+                boost::uint64_t offset)
+            {
+                buffer_.seek(segment_, offset, ec_);
+                update();
+                pos_ = offset;
+                end_ = offset + size_;
+                if (size_ > 0) {
+                    iter_ = buffers_.begin();
+                    buf_ = *iter_;
+                } else {
+                    setg(NULL, NULL, NULL);
+                }
+            }
+
+            void seek(
+                boost::uint64_t offset,
+                boost::uint64_t head_length)
+            {
+                buffer_.seek(segment_, offset, head_length, ec_);
+                update();
+                pos_ = offset;
+                end_ = offset + size_;
+                if (size_ > 0) {
+                    iter_ = buffers_.begin();
+                    buf_ = *iter_;
+                } else {
+                    setg(NULL, NULL, NULL);
+                }
+            }
+
+            size_t const segment() const
+            {
+                return segment_;
+            }
+
         private:
             void prepare(
                 boost::uint32_t amount)
@@ -131,7 +171,8 @@ namespace ppbox
 
             void update()
             {
-                buffers_ = buffer_.read_buffer();
+                //buffers_ = buffer_.read_buffer();
+                buffers_ = buffer_.segment_read_buffer(segment_);
                 size_ = util::buffers::buffer_size(buffers_);
             }
 
@@ -271,13 +312,14 @@ namespace ppbox
             }
 
         private:
-            Buffer & buffer_;
+            BufferList & buffer_;
             read_buffer_t buffers_; // 有效数据
             boost::uint32_t size_;  // buffers_数据的大小
             const_iterator iter_;   // 当前的内存段
             pos_type pos_;          // 与iter_对应分段的开头
             pos_type end_;          // 有效数据的结尾
             buffer_type buf_;       // 当前的内存段
+            size_t segment_;
             boost::system::error_code ec_;
         };
 

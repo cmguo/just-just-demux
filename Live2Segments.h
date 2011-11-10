@@ -3,7 +3,8 @@
 #ifndef _PPBOX_DEMUX_LIVE2_SEGMENTS_H_
 #define _PPBOX_DEMUX_LIVE2_SEGMENTS_H_
 
-#include "ppbox/demux/source/HttpBufferList.h"
+#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/HttpSegments.h"
 #include "ppbox/demux/Live2Demuxer.h"
 #include "ppbox/demux/Serialize.h"
 
@@ -60,6 +61,84 @@ namespace ppbox
             }
         };
 
+        struct Live2Stream
+        {
+            boost::uint16_t delay_play_time;
+
+            template<
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar & util::serialization::make_nvp("delay", delay_play_time);
+            }
+        };
+
+        struct Live2Channel
+        {
+            std::string channelGUID;
+            Live2Stream stream;
+
+            template<
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar & util::serialization::make_nvp("rid", channelGUID)
+                    & SERIALIZATION_NVP(stream);
+            }
+        };
+
+        struct Live2sh
+        {
+            std::string server_limit;
+
+            template<
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar & util::serialization::make_nvp("limit", server_limit);
+            }
+        };
+
+        struct Live2dt
+        {
+            NetName server_host;
+            Live2sh sh;
+            util::serialization::UtcTime server_time;
+
+            template<
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar & util::serialization::make_nvp("sh", server_host)
+                    & SERIALIZATION_NVP(sh)
+                    & util::serialization::make_nvp("st", server_time);
+            }
+        };
+
+        struct Live2JumpInfoNew
+        {
+            Live2Channel channel;
+            Live2dt dt;
+
+            template<
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar & SERIALIZATION_NVP(channel)
+                    & SERIALIZATION_NVP(dt);
+            }
+        };
+
         static std::string addr_host(
             framework::network::NetName const & addr)
         {
@@ -67,7 +146,7 @@ namespace ppbox
         }
 
         class Live2Segments
-            : public HttpBufferList<Live2Segments>
+            : public HttpSegments
         {
         protected:
             FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Live2Segments", 0);
@@ -75,10 +154,8 @@ namespace ppbox
         public:
             Live2Segments(
                 boost::asio::io_service & io_svc, 
-                boost::uint16_t live_port, 
-                boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size)
-                : HttpBufferList<Live2Segments>(io_svc, buffer_size, prepare_size)
+                boost::uint16_t live_port)
+                : HttpSegments(io_svc, live_port)
                 , live_port_(live_port)
                 , server_time_(0)
                 , file_time_(0)
@@ -86,6 +163,7 @@ namespace ppbox
                 , interval_(10)
                 , live_demuxer_(NULL)
             {
+                segments_.push_back(Segment(DemuxerType::flv));
             }
 
         public:
@@ -150,9 +228,22 @@ namespace ppbox
                     add_segment(ec);
                     clear_readed_segment(ec);
                 } else if (ec == http_error::not_found) {
-                    pause(5 * 1000);
+                    HttpSegments::buffer_->pause(5 * 1000);
                     ec.clear();
                     //ec = boost::asio::error::would_block;
+                }
+            }
+
+            void on_error(
+                boost::system::error_code & ec)
+            {
+                if (ec == boost::asio::error::eof) {
+                    ec.clear();
+                    segments_.push_back(Segment(DemuxerType::flv));
+                    //clear_readed_segment(ec);
+                } else if (ec == boost::asio::error::connection_refused) {
+                    ec.clear();
+                    HttpSegments::buffer_->increase_req();
                 }
             }
 
@@ -186,6 +277,8 @@ namespace ppbox
                 url.host(dns_live2_jump_server.host());
                 url.svc(dns_live2_jump_server.svc());
                 url.path("/live2/" + stream_id_);
+
+                //framework::string::Url url("http://web-play.pptv.com/webplay3-0-300147.xml&param=type=web&userType=0&areaType=1&dns=12345?r=1319010213406");
 
                 return url;
             }
@@ -231,7 +324,7 @@ namespace ppbox
 
             size_t segment() const
             {
-                return write_segment();
+                return HttpSegments::buffer_->write_segment();
             }
 
             std::string const & get_name() const
@@ -247,6 +340,37 @@ namespace ppbox
             boost::uint16_t interval() const
             {
                 return interval_;
+            }
+
+        public:
+            boost::system::error_code get_segment(
+                size_t index,
+                Segment & segment,
+                boost::system::error_code & ec)
+            {
+                if (index < segments_.size()) {
+                    segment = segments_[index];
+                } else {
+                    segment = Segment(DemuxerType::flv);
+                }
+                return ec;
+            }
+
+            Segment & operator [](
+                size_t segment)
+            {
+                return segments_[segment];
+            }
+
+            Segment const & operator [](
+                size_t segment) const
+            {
+                return segments_[segment];
+            }
+
+            size_t total_segments() const
+            {
+                return segments_.size();
             }
 
         private:
@@ -272,6 +396,7 @@ namespace ppbox
             boost::uint16_t interval_;
 
             Live2Demuxer * live_demuxer_;
+            Segments segments_;
         };
 
     } // namespace demux

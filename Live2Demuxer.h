@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_LIVE2_DEMUXER_H_
 #define _PPBOX_DEMUX_LIVE2_DEMUXER_H_
 
-#include "ppbox/demux/Demuxer.h"
+#include "ppbox/demux/PptvDemuxer.h"
 
 #include <boost/asio/io_service.hpp>
 
@@ -14,13 +14,11 @@ namespace ppbox
 
         class Live2Segments;
 
-        class Live2DemuxerImpl;
-
         class PptvJump;
         struct Live2JumpInfo;
 
         class Live2Demuxer
-            : public Demuxer
+            : public PptvDemuxer
         {
         public:
             Live2Demuxer(
@@ -139,8 +137,7 @@ namespace ppbox
             };
 
         private:
-            Live2Segments * buffer_;
-            Live2DemuxerImpl * demuxer_;
+            Live2Segments * segments_;
             PptvJump * jump_;
 
             open_response_type resp_;

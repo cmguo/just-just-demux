@@ -268,7 +268,7 @@ namespace ppbox
             return 0;
         }
 
-        boost::uint64_t FlvDemuxerBase::seek_to(
+        boost::uint64_t FlvDemuxerBase::seek(
             boost::uint32_t & time, 
             boost::system::error_code & ec)
         {

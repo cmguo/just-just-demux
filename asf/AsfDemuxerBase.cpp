@@ -336,7 +336,7 @@ namespace ppbox
             return 0;
         }
 
-        boost::uint64_t AsfDemuxerBase::seek_to(
+        boost::uint64_t AsfDemuxerBase::seek(
             boost::uint32_t & time, 
             error_code & ec)
         {

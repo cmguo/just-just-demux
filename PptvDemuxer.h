@@ -1,10 +1,9 @@
-// Demuxer.h
+// PptvDemuxer.h
 
 #ifndef _PPBOX_DEMUX_DEMUXER_H_
 #define _PPBOX_DEMUX_DEMUXER_H_
 
-#include "ppbox/demux/DemuxerBase.h"
-#include "ppbox/demux/source/BufferStatistic.h"
+#include "ppbox/demux/BufferDemuxer.h"
 #include "ppbox/demux/DemuxerStatistic.h"
 
 namespace framework { namespace timer { class Ticker; } }
@@ -19,6 +18,8 @@ namespace ppbox
 
         struct Sample;
 
+        class SegmentsBase;
+
         struct SegmentInfo
         {
             size_t index;
@@ -29,20 +30,19 @@ namespace ppbox
             std::vector<boost::uint8_t> head_data;
         };
 
-        class Demuxer
-            : protected DemuxerStatistic
+        class PptvDemuxer
+            : public BufferDemuxer
+            , protected DemuxerStatistic
         {
-        public:
-            typedef boost::function<void (
-                boost::system::error_code const &)
-            > open_response_type;
 
         public:
-            Demuxer(
+            PptvDemuxer(
                 boost::asio::io_service & io_svc, 
-                BufferStatistic const & buf_stat);
+                boost::uint32_t buffer_size, 
+                boost::uint32_t prepare_size,
+                SegmentsBase * segmentbase);
 
-            virtual ~Demuxer();
+            virtual ~PptvDemuxer();
 
         public:
             virtual boost::system::error_code open(
@@ -79,19 +79,11 @@ namespace ppbox
             virtual boost::uint32_t get_duration(
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::system::error_code seek(
-                boost::uint32_t & time, 
-                boost::system::error_code & ec) = 0;
-
             virtual boost::uint32_t get_end_time(
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf) = 0;
 
             virtual boost::uint32_t get_cur_time(
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::system::error_code get_sample(
-                Sample & sample, 
                 boost::system::error_code & ec) = 0;
 
             virtual boost::system::error_code set_non_block(
@@ -100,6 +92,14 @@ namespace ppbox
 
             virtual boost::system::error_code set_time_out(
                 boost::uint32_t time_out, 
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code seek(
+                boost::uint32_t & time, 
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
                 boost::system::error_code & ec) = 0;
 
             virtual size_t get_segment_count(
@@ -130,6 +130,11 @@ namespace ppbox
             void on_extern_error(
                 boost::system::error_code const & ec);
 
+            void on_event(
+                DemuxerEventType::Enum event_type,
+                void const * const arg,
+                boost::system::error_code & ec);
+
         public:
             using DemuxerStatistic::demux_stat;
             using DemuxerStatistic::get_status_info;
@@ -138,7 +143,7 @@ namespace ppbox
 
             BufferStatistic const & buffer_stat() const
             {
-                return buf_stat_;
+                return (BufferStatistic&)(*BufferDemuxer::buffer_);
             }
 
             DemuxerStatistic const & stat() const
@@ -160,11 +165,11 @@ namespace ppbox
 
         protected:
             boost::asio::io_service & io_svc_;
-            BufferStatistic const & buf_stat_;
             boost::system::error_code extern_error_;
 
         private:
             framework::timer::Ticker * ticker_;
+            SegmentsBase * segments_;
         };
 
     } // namespace demux

@@ -3,6 +3,7 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_BASE_H_
 #define _PPBOX_DEMUX_DEMUXER_BASE_H_
 
+#include "ppbox/demux/DemuxerType.h"
 #include <boost/detail/endian.hpp>
 #include <boost/asio/buffer.hpp>
 
@@ -129,8 +130,64 @@ namespace ppbox
             std::deque<boost::asio::const_buffer> data;
         };
 
+        class DemuxerBase
+        {
+        public:
+            DemuxerBase(
+                std::basic_streambuf<boost::uint8_t> & buf)
+                : head_size_(24)
+            {
+            }
 
+            virtual ~DemuxerBase()
+            {
+            }
 
+        public:
+            virtual boost::system::error_code open(
+                boost::system::error_code & ec) = 0;
+
+            virtual bool is_open(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::uint32_t get_end_time(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
+                boost::system::error_code & ec) = 0;
+
+            virtual size_t get_media_count(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code get_media_info(
+                size_t index, 
+                MediaInfo & info, 
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::uint32_t get_duration(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::uint32_t get_cur_time(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::uint64_t seek(
+                boost::uint32_t & time, 
+                boost::system::error_code & ec) = 0;
+
+            virtual void release(void)
+            {
+            }
+
+        public:
+            size_t head_size() const
+            {
+                return head_size_;
+            }
+
+        protected:
+            boost::uint32_t head_size_;
+        };
 
     } // namespace demux
 } // namespace ppbox

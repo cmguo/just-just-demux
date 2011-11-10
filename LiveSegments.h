@@ -3,7 +3,8 @@
 #ifndef _PPBOX_DEMUX_LIVE_SEGMENTS_H_
 #define _PPBOX_DEMUX_LIVE_SEGMENTS_H_
 
-#include "ppbox/demux/source/HttpBufferList.h"
+#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/HttpSegments.h"
 #include "ppbox/demux/LiveDemuxer.h"
 
 #include <util/protocol/pptv/Base64.h>
@@ -59,25 +60,24 @@ namespace ppbox
         }
 
         class LiveSegments
-            : public HttpBufferList<LiveSegments>
+            : public HttpSegments
         {
         public:
             LiveSegments(
                 boost::asio::io_service & io_svc, 
-                boost::uint16_t live_port, 
-                boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size)
-                : HttpBufferList<LiveSegments>(io_svc, buffer_size, prepare_size)
+                boost::uint16_t live_port)
+                : HttpSegments(io_svc, live_port)
                 , live_port_(live_port)
                 , live_demuxer_(NULL)
             {
+                segments_.push_back(Segment(DemuxerType::asf));
             }
 
         public:
             error_code get_request(
                 size_t segment, 
-                boost::uint64_t beg, 
-                boost::uint64_t end, 
+                boost::uint64_t & beg, 
+                boost::uint64_t & end, 
                 framework::network::NetName & addr, 
                 util::protocol::HttpRequest & request, 
                 error_code & ec)
@@ -85,7 +85,7 @@ namespace ppbox
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
 
-                set_max_try(1);
+                HttpSegments::buffer_->set_max_try(1);
                 set_time_out(0, ec);
                 if (!proxy_addr_.host().empty()) {
                     addr = proxy_addr_;
@@ -112,15 +112,15 @@ namespace ppbox
             }
 
             void on_error(
-                boost::system::error_code& ec)
+                boost::system::error_code & ec)
             {
                 if (ec == boost::asio::error::eof) {
                     ec.clear();
-                    add_segment(ec);
+                    segments_.push_back(Segment(DemuxerType::asf));
                     clear_readed_segment(ec);
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
-                    increase_req();
+                    HttpSegments::buffer_->increase_req();
                 }
             }
 
@@ -172,7 +172,7 @@ namespace ppbox
 
             size_t segment() const
             {
-                return write_segment();
+                return HttpSegments::buffer_->write_segment();
             }
 
             std::string const & get_name() const
@@ -183,6 +183,46 @@ namespace ppbox
             std::string const & get_uuid() const
             {
                 return channel_;
+            }
+
+        public:
+            boost::system::error_code get_segment(
+                size_t index,
+                Segment & segment,
+                boost::system::error_code & ec)
+            {
+                if (index < segments_.size()) {
+                    segment = segments_[index];
+                } else {
+                    segment = Segment(DemuxerType::asf);
+                }
+                return ec;
+            }
+
+            Segment & operator [](
+                size_t segment)
+            {
+                return segments_[segment];;
+            }
+
+            Segment const & operator [](
+                size_t segment) const
+            {
+                return segments_[segment];
+            }
+
+            size_t total_segments() const
+            {
+                return segments_.size();
+            }
+
+        private:
+            void clear_readed_segment(
+                boost::system::error_code & ec)
+            {
+                while (segments_.num_del() < HttpSegments::buffer_->read_segment()) {
+                    segments_.pop_front();
+                }
             }
 
         private:
@@ -196,6 +236,8 @@ namespace ppbox
             LiveJumpInfo jump_info_;
 
             LiveDemuxer * live_demuxer_;
+            Segments segments_;
+
         };
 
     } // namespace demux

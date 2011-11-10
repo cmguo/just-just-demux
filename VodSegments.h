@@ -3,7 +3,8 @@
 #ifndef _PPBOX_DEMUX_VOD_SEGMENTS_H_
 #define _PPBOX_DEMUX_VOD_SEGMENTS_H_
 
-#include "ppbox/demux/source/HttpBufferList.h"
+#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/HttpSegments.h"
 #include "ppbox/demux/VodDemuxer.h"
 #include "ppbox/demux/VodInfo.h"
 
@@ -47,19 +48,13 @@ namespace ppbox
         }
 
         class VodSegments
-            : public HttpBufferList<VodSegments>
+            : public HttpSegments
         {
         public:
             VodSegments(
                 boost::asio::io_service & io_svc, 
-                boost::uint16_t vod_port, 
-                boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size)
-#ifndef MULTI_SEQ
-                : HttpBufferList<VodSegments>(io_svc, buffer_size, prepare_size)
-#else
-                : HttpBufferList<VodSegments>(io_svc, buffer_size, prepare_size, 2)
-#endif
+                boost::uint16_t vod_port)
+                : HttpSegments(io_svc, vod_port)
                 , vod_port_(vod_port)
                 , first_seg_(true)
                 , bwtype_(0)
@@ -72,8 +67,8 @@ namespace ppbox
         public:
             error_code get_request(
                 size_t segment, 
-                boost::uint64_t beg, 
-                boost::uint64_t end, 
+                boost::uint64_t & beg, 
+                boost::uint64_t & end, 
                 framework::network::NetName & addr, 
                 util::protocol::HttpRequest & request, 
                 error_code & ec)
@@ -82,8 +77,8 @@ namespace ppbox
                 ec = error_code();
                 if (segment < segments_.size()) {
                     if (vod_port_ 
-                        && get_segment_num_try(segment, ec) > 3) {
-                            set_total_req(1);
+                        && HttpSegments::buffer_->get_segment_num_try(ec) > 3) {
+                            HttpSegments::buffer_->set_total_req(1);
                             first_seg_ = true;
                             vod_port_ = 0;
                     }
@@ -122,7 +117,7 @@ namespace ppbox
                         url.param("drag", buf_time < 15000 ? "1" : "0");
                         url.param("headonly", end <= segments_[segment].head_length ? "1" : "0");
                         url.param("BWType", format(bwtype_));
-
+                        //url.param("BWType", "0");
                         url.param("blocknum", format(segments_[segment].block_num));
 
                         url.encode();
@@ -193,10 +188,15 @@ namespace ppbox
                 return server_host_;
             }
 
-            void set_segments(
-                std::vector<VodSegmentNew> const & segments)
+            void add_segment(
+                VodSegmentNew & segment)
             {
-                segments_ = segments;
+                if (segment.file_length != 0) {
+                    segment.total_state = Segment::is_valid;
+                }
+                segments_.push_back(segment);
+                boost::system::error_code ec;
+                HttpSegments::buffer_->add_request(ec);
             }
 
             void set_http_proxy(
@@ -213,7 +213,7 @@ namespace ppbox
 
             size_t segment() const
             {
-                return write_segment();
+                return HttpSegments::buffer_->write_segment();
             }
 
             void set_vod_demuxer(
@@ -223,14 +223,35 @@ namespace ppbox
             }
 
             void on_error(
-                boost::system::error_code& ec)
+                boost::system::error_code & ec)
             {
                 if (ec == util::protocol::http_error::keepalive_error) {
                     ec.clear();
                     set_http_connection(util::protocol::http_field::Connection::close);
-                    decrease_total_req();
+                    HttpSegments::buffer_->decrease_total_req();
+                } else if (ec == boost::asio::error::connection_refused) {
+                    ec.clear();
+                    HttpSegments::buffer_->increase_req();
                 }
             }
+
+            public:
+                VodSegment & operator [](
+                    size_t segment)
+                {
+                    return segments_[segment];
+                }
+
+                VodSegment const & operator [](
+                    size_t segment) const
+                {
+                    return segments_[segment];
+                }
+
+                size_t total_segments() const
+                {
+                    return segments_.size();
+                }
 
         private:
             std::string get_key() const

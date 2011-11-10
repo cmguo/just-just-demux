@@ -3,19 +3,19 @@
 #ifndef _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 #define _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 
-#include "ppbox/demux/Demuxer.h"
+#include "ppbox/demux/PptvDemuxer.h"
 
 namespace ppbox
 {
     namespace demux
     {
         class EmptyDemuxer
-            : public Demuxer
+            : public PptvDemuxer
         {
         public:
             EmptyDemuxer(
                 boost::asio::io_service & io_svc)
-                : Demuxer(io_svc, *(buffer_stat_ = new BufferStatistic))
+                : PptvDemuxer(io_svc, 0, 0, NULL)
             {
             }
 

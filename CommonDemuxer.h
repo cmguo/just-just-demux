@@ -3,7 +3,8 @@
 #ifndef _PPBOX_DEMUX_COMMON_DEMUXER_H_
 #define _PPBOX_DEMUX_COMMON_DEMUXER_H_
 
-#include "ppbox/demux/Demuxer.h"
+#include "ppbox/demux/PptvDemuxer.h"
+#include "ppbox/demux/source/BufferList.h"
 
 namespace ppbox
 {
@@ -11,27 +12,27 @@ namespace ppbox
     {
 
         template <
-            typename Buffer, 
-            typename BufferDemuxer
+            typename Segments
         >
         class CommonDemuxer
-            : private Buffer
-            , private BufferDemuxer
-            , public Demuxer
+            : public PptvDemuxer
         {
         public:
             CommonDemuxer(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size)
-                : Buffer(io_svc, buffer_size, prepare_size)
-                , BufferDemuxer((Buffer &)(*this))
-                , Demuxer(io_svc, Buffer::buffer_stat())
+                boost::uint32_t prepare_size,
+                DemuxerType::Enum demuxer_type)
+                : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new Segments(io_svc, 0))
             {
+                segments_->set_buffer_list(BufferDemuxer::buffer_);
+                segments_->set_demuxer_type(demuxer_type);
             }
 
             virtual ~CommonDemuxer()
             {
+                delete segments_;
+                delete buffer_;
             }
 
         public:
@@ -44,19 +45,19 @@ namespace ppbox
                     key_playlink, key_playlink.end()), "|");
                 assert(key_playlink.size() > 0);
                 std::string playlink = key_playlink[key_playlink.size()-1];
-                Demuxer::open_beg(playlink);
-                Buffer::set_name(playlink);
+                PptvDemuxer::open_beg(playlink);
+                segments_->set_name(playlink);
                 BufferDemuxer::open(ec);
                 if (!ec) {
                     BufferDemuxer::is_open(ec);
                 }
-                Demuxer::open_end(ec);
+                PptvDemuxer::open_end(ec);
                 return ec;
             }
 
             virtual void async_open(
                 std::string const & name, 
-                Demuxer::open_response_type const & resp)
+                PptvDemuxer::open_response_type const & resp)
             {
                 boost::system::error_code ec;
                 open(name, ec);
@@ -72,7 +73,7 @@ namespace ppbox
             virtual boost::system::error_code cancel(
                 boost::system::error_code & ec)
             {
-                return Buffer::cancel(ec);
+                return buffer_->cancel(ec);
             }
 
             virtual boost::system::error_code pause(
@@ -94,7 +95,7 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 DemuxerStatistic::close();
-                return Buffer::close(ec);
+                return buffer_->close(ec);
             }
 
             virtual size_t get_media_count(
@@ -133,7 +134,7 @@ namespace ppbox
                 if ((ec = extern_error_)) {
                     return 0;
                 } else {
-                    if (Buffer::write_segment() > 0) {
+                    if (buffer_->write_segment() > 0) {
                         ec.clear();
                         ec_buf = error::no_more_sample;
                         return BufferDemuxer::get_duration(ec);
@@ -169,15 +170,19 @@ namespace ppbox
                 bool non_block, 
                 boost::system::error_code & ec)
             {
-                return Buffer::set_non_block(non_block, ec);
+                return segments_->set_non_block(non_block, ec);
             }
 
             virtual boost::system::error_code set_time_out(
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec)
             {
-                return Buffer::set_time_out(time_out, ec);
+                return segments_->set_time_out(time_out, ec);
             }
+
+        private:
+            BufferList * buffer_;
+            Segments * segments_;
         };
 
     } // namespace demux

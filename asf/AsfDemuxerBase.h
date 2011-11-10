@@ -14,12 +14,14 @@ namespace ppbox
 
         class AsfDemuxerBase
             : public ASF_Object_Header
+            , public DemuxerBase
         {
 
         public:
             AsfDemuxerBase(
                 std::basic_streambuf<boost::uint8_t> & buf)
-                : archive_(buf)
+                : DemuxerBase(buf)
+                , archive_(buf)
                 , open_step_(size_t(-1))
                 , object_parse_(file_prop_)
                 , buffer_parse_(file_prop_)
@@ -65,7 +67,7 @@ namespace ppbox
             boost::uint32_t get_cur_time(
                 boost::system::error_code & ec);
 
-            boost::uint64_t seek_to(
+            boost::uint64_t seek(
                 boost::uint32_t & time, 
                 boost::system::error_code & ec);
 

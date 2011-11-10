@@ -78,7 +78,6 @@ namespace ppbox
                 size_t itrack, 
                 AP4_Track * track, 
                 boost::uint64_t head_size, 
-                boost::uint64_t total_size, 
                 error_code & ec)
                 : track_(track)
                 , next_index_(0)

@@ -1,7 +1,9 @@
-// Demuxer.cpp
+// PptvDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/Demuxer.h"
+#include "ppbox/demux/PptvDemuxer.h"
+#include "ppbox/demux/source/BufferList.h"
+#include "ppbox/demux/source/SegmentsBase.h"
 
 #include <framework/timer/Ticker.h>
 #include <framework/logger/LoggerSection.h>
@@ -9,24 +11,28 @@ using namespace framework::logger;
 
 #include <boost/system/error_code.hpp>
 using namespace boost::system;
+using namespace boost::asio::error;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Demuxer", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("PptvDemuxer", 0);
 
 namespace ppbox
 {
     namespace demux
     {
 
-        Demuxer::Demuxer(
+        PptvDemuxer::PptvDemuxer(
             boost::asio::io_service & io_svc, 
-            BufferStatistic const & buf_stat)
-            : io_svc_(io_svc)
-            , buf_stat_(buf_stat)
+            boost::uint32_t buffer_size, 
+            boost::uint32_t prepare_size,
+            SegmentsBase * segmentbase)
+            : BufferDemuxer(io_svc, buffer_size, prepare_size, segmentbase)
+            , io_svc_(io_svc)
+            , segments_(segmentbase)
         {
             ticker_ = new framework::timer::Ticker(1000);
         }
 
-        Demuxer::~Demuxer()
+        PptvDemuxer::~PptvDemuxer()
         {
             delete ticker_;
             ticker_ = NULL;
@@ -63,7 +69,7 @@ namespace ppbox
             boost::condition_variable cond_;
         };
 
-        error_code Demuxer::open(
+        error_code PptvDemuxer::open(
             std::string const & name, 
             error_code & ec)
         {
@@ -74,7 +80,7 @@ namespace ppbox
             return ec;
         }
 
-        void Demuxer::tick_on()
+        void PptvDemuxer::tick_on()
         {
             if (ticker_->check()) {
                 //LOG_S(Logger::kLevelDebug, "[tick_on]");
@@ -83,7 +89,7 @@ namespace ppbox
             }
         }
 
-        void Demuxer::update_stat()
+        void PptvDemuxer::update_stat()
         {
             error_code ec;
             error_code ec_buf;
@@ -91,20 +97,20 @@ namespace ppbox
             set_buf_time(buffer_time);
         }
 
-        void Demuxer::on_extern_error(
+        void PptvDemuxer::on_extern_error(
             boost::system::error_code const & ec)
         {
             //extern_error_ = ec;
         }
 
-        size_t Demuxer::get_segment_count(
+        size_t PptvDemuxer::get_segment_count(
             boost::system::error_code & ec)
         {
             ec = framework::system::logic_error::not_supported;
             return 0;
         }
 
-        boost::system::error_code Demuxer::get_sample_buffered(
+        boost::system::error_code PptvDemuxer::get_sample_buffered(
             Sample & sample, 
             boost::system::error_code & ec)
         {
@@ -135,7 +141,7 @@ namespace ppbox
             return ec;
         }
 
-        boost::uint32_t Demuxer::get_buffer_time(
+        boost::uint32_t PptvDemuxer::get_buffer_time(
             boost::system::error_code & ec, 
             boost::system::error_code & ec_buf)
         {
@@ -158,7 +164,22 @@ namespace ppbox
             return buffer_time;
         }
 
-        boost::system::error_code Demuxer::get_segment_info(
+        void PptvDemuxer::on_event(
+            DemuxerEventType::Enum event_type,
+            void const * const arg,
+            boost::system::error_code & ec)
+        {
+            ec.clear();
+            if (event_type == DemuxerEventType::play_on) {
+                play_on(* (boost::uint32_t *) arg);
+            } else if (event_type == DemuxerEventType::seek_segment) {
+                demux_data().segment = * (size_t *)arg;
+            } else if (event_type == DemuxerEventType::seek_statistic) {
+                DemuxerStatistic::seek(* (boost::uint32_t *)arg, ec);
+            }
+        }
+
+        boost::system::error_code PptvDemuxer::get_segment_info(
             SegmentInfo & info, 
             bool need_head_data, 
             boost::system::error_code & ec)
@@ -167,7 +188,7 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code Demuxer::set_http_proxy(
+        boost::system::error_code PptvDemuxer::set_http_proxy(
             framework::network::NetName const & addr, 
             boost::system::error_code & ec)
         {
@@ -175,7 +196,7 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code Demuxer::set_max_dl_speed(
+        boost::system::error_code PptvDemuxer::set_max_dl_speed(
             boost::uint32_t speed, // KBps
             boost::system::error_code & ec)
         {

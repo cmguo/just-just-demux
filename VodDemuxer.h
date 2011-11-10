@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_VOD_DEMUXER_H_
 #define _PPBOX_DEMUX_VOD_DEMUXER_H_
 
-#include "ppbox/demux/Demuxer.h"
+#include "ppbox/demux/PptvDemuxer.h"
 
 #include <boost/asio/streambuf.hpp>
 
@@ -39,7 +39,7 @@ namespace ppbox
         class PptvDrag;
 
         class VodDemuxer
-            : public Demuxer
+            : public PptvDemuxer
         {
         public:
             VodDemuxer(
@@ -102,14 +102,6 @@ namespace ppbox
 
             boost::system::error_code set_time_out(
                 boost::uint32_t time_out, 
-                boost::system::error_code & ec);
-
-            size_t get_segment_count(
-                boost::system::error_code & ec);
-
-            boost::system::error_code get_segment_info(
-                SegmentInfo & info, 
-                bool need_head_data, 
                 boost::system::error_code & ec);
 
             boost::system::error_code set_http_proxy(
@@ -197,13 +189,11 @@ namespace ppbox
             };
 
         private:
-            VodSegments * buffer_;
+            VodSegments * segments_;
             VodVideo * video_;
-            std::vector<VodSegmentDemuxer *> segments_;
             PptvJump * jump_;
             boost::shared_ptr<PptvDrag> drag_;
             boost::shared_ptr<VodDragInfoNew> drag_info_;
-            boost::uint32_t seek_time_;
 
             std::vector<MediaInfo> media_info_;
             boost::uint32_t keep_count_;

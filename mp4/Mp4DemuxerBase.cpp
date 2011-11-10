@@ -4,6 +4,7 @@
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/mp4/Mp4Track.h"
 #include "ppbox/demux/mp4/Mp4BytesStream.h"
+#include "ppbox/demux/mp4/Mp4StdByteStream.h"
 
 #include <util/buffers/BufferCopy.h>
 #include <util/buffers/BufferSize.h>
@@ -25,9 +26,12 @@ namespace ppbox
     namespace demux
     {
 
-        Mp4DemuxerBase::Mp4DemuxerBase()
-            : head_size_(24)
+        Mp4DemuxerBase::Mp4DemuxerBase(
+            std::basic_streambuf<boost::uint8_t> & buf)
+            : DemuxerBase(buf)
             , bitrate_(0)
+            , is_((std::basic_streambuf<char, std::char_traits<char> > *)(& buf))
+            , open_step_((boost::uint32_t)-1)
             , file_(NULL)
             , sample_list_(NULL)
             , sample_put_back_(false)
@@ -46,37 +50,80 @@ namespace ppbox
                 delete file_;
         }
 
-        size_t Mp4DemuxerBase::min_head_size(
-            buffer_t const & buf)
+        error_code Mp4DemuxerBase::open(
+            error_code & ec)
         {
-            size_t size = util::buffers::buffer_size(buf);
-            if (size < head_size_)
-                return head_size_;
-            if (size < 24) {
-                return head_size_ = 24;
-            }
-            boost::uint32_t size1;
-            buffer_copy(buffer(&size1, 4), buf, 4);
-            size1 = BytesOrder::host_to_net_long(size1);
-            if (size < size1 + 16) {
-                return head_size_ = size1 + 16;
-            }
-            boost::uint32_t size2;
-            buffer_copy(buffer(&size2, 4), buf, 4, 0, size1);
-            size2 = BytesOrder::host_to_net_long(size2);
-            return head_size_ = size1 + size2 + 8;
+            open_step_ = 0;
+            ec.clear();
+            is_open(ec);
+            return ec;
         }
 
-        error_code Mp4DemuxerBase::set_head(
-            buffer_t const & buf, 
-            boost::uint64_t total_size, 
+        bool Mp4DemuxerBase::is_open(
+            boost::system::error_code & ec)
+        {
+            if (open_step_ == 1) {
+                ec= error_code();
+                return true;
+            }
+
+            if (open_step_ == (boost::uint32_t)-1) {
+                ec = error::not_open;
+                return false;
+            }
+
+            if (open_step_ == 0) {
+                size_t length = 0;
+                is_.seekg(0, std::ios_base::end);
+                length = is_.tellg();
+                is_.seekg(0, std::ios_base::beg);
+                if (length < 24) {
+                    ec = error::file_stream_error;
+                    return false;
+                }
+                char size1_char;
+                is_.read(&size1_char, 4);
+                boost::uint32_t size1 = BytesOrder::host_to_net_long(* (boost::uint32_t *)&size1_char);
+                is_.seekg(0, std::ios_base::end);
+                length = is_.tellg();
+                is_.seekg(0, std::ios_base::beg);
+                if (length < size1 + 16) {
+                    head_size_ = size1 + 16;
+                    ec = error::file_stream_error;
+                    return false;
+                }
+                is_.seekg(size1, std::ios_base::beg);
+                char size2_char;
+                is_.read(&size2_char, 4);
+                boost::uint32_t size2 = BytesOrder::host_to_net_long(* (boost::uint32_t *)&size2_char);
+                is_.seekg(0, std::ios_base::end);
+                length = is_.tellg();
+                is_.seekg(0, std::ios_base::beg);
+                head_size_ = size1 + size2 + 8;
+                if (length < size1 + size2 + 8) {
+                    ec = error::file_stream_error;
+                    return false;
+                }
+                is_.seekg(0,std::ios_base::beg);
+                parse_head(ec);
+                if (ec) {
+                    return false;
+                } else {
+                    open_step_ = 1;
+                    return true;
+                }
+            }
+            return !ec;
+        }
+
+        error_code Mp4DemuxerBase::parse_head(
             error_code & ec)
         {
             LOG_S(Logger::kLevelDebug, "begin parse head,size: " << head_size_);
 
-            if (min_head_size(buf) > util::buffers::buffer_size(buf)) {
+           /* if (min_head_size(buf) > util::buffers::buffer_size(buf)) {
                 return ec = bad_offset_size;
-            }
+            }*/
 
             /*{
                 std::vector<char> vec(buf.in_avail(), 0);
@@ -85,7 +132,8 @@ namespace ppbox
                 ofs.write(&vec.at(0), vec.size());
             }*/
 
-            AP4_ByteStream * memStream = new_buffer_byte_stream(buf);
+            AP4_ByteStream * memStream = new Mp4StdByteStream(&is_);
+            //AP4_ByteStream * memStream = new_buffer_byte_stream(buf);
             AP4_File * file = new AP4_File(*memStream);
             memStream->Release();
             if (!file) {
@@ -128,7 +176,7 @@ namespace ppbox
             ec = error_code();
             AP4_List<AP4_Track> & tracks = file->GetMovie()->GetTracks();
             for (AP4_List<AP4_Track>::Item * item = tracks.FirstItem(); item; item = item->GetNext()) {
-                Track * track = new Track(tracks_.size(), item->GetData(), head_size_, total_size, ec);
+                Track * track = new Track(tracks_.size(), item->GetData(), head_size_, ec);
                 if (ec)
                     break;
                 tracks_.push_back(track);
@@ -179,34 +227,10 @@ namespace ppbox
             return ec;
         }
 
-        error_code Mp4DemuxerBase::get_head(
-            std::vector<boost::uint8_t> & head_buf, 
-            error_code & ec)
-        {
-            if (!file_) {
-                ec = not_open;
-                return ec;
-            }
-            head_buf.resize(head_size_);
-            AP4_DataBuffer buffer;
-            buffer.SetBuffer(&head_buf.front(), head_size_);
-            AP4_MemoryByteStream * stream = new AP4_MemoryByteStream(buffer);
-            AP4_List<AP4_Atom> & children = file_->GetChildren();
-            for (AP4_List<AP4_Atom>::Item * p = children.FirstItem(); p; p = p->GetNext()) {
-                p->GetData()->Write(*stream);
-            }
-            AP4_Position position = 0;
-            (void)position;
-            assert(AP4_SUCCEEDED(stream->Tell(position)) && position == head_size_);
-            stream->Release();
-            return ec = error_code();
-        }
-
         size_t Mp4DemuxerBase::get_media_count(
             error_code & ec)
         {
-            if (!file_) {
-                ec = not_open;
+            if (!is_open(ec)) {
                 return 0;
             } else {
                 ec = error_code();
@@ -219,8 +243,7 @@ namespace ppbox
             MediaInfo & info, 
             boost::system::error_code & ec)
         {
-            if (!file_) {
-                ec = not_open;
+            if (!is_open(ec)) {
             } else if (index >= tracks_.size()) {
                 ec = out_of_range;
             } else {
@@ -248,8 +271,7 @@ namespace ppbox
         boost::uint32_t Mp4DemuxerBase::get_duration(
             boost::system::error_code & ec)
         {
-            if (!file_) {
-                ec = not_open;
+            if (!is_open(ec)) {
                 return 0;
             } else {
                 ec = error_code();
@@ -261,8 +283,7 @@ namespace ppbox
             Sample & sample, 
             error_code & ec)
         {
-            if (!file_) {
-                ec = not_open;
+            if (!is_open(ec)) {
                 return ec;
             }
 
@@ -310,6 +331,16 @@ namespace ppbox
                 }
             }
 #endif
+            is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
+            if (is_) {
+                is_.seekg(ap4_sample.GetOffset(), std::ios_base::beg);
+                sample.data.resize(sample.size);
+                is_.read((char *)&sample.data.front(), sample.size);
+            } else {
+                is_.clear();
+                ec = error::file_stream_error;
+                sample_put_back_ = true;
+            }
             if (tc.elapse() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_sample] elapse: " << tc.elapse());
             }
@@ -332,12 +363,11 @@ namespace ppbox
             return ec;
         }
 
-        boost::uint64_t Mp4DemuxerBase::seek_to(
+        boost::uint64_t Mp4DemuxerBase::seek(
             boost::uint32_t & time, 
             boost::system::error_code & ec)
         {
-            if (!file_) {
-                ec = not_open;
+            if (!is_open(ec)) {
                 return boost::uint64_t(-1);
             }
             if (time > get_duration(ec))
@@ -407,9 +437,13 @@ namespace ppbox
         }
 
         boost::uint32_t Mp4DemuxerBase::get_end_time(
-            boost::uint64_t offset, 
             boost::system::error_code & ec)
         {
+            if (!is_open(ec)) {
+                return 0;
+            }
+            is_.seekg(0, std::ios_base::end);
+            size_t offset = is_.tellg();
             AP4_UI32 time = get_duration(ec);
             if (ec) {
                 return 0;
@@ -430,8 +464,7 @@ namespace ppbox
         boost::uint32_t Mp4DemuxerBase::get_cur_time(
             error_code & ec)
         {
-            if (!file_) {
-                ec = not_open;
+            if (!is_open(ec)) {
                 return 0;
             } else if (sample_list_->empty()) {
                 ec = error_code();
@@ -444,6 +477,7 @@ namespace ppbox
 
         void Mp4DemuxerBase::release(void)
         {
+            open_step_ = (boost::uint32_t)-1;
             if (sample_list_) {
                 delete sample_list_;
                 sample_list_ = NULL;

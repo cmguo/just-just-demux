@@ -1,6 +1,8 @@
 // FileOneSegment.h
+#ifndef _PPBOX_DEMUX_FILE_ONE_SEGMENT_H_
+#define _PPBOX_DEMUX_FILE_ONE_SEGMENT_H_
 
-#include "ppbox/demux/source/FileBufferList.h"
+#include "ppbox/demux/source/FileSegments.h"
 
 namespace ppbox
 {
@@ -8,14 +10,13 @@ namespace ppbox
     {
 
         class FileOneSegment
-            : public FileBufferList<FileOneSegment>
+            : public FileSegments
         {
         public:
             FileOneSegment(
                 boost::asio::io_service & io_svc, 
-                boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size)
-                : FileBufferList<FileOneSegment>(io_svc, buffer_size, prepare_size)
+                boost::uint16_t port)
+                : FileSegments(io_svc, port)
             {
             }
 
@@ -53,9 +54,45 @@ namespace ppbox
                 fpath = file;
             }
 
+        public:
+            boost::system::error_code get_segment(
+                size_t index,
+                Segment & segment,
+                boost::system::error_code & ec)
+            {
+                segment = segment_;
+                return ec;
+            }
+
+            Segment & operator [](
+                size_t segment)
+            {
+                return segment_;
+            }
+
+            Segment const & operator [](
+                size_t segment) const
+            {
+                return segment_;
+            }
+
+            size_t total_segments() const
+            {
+                return 1;
+            }
+
+            void set_demuxer_type(
+                DemuxerType::Enum demuxer_type)
+            {
+                segment_.demuxer_type = demuxer_type;
+            }
+
         private:
             boost::filesystem::path fpath;
+            Segment segment_;
         };
 
     } // namespace demux
 } // namespace ppbox
+
+#endif

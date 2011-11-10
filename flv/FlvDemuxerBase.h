@@ -11,12 +11,13 @@ namespace ppbox
     namespace demux
     {
         class FlvDemuxerBase
+            : public DemuxerBase
         {
         public:
             FlvDemuxerBase(
-                //std::basic_istream<boost::uint8_t, std::char_traits<boost::uint8_t> > & buf)
                 std::basic_streambuf<boost::uint8_t> & buf)
-                : archive_(buf)
+                : DemuxerBase(buf)
+                , archive_(buf)
                 , open_step_((boost::uint32_t)-1)
                 , header_offset_(0)
                 , parse_offset_(0)
@@ -60,7 +61,7 @@ namespace ppbox
             boost::uint32_t get_cur_time(
                 boost::system::error_code & ec);
 
-            boost::uint64_t seek_to(
+            boost::uint64_t seek(
                 boost::uint32_t & time, 
                 boost::system::error_code & ec);
 
