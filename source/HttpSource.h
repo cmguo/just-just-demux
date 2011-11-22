@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_SOURCE_HTTP_BUFFER_LIST_H_
 
 #include "ppbox/demux/source/BufferList.h"
-#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/SourceBase.h"
 
 #include <util/protocol/http/HttpClient.h>
 #include <util/protocol/http/HttpError.h>
@@ -19,8 +19,8 @@ namespace ppbox
     namespace demux
     {
 
-        class HttpSegments
-            : public SegmentsBase
+        class HttpSource
+            : public SourceBase
         {
         protected:
             FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("HttpSegments", 0);
@@ -31,10 +31,10 @@ namespace ppbox
             > response_type;
 
         public:
-            HttpSegments(
+            HttpSource(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t port)
-                : SegmentsBase(io_svc, port)
+                : SourceBase(io_svc, port)
                 , http_(io_svc)
             {
                 addr_.svc("80");

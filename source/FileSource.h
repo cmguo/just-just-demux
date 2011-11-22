@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_SOURCE_FILE_BUFFER_LIST_H_
 
 #include "ppbox/demux/source/BufferList.h"
-#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/SourceBase.h"
 
 #include <framework/system/ErrorCode.h>
 
@@ -18,8 +18,8 @@ namespace ppbox
     namespace demux
     {
 
-        class FileSegments
-            : public SegmentsBase
+        class FileSource
+            : public SourceBase
         {
         public:
             typedef boost::function<void (
@@ -27,10 +27,10 @@ namespace ppbox
             > response_type;
 
         public:
-            FileSegments(
+            FileSource(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t port)
-                :SegmentsBase(io_svc, port)
+                :SourceBase(io_svc, port)
                 , is_open_(false)
             {
             }

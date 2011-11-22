@@ -2,7 +2,7 @@
 #ifndef _PPBOX_DEMUX_FILE_ONE_SEGMENT_H_
 #define _PPBOX_DEMUX_FILE_ONE_SEGMENT_H_
 
-#include "ppbox/demux/source/FileSegments.h"
+#include "ppbox/demux/source/FileSource.h"
 
 namespace ppbox
 {
@@ -10,13 +10,13 @@ namespace ppbox
     {
 
         class FileOneSegment
-            : public FileSegments
+            : public FileSource
         {
         public:
             FileOneSegment(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t port)
-                : FileSegments(io_svc, port)
+                : FileSource(io_svc, port)
             {
             }
 
