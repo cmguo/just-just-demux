@@ -3,7 +3,7 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/PptvDemuxer.h"
 #include "ppbox/demux/source/BufferList.h"
-#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/SourceBase.h"
 
 #include <framework/timer/Ticker.h>
 #include <framework/logger/LoggerSection.h>
@@ -24,7 +24,7 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size,
-            SegmentsBase * segmentbase)
+            SourceBase * segmentbase)
             : BufferDemuxer(io_svc, buffer_size, prepare_size, segmentbase)
             , io_svc_(io_svc)
             , segments_(segmentbase)

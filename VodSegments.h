@@ -3,8 +3,8 @@
 #ifndef _PPBOX_DEMUX_VOD_SEGMENTS_H_
 #define _PPBOX_DEMUX_VOD_SEGMENTS_H_
 
-#include "ppbox/demux/source/SegmentsBase.h"
-#include "ppbox/demux/source/HttpSegments.h"
+#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/source/HttpSource.h"
 #include "ppbox/demux/VodDemuxer.h"
 #include "ppbox/demux/VodInfo.h"
 
@@ -48,13 +48,13 @@ namespace ppbox
         }
 
         class VodSegments
-            : public HttpSegments
+            : public HttpSource
         {
         public:
             VodSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t vod_port)
-                : HttpSegments(io_svc, vod_port)
+                : HttpSource(io_svc, vod_port)
                 , vod_port_(vod_port)
                 , first_seg_(true)
                 , bwtype_(0)
@@ -77,8 +77,8 @@ namespace ppbox
                 ec = error_code();
                 if (segment < segments_.size()) {
                     if (vod_port_ 
-                        && HttpSegments::buffer_->get_segment_num_try(ec) > 3) {
-                            HttpSegments::buffer_->set_total_req(1);
+                        && HttpSource::buffer_->get_num_try(ec) > 3) {
+                            HttpSource::buffer_->set_total_req(1);
                             first_seg_ = true;
                             vod_port_ = 0;
                     }
@@ -196,7 +196,7 @@ namespace ppbox
                 }
                 segments_.push_back(segment);
                 boost::system::error_code ec;
-                HttpSegments::buffer_->add_request(ec);
+                HttpSource::buffer_->add_request(ec);
             }
 
             void set_http_proxy(
@@ -213,7 +213,7 @@ namespace ppbox
 
             size_t segment() const
             {
-                return HttpSegments::buffer_->write_segment();
+                return HttpSource::buffer_->write_segment();
             }
 
             void set_vod_demuxer(
@@ -228,10 +228,10 @@ namespace ppbox
                 if (ec == util::protocol::http_error::keepalive_error) {
                     ec.clear();
                     set_http_connection(util::protocol::http_field::Connection::close);
-                    HttpSegments::buffer_->decrease_total_req();
+                    HttpSource::buffer_->set_total_req(1);
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
-                    HttpSegments::buffer_->increase_req();
+                    HttpSource::buffer_->increase_req();
                 }
             }
 

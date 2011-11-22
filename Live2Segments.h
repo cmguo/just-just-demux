@@ -3,8 +3,8 @@
 #ifndef _PPBOX_DEMUX_LIVE2_SEGMENTS_H_
 #define _PPBOX_DEMUX_LIVE2_SEGMENTS_H_
 
-#include "ppbox/demux/source/SegmentsBase.h"
-#include "ppbox/demux/source/HttpSegments.h"
+#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/source/HttpSource.h"
 #include "ppbox/demux/Live2Demuxer.h"
 #include "ppbox/demux/Serialize.h"
 
@@ -146,7 +146,7 @@ namespace ppbox
         }
 
         class Live2Segments
-            : public HttpSegments
+            : public HttpSource
         {
         protected:
             FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Live2Segments", 0);
@@ -155,7 +155,7 @@ namespace ppbox
             Live2Segments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t live_port)
-                : HttpSegments(io_svc, live_port)
+                : HttpSource(io_svc, live_port)
                 , live_port_(live_port)
                 , server_time_(0)
                 , file_time_(0)
@@ -225,27 +225,27 @@ namespace ppbox
                 if (ec == source_error::no_more_segment) {
                     update();
                     ec.clear();
-                    add_segment(ec);
+                    segments_.push_back(Segment(DemuxerType::flv));
                     clear_readed_segment(ec);
                 } else if (ec == http_error::not_found) {
-                    HttpSegments::buffer_->pause(5 * 1000);
+                    HttpSource::buffer_->pause(5 * 1000);
                     ec.clear();
                     //ec = boost::asio::error::would_block;
                 }
             }
 
-            void on_error(
-                boost::system::error_code & ec)
-            {
-                if (ec == boost::asio::error::eof) {
-                    ec.clear();
-                    segments_.push_back(Segment(DemuxerType::flv));
-                    //clear_readed_segment(ec);
-                } else if (ec == boost::asio::error::connection_refused) {
-                    ec.clear();
-                    HttpSegments::buffer_->increase_req();
-                }
-            }
+            //void on_error(
+            //    boost::system::error_code & ec)
+            //{
+            //    if (ec == boost::asio::error::eof) {
+            //        ec.clear();
+            //        segments_.push_back(Segment(DemuxerType::flv));
+            //        //clear_readed_segment(ec);
+            //    } else if (ec == boost::asio::error::connection_refused) {
+            //        ec.clear();
+            //        HttpSegments::buffer_->increase_req();
+            //    }
+            //}
 
         public:
             void set_url_key(
@@ -324,7 +324,7 @@ namespace ppbox
 
             size_t segment() const
             {
-                return HttpSegments::buffer_->write_segment();
+                return HttpSource::buffer_->write_segment();
             }
 
             std::string const & get_name() const
@@ -371,6 +371,15 @@ namespace ppbox
             size_t total_segments() const
             {
                 return segments_.size();
+            }
+
+        private:
+            void clear_readed_segment(
+                boost::system::error_code & ec)
+            {
+                while (segments_.num_del() < HttpSource::buffer_->read_segment()) {
+                    segments_.pop_front();
+                }
             }
 
         private:

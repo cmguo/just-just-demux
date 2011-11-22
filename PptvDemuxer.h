@@ -18,7 +18,7 @@ namespace ppbox
 
         struct Sample;
 
-        class SegmentsBase;
+        class SourceBase;
 
         struct SegmentInfo
         {
@@ -40,7 +40,7 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size,
-                SegmentsBase * segmentbase);
+                SourceBase * segmentbase);
 
             virtual ~PptvDemuxer();
 
@@ -169,7 +169,7 @@ namespace ppbox
 
         private:
             framework::timer::Ticker * ticker_;
-            SegmentsBase * segments_;
+            SourceBase * segments_;
         };
 
     } // namespace demux

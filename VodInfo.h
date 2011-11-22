@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_VOD_INFO_H_
 
 #include "ppbox/demux/Serialize.h"
-#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/SourceBase.h"
 
 #include <util/serialization/stl/vector.h>
 #include <util/archive/XmlIArchive.h>

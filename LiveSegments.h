@@ -3,8 +3,8 @@
 #ifndef _PPBOX_DEMUX_LIVE_SEGMENTS_H_
 #define _PPBOX_DEMUX_LIVE_SEGMENTS_H_
 
-#include "ppbox/demux/source/SegmentsBase.h"
-#include "ppbox/demux/source/HttpSegments.h"
+#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/source/HttpSource.h"
 #include "ppbox/demux/LiveDemuxer.h"
 
 #include <util/protocol/pptv/Base64.h>
@@ -60,13 +60,13 @@ namespace ppbox
         }
 
         class LiveSegments
-            : public HttpSegments
+            : public HttpSource
         {
         public:
             LiveSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t live_port)
-                : HttpSegments(io_svc, live_port)
+                : HttpSource(io_svc, live_port)
                 , live_port_(live_port)
                 , live_demuxer_(NULL)
             {
@@ -85,7 +85,7 @@ namespace ppbox
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
 
-                HttpSegments::buffer_->set_max_try(1);
+                HttpSource::buffer_->set_max_try(1);
                 set_time_out(0, ec);
                 if (!proxy_addr_.host().empty()) {
                     addr = proxy_addr_;
@@ -120,7 +120,7 @@ namespace ppbox
                     clear_readed_segment(ec);
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
-                    HttpSegments::buffer_->increase_req();
+                    HttpSource::buffer_->increase_req();
                 }
             }
 
@@ -172,7 +172,7 @@ namespace ppbox
 
             size_t segment() const
             {
-                return HttpSegments::buffer_->write_segment();
+                return HttpSource::buffer_->write_segment();
             }
 
             std::string const & get_name() const
@@ -220,7 +220,7 @@ namespace ppbox
             void clear_readed_segment(
                 boost::system::error_code & ec)
             {
-                while (segments_.num_del() < HttpSegments::buffer_->read_segment()) {
+                while (segments_.num_del() < HttpSource::buffer_->read_segment()) {
                     segments_.pop_front();
                 }
             }
