@@ -6,7 +6,7 @@
 #include "ppbox/demux/flv/FlvDemuxerBase.h"
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/source/BytesStream.h"
-#include "ppbox/demux/source/SegmentsBase.h"
+#include "ppbox/demux/source/SourceBase.h"
 using namespace framework::logger;
 
 using namespace boost::asio::error;
@@ -22,7 +22,7 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size,
-            SegmentsBase * segmentbase)
+            SourceBase * segmentbase)
             : buffer_(new BufferList(buffer_size, prepare_size, segmentbase))
             , seek_time_(0)
             , segments_(segmentbase)
@@ -189,33 +189,42 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             read_stream_->more(0);
-            read_demuxer_->get_sample(sample, ec);
-            if (!ec) {
-                read_stream_->drop();
-            } else if (ec == error::file_stream_error
-                || ec == error::no_more_sample) {
-                if (buffer_->read_segment() != buffer_->write_segment()) {    // 当前分段已经下载完成
-                    std::cout << "drop_all" << std::endl;
-                    read_stream_->drop_all();
-                    size_t seg_read = buffer_->read_segment();
-                    LOG_S(Logger::kLevelDebug, 
-                        "segment: " << seg_read << 
-                        " duration: " << (*segments_)[seg_read].duration);
-                    create_read_demuxer(ec);
-                    on_event(DemuxerEventType::seek_segment, &seg_read, ec);
-                    boost::uint32_t seek_time = 0;
-                    read_demuxer_->seek(seek_time, ec);
-                    if (!ec || ec == error::not_support) {
-                        read_demuxer_->get_sample(sample, ec);
-                        if (!ec) {
-                            read_stream_->drop();
+            read_stream_->drop();
+            while (read_demuxer_->get_sample(sample, ec)) {
+                if (ec == ppbox::demux::error::file_stream_error
+                    || ec == error::no_more_sample) {
+                    if (buffer_->read_segment() != buffer_->write_segment()) {
+                        std::cout << "drop_all" << std::endl;
+                        read_stream_->drop_all();
+                        size_t seg_read = buffer_->read_segment();
+                        LOG_S(Logger::kLevelDebug, 
+                            "segment: " << seg_read << 
+                            " duration: " << (*segments_)[seg_read].duration);
+                        create_read_demuxer(ec);
+                        on_event(DemuxerEventType::seek_segment, &seg_read, ec);
+                        boost::uint32_t seek_time = 0;
+                        read_demuxer_->seek(seek_time, ec);
+                        if (!ec || ec == error::not_support) {
+                            read_demuxer_->get_sample(sample, ec);
                         }
-                    }
-                    if (ec == error::file_stream_error) {
+                        if (ec == error::file_stream_error) {
+                            ec = read_stream_->error();
+                        }
+                    } else {
                         ec = read_stream_->error();
+                        break;
                     }
-                } else {
-                    ec = read_stream_->error();
+                }
+            }
+            if (!ec) {
+                sample.data.clear();
+                for(std::vector<FileBlock>::iterator iter = sample.blocks.begin();
+                    iter != sample.blocks.end();
+                    iter++) {
+                        buffer_->peek((*iter).offset, (*iter).size, sample.data, ec);
+                        if (ec) {
+                            break;
+                        }
                 }
             }
             return ec;
@@ -239,6 +248,22 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             return read_demuxer_->get_duration(ec);
+        }
+
+        boost::system::error_code BufferDemuxer::insert_source(
+            boost::uint32_t time, 
+            SourceBase * src, 
+            SourceBase * dest, 
+            boost::system::error_code & ec)
+        {
+            for (size_t i = 0; i < src->total_segments(); i++) {
+                if (time < (*src)[i].duration_offset + (*src)[i].duration) {
+                    if (i > buffer_->write_segment()) {
+                        
+                    }
+                }
+            }
+            return ec;
         }
 
         void BufferDemuxer::handle_async(
@@ -387,9 +412,11 @@ namespace ppbox
             if (buffer_->read_segment() == buffer_->write_segment()) {
                 read_stream_ = write_stream_;
                 read_demuxer_ = write_demuxer_;
+                // 因为write_stream_更新（update）频率小，有更新延迟，这里需要主动更新一次
                 read_stream_->update_new();
             } else {
                 read_stream_ = new BytesStream(*buffer_, buffer_->read_segment());
+                // 更新一下
                 read_stream_->update_new();
                 read_demuxer_ = create_demuxer(
                     (*segments_)[buffer_->read_segment()].demuxer_type,

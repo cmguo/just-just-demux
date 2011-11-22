@@ -13,7 +13,7 @@ namespace ppbox
     namespace demux
     {
         class BufferList;
-        class SegmentsBase;
+        class SourceBase;
         class BytesStream;
         
         struct DemuxerEventType
@@ -38,7 +38,7 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size,
-                SegmentsBase * segmentbase);
+                SourceBase * segmentbase);
 
             virtual ~BufferDemuxer();
 
@@ -76,6 +76,12 @@ namespace ppbox
 
             boost::system::error_code seek(
                 boost::uint32_t & time, 
+                boost::system::error_code & ec);
+
+            boost::system::error_code insert_source(
+                boost::uint32_t time,
+                SourceBase * src, 
+                SourceBase * dest, 
                 boost::system::error_code & ec);
 
         public:
@@ -116,7 +122,7 @@ namespace ppbox
             boost::system::error_code pending_error_;
 
         private:
-            SegmentsBase * segments_;
+            SourceBase * segments_;
             BytesStream * read_stream_;
             BytesStream * write_stream_;
             DemuxerBase * read_demuxer_;
