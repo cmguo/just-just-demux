@@ -13,12 +13,10 @@ namespace ppbox
             enum Enum
             {
                 none, 
-                vod, 
-                live, 
-                live2, 
                 mp4, 
                 asf, 
                 flv, 
+                ts, 
             };
         };
 
