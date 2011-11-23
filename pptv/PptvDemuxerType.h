@@ -19,6 +19,11 @@ namespace ppbox
             };
         };
 
+        class PptvDemuxer;
+
+        PptvDemuxer * pptv_create_demuxer(
+            std::string const & proto);
+
     } // namespace demux
 } // namespace ppbox
 

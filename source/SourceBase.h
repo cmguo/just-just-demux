@@ -3,8 +3,6 @@
 #ifndef _PPBOX_DEMUX_SEGMENTS_BASE_H_
 #define _PPBOX_DEMUX_SEGMENTS_BASE_H_
 
-#include "ppbox/demux/DemuxerType.h"
-
 #include <boost/filesystem/path.hpp>
 #include <boost/asio/buffer.hpp>
 
@@ -26,26 +24,8 @@ namespace ppbox
                 : begin(0)
                 , head_length(0)
                 , file_length(0)
-                , duration(0)
-                , duration_offset(0)
-                , duration_offset_us(0)
                 , total_state(not_init)
                 , num_try(0)
-                , demuxer_type(DemuxerType::mp4)
-            {
-            }
-
-            Segment(
-                DemuxerType::Enum demuxer_type)
-                : begin(0)
-                , head_length(0)
-                , file_length(0)
-                , duration(0)
-                , duration_offset(0)
-                , duration_offset_us(0)
-                , total_state(not_init)
-                , num_try(0)
-                , demuxer_type(demuxer_type)
             {
             }
 
@@ -60,12 +40,8 @@ namespace ppbox
             boost::uint64_t begin;
             boost::uint64_t head_length;
             boost::uint64_t file_length;
-            boost::uint32_t duration;   // 分段时长（毫秒）
-            boost::uint32_t duration_offset;    // 相对起始的时长起点，（毫秒）
-            boost::uint64_t duration_offset_us; // 同上，（微秒）
             TotalStateEnum total_state;
             size_t num_try;
-            DemuxerType::Enum demuxer_type;
         };
 
         class Segments

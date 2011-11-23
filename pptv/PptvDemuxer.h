@@ -47,6 +47,10 @@ namespace ppbox
                 std::string const & name, 
                 boost::system::error_code & ec);
 
+            virtual void async_open(
+                std::string const & name, 
+                open_response_type const & resp) = 0;
+
             virtual boost::system::error_code set_http_proxy(
                 framework::network::NetName const & addr, 
                 boost::system::error_code & ec);

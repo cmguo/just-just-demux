@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 #define _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 
-#include "ppbox/demux/PptvDemuxer.h"
+#include "ppbox/demux/base/BufferDemuxer.h"
 
 namespace ppbox
 {

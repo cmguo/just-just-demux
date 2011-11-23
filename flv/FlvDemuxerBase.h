@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_FLV_FLV_DEMUXER_BASE_H_
 #define _PPBOX_DEMUX_FLV_FLV_DEMUXER_BASE_H_
 
-#include "ppbox/demux/DemuxerBase.h"
+#include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/flv/FlvStream.h"
 
 namespace ppbox

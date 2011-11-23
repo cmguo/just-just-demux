@@ -3,6 +3,8 @@
 #ifndef _PPBOX_DEMUX_BASE_DEMUXER_STATISTIC_H_
 #define _PPBOX_DEMUX_BASE_DEMUXER_STATISTIC_H_
 
+#include <framework/network/Statistics.h>
+
 namespace ppbox
 {
     namespace demux
@@ -115,12 +117,6 @@ namespace ppbox
             boost::system::error_code last_error() const
             {
                 return last_error_;
-            }
-
-        public:
-            boost::uint32_t open_total_time() const
-            {
-                return open_total_time_;
             }
 
         private:

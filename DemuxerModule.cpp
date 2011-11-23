@@ -2,22 +2,12 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/DemuxerModule.h"
-#include "ppbox/demux/DemuxerError.h"
-#include "ppbox/demux/DemuxerStatistic.h"
-#include "ppbox/demux/VodDemuxer.h"
-#include "ppbox/demux/LiveDemuxer.h"
-#include "ppbox/demux/Live2Demuxer.h"
-#include "ppbox/demux/FileDemuxer.h"
-#include "ppbox/demux/EmptyDemuxer.h"
+#include "ppbox/demux/pptv/PptvDemuxer.h"
 using namespace ppbox::demux;
 
 #include <ppbox/dac/Dac.h>
-#include <ppbox/vod/Vod.h>
-#include <ppbox/live/Live.h>
 
 #include <framework/timer/Timer.h>
-#include <framework/memory/MemoryReference.h>
-#include <framework/memory/SharedMemoryIdPointer.h>
 #include <framework/logger/LoggerStreamRecord.h>
 using namespace framework::logger;
 using namespace framework::network;
@@ -49,20 +39,15 @@ namespace ppbox
             size_t id;
             StatusEnum status;
             PptvDemuxer * demuxer;
-            SharedStatistics * shared_stat;
-            certify::CertifyType::Enum cert_type;
             std::string play_link;
             bool dac_sent_;
             DemuxerModule::open_response_type resp;
             error_code ec;
 
             DemuxInfo(
-                PptvDemuxer * demuxer, 
-                certify::CertifyType::Enum cert_type)
+                PptvDemuxer * demuxer)
                 : status(closed)
                 , demuxer(demuxer)
-                , shared_stat(new SharedStatistics)
-                , cert_type(cert_type)
                 , dac_sent_(false)
             {
                 static size_t sid = 0;
@@ -102,13 +87,6 @@ namespace ppbox
             : ppbox::certify::CertifyUserModuleBase<DemuxerModule>(daemon, "DemuxerModule")
 #endif
             , dac_(util::daemon::use_module<ppbox::dac::Dac>(daemon))
-#ifndef PPBOX_DISABLE_LIVE            
-            , live_(util::daemon::use_module<ppbox::live::Live>(daemon))
-#endif            
-#ifndef PPBOX_DISABLE_VOD
-            , vod_(util::daemon::use_module<ppbox::vod::Vod>(daemon))
-#endif
-            , stats_(NULL)
             , timer_(NULL)
         {
             buffer_size_ = 20 * 1024 * 1024;
@@ -116,26 +94,7 @@ namespace ppbox
             buffer_time_ = 3000; // 3s
             max_dl_speed_ = boost::uint32_t(-1);
 
-            type_map_["ppvod"] = DemuxerType::vod;
-            type_map_["pplive"] = DemuxerType::live;
-            type_map_["pplive2"] = DemuxerType::live2;
-            type_map_["ppfile-mp4"] = DemuxerType::mp4;
-            type_map_["ppfile-asf"] = DemuxerType::asf;
-
-            SharedStatistics::set_pool(framework::memory::BigFixedPool(
-                framework::memory::MemoryReference<framework::memory::SharedMemory>(shared_memory())));
-            stats_ = (framework::container::List<SharedStatistics> *)shared_memory()
-                .alloc_with_id(SHARED_OBJECT_ID_DEMUX, sizeof(framework::container::List<SharedStatistics>));
-            if (!stats_)
-                stats_ = (framework::container::List<SharedStatistics> *)shared_memory()
-                .get_by_id(SHARED_OBJECT_ID_DEMUX);
-            new (stats_) framework::container::List<SharedStatistics>;
-
-//#ifdef API_PPLIVE
-//            const NetName dns_vod_jump_server("(tcp)(v4)dt.api.pplive.com:80");
-//else
             const NetName dns_vod_jump_server(PPBOX_DNS_VOD_JUMP);
-//#endif
 
             framework::network::ResolverService & service = 
                 boost::asio::use_service<framework::network::ResolverService>(io_svc());
@@ -150,8 +109,6 @@ namespace ppbox
 
         DemuxerModule::~DemuxerModule()
         {
-            SharedStatistics::set_pool(
-                framework::memory::BigFixedPool(framework::memory::PrivateMemory()));
         }
 
         error_code DemuxerModule::startup()
@@ -194,13 +151,13 @@ namespace ppbox
             cond_.notify_all();
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
             for (; iter != demuxers_.end(); ++iter) {
-                DemuxInfo * info = *iter;
-                PptvDemuxer * demuxer = info->demuxer;
+                //DemuxInfo * info = *iter;
+                //PptvDemuxer * demuxer = info->demuxer;
                 std::string key;
                 error_code ec;
-                if (cert_.certify_url(info->cert_type, info->play_link, key, ec)) {
-                    demuxer->on_extern_error(ec);
-                }
+                //if (cert_.certify_url(info->cert_type, info->play_link, key, ec)) {
+                //    demuxer->on_extern_error(ec);
+                //}
             }
 #endif			
         }
@@ -238,8 +195,6 @@ namespace ppbox
                     dac_.play_open_info(info->ec, demuxer);
                     info->dac_sent_ = true;
                 }
-                info->shared_stat->buf_stat = demuxer->buffer_stat();
-                info->shared_stat->demux_stat = demuxer->stat();
             }
         }
 
@@ -348,71 +303,26 @@ namespace ppbox
                 proto = play_link.substr(0, pos_colon);
                 pos_colon += 3;
             }
-
-            DemuxerType::Enum demux_type = DemuxerType::none;
-            certify::CertifyType::Enum cert_type = certify::CertifyType::local;
-            {
-                std::map<std::string, DemuxerType::Enum>::const_iterator iter = 
-                    type_map_.find(proto);
-                if (iter != type_map_.end()) {
-                    demux_type = iter->second;
-                }
+            std::string::size_type pos_param = play_link.find('?');
+            if (pos_param == std::string::npos) {
+                pos_param = play_link.length() - pos_colon;
+            } else {
+                pos_param -= pos_colon;
             }
 
-            PptvDemuxer * demuxer = NULL;
-            switch (demux_type) {
-                case DemuxerType::vod:
-                    cert_type = certify::CertifyType::vod;
-#ifdef PPBOX_DISABLE_VOD
-                    demuxer = new VodDemuxer(io_svc(), 0, buffer_size_, prepare_size_);
-#else
-                    demuxer = new VodDemuxer(io_svc(), vod_.port(), buffer_size_, prepare_size_);
-#endif
-                    break;
-#ifndef PPBOX_DISABLE_LIVE
-                case DemuxerType::live:
-                    cert_type = certify::CertifyType::live;
-                    demuxer = new LiveDemuxer(io_svc(), live_.port(), buffer_size_, prepare_size_);
-                    break;
-#endif
-                case DemuxerType::live2:
-                    cert_type = certify::CertifyType::live;
-                    demuxer = new Live2Demuxer(io_svc(), 0, buffer_size_, prepare_size_);
-                    break;
-                case DemuxerType::mp4:
-                    cert_type = certify::CertifyType::local;
-                    demuxer = new FileOneDemuxer(io_svc(), buffer_size_, prepare_size_, DemuxerType::mp4);
-                    break;
-                case DemuxerType::asf:
-                    cert_type = certify::CertifyType::local;
-                    demuxer = new FileOneDemuxer(io_svc(), buffer_size_, prepare_size_, DemuxerType::asf);
-                    break;
-                default:
-                    cert_type = certify::CertifyType::local;
-                    demuxer = new EmptyDemuxer(io_svc());
-                    assert(0);
+            PptvDemuxer * demuxer = pptv_create_demuxer(proto);
+            if (demuxer == NULL) {
+                //demuxer = new EmptyDemuxer();
             }
-            if (demuxer) {
-                boost::mutex::scoped_lock lock(mutex_);
-
-                std::string::size_type pos_param = play_link.find('?');
-                if (pos_param == std::string::npos) {
-                    pos_param = play_link.length() - pos_colon;
-                } else {
-                    demuxer->set_param(play_link.substr(pos_param+1));
-                    pos_param -= pos_colon;
-                }
-
-                // new shared_stat需要加锁
-                DemuxInfo * info = new DemuxInfo(demuxer, cert_type);
-                info->play_link = play_link.substr(pos_colon, pos_param);
-                info->status = DemuxInfo::opening;
-                info->resp = resp;
-                demuxers_.push_back(info);
-                stats_->insert(info->shared_stat);
-                return info;
-            }
-            return NULL;
+            demuxer->set_param(play_link.substr(pos_param+1));
+            boost::mutex::scoped_lock lock(mutex_);
+            // new shared_stat需要加锁
+            DemuxInfo * info = new DemuxInfo(demuxer);
+            info->play_link = play_link.substr(pos_colon, pos_param);
+            info->status = DemuxInfo::opening;
+            info->resp = resp;
+            demuxers_.push_back(info);
+            return info;
         }
 
         void DemuxerModule::async_open(
@@ -426,27 +336,11 @@ namespace ppbox
                 LOG_S(Logger::kLevelAlarm, "ppbox_alive: failure");
             }
 #endif
-
-#ifndef PPBOX_DISABLE_VOD
-            if (vod_.is_alive()) {
-                LOG_S(Logger::kLevelEvent, "vod_worker: success");
-            } else {
-                LOG_S(Logger::kLevelAlarm, "vod_worker: failure");
-            }
-#endif
-
-#ifndef PPBOX_DISABLE_LIVE
-            if (live_.is_alive()) {
-                LOG_S(Logger::kLevelEvent, "live_worker: success");
-            } else {
-                LOG_S(Logger::kLevelAlarm, "live_worker: failure");
-            }
-#endif
             //while (info->status == DemuxInfo::opening && !is_certified(ec)) {
             //    cond_.wait(lock);
             //}
 #ifndef PPBOX_DISABLE_CERTIFY
-			is_certified(ec);
+            is_certified(ec);
 #endif			
 
             if (info->status == DemuxInfo::canceled) {
@@ -455,16 +349,16 @@ namespace ppbox
             PptvDemuxer * demuxer = info->demuxer;
             std::string key;
 #ifdef PPBOX_DISABLE_CERTIFY
-			key = info->cert_type == ppbox::certify::CertifyType::vod ? "kioe257ds":"pplive";
+            key = info->cert_type == ppbox::certify::CertifyType::vod ? "kioe257ds":"pplive";
 #endif			
             ec
 #ifndef PPBOX_DISABLE_CERTIFY			   	
-				|| cert_.certify_url(info->cert_type, info->play_link, key, ec)
+                //|| cert_.certify_url(info->cert_type, info->play_link, key, ec)
 #endif
-				|| demuxer->set_time_out(5 * 1000, ec) // 5 seconds
+                //|| demuxer->set_time_out(5 * 1000, ec) // 5 seconds
                 || (!http_proxy_.host().empty() && demuxer->set_http_proxy(http_proxy_, ec));
             if (!ec) {
-                demuxer->set_non_block(true, ec);
+                //demuxer->set_non_block(true, ec);
 
                 std::string play_link;
                 play_link.swap(info->play_link);
@@ -565,8 +459,6 @@ namespace ppbox
             PptvDemuxer * demuxer = info->demuxer;
             delete demuxer;
             demuxer = NULL;
-            stats_->erase(info->shared_stat);
-            delete info->shared_stat;
             demuxers_.erase(
                 std::remove(demuxers_.begin(), demuxers_.end(), info), 
                 demuxers_.end());

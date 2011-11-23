@@ -67,7 +67,7 @@ namespace ppbox
 
         public:
             void set_play_type(
-                DemuxerType::Enum play_type)
+                PptvDemuxerType::Enum play_type)
             {
                 play_type_ = play_type;
             }
@@ -94,7 +94,7 @@ namespace ppbox
                 return state_ > opened;
             }
 
-            DemuxerType::Enum const & get_play_type() const
+            PptvDemuxerType::Enum const & demuxer_type() const
             {
                 return play_type_;
             }
@@ -118,7 +118,7 @@ namespace ppbox
             std::vector<ppbox::common::HttpStatistics> open_logs_; // ²»³¬¹ý3¸ö
             DemuxData demux_data_;
 
-            DemuxerType::Enum play_type_;
+            PptvDemuxerType::Enum play_type_;
             boost::uint32_t open_total_time_;
             bool is_ready_;
         };

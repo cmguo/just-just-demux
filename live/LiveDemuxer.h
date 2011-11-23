@@ -1,12 +1,10 @@
 // LiveDemuxer.h
 
-#ifndef _PPBOX_DEMUX_LIVE_DEMUXER_H_
-#define _PPBOX_DEMUX_LIVE_DEMUXER_H_
+#ifndef _PPBOX_DEMUX_LIVE_LIVE_DEMUXER_H_
+#define _PPBOX_DEMUX_LIVE_LIVE_DEMUXER_H_
 
-#include "ppbox/demux/PptvDemuxer.h"
+#include "ppbox/demux/pptv/PptvDemuxer.h"
 #include "ppbox/demux/source/BufferList.h"
-
-#include <boost/asio/io_service.hpp>
 
 namespace ppbox
 {
@@ -154,4 +152,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_LIVE_DEMUXER_H_
+#endif // _PPBOX_DEMUX_LIVE_LIVE_DEMUXER_H_

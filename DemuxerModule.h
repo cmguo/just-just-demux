@@ -3,8 +3,7 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_MODULE_H_
 #define _PPBOX_DEMUX_DEMUXER_MODULE_H_
 
-#include "ppbox/demux/DemuxerType.h"
-#include "ppbox/demux/DemuxerStatistic.h"
+#include "ppbox/demux/pptv/PptvDemuxerType.h"
 
 #include <ppbox/certify/CertifyUserModule.h>
 #include <ppbox/certify/Certifier.h>
@@ -31,32 +30,14 @@ namespace ppbox
 
     namespace dac { class Dac; }
 
-    namespace vod { class Vod; }
-
-    namespace live { class Live; }
-
     namespace demux
     {
-
-        struct SharedStatistics
-            : public framework::container::ListHook<
-                    SharedStatistics, 
-                    framework::memory::SharedMemoryPointerTraits<SharedStatistics, SHARED_MEMORY_INST_ID>
-            >::type
-            , public framework::memory::MemoryPoolObjectNoThrow<
-                    SharedStatistics, 
-                    framework::memory::BigFixedPool
-            >
-        {
-            DemuxerStatistic demux_stat;
-            BufferStatistic buf_stat;
-        };
 
         class PptvDemuxer;
 
         class DemuxerModule
 #ifdef PPBOX_DISABLE_CERTIFY
-			: public ppbox::common::CommonModuleBase<DemuxerModule>
+            : public ppbox::common::CommonModuleBase<DemuxerModule>
 #else
             : public ppbox::certify::CertifyUserModuleBase<DemuxerModule>
 #endif            
@@ -162,17 +143,8 @@ namespace ppbox
 
         private:
             dac::Dac & dac_;
-#ifndef PPBOX_DISABLE_LIVE
-            live::Live & live_;
-#endif
-
-#ifndef PPBOX_DISABLE_VOD
-            vod::Vod & vod_;
-#endif
 
         private:
-            std::map<std::string, DemuxerType::Enum> type_map_;
-            framework::container::List<SharedStatistics> * stats_;
             framework::timer::Timer * timer_;
             std::vector<DemuxInfo *> demuxers_;
             boost::mutex mutex_;

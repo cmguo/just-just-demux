@@ -82,6 +82,12 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
+            boost::system::error_code cancel(
+                boost::system::error_code & ec);
+
+            boost::system::error_code close(
+                boost::system::error_code & ec);
+
         protected:
             boost::system::error_code insert_source(
                 boost::uint32_t time,
@@ -94,6 +100,13 @@ namespace ppbox
 
         protected:
             void tick_on();
+
+        private:
+            typedef boost::intrusive_ptr<
+                BytesStream> StreamPointer;
+
+            typedef boost::intrusive_ptr<
+                DemuxerBase> DemuxerPointer;
 
         private:
             void handle_async(
@@ -124,11 +137,6 @@ namespace ppbox
         private:
             framework::timer::Ticker * ticker_;
             boost::uint32_t seek_time_;
-
-            typedef boost::intrusive_ptr<
-                BytesStream> StreamPointer;
-            typedef boost::intrusive_ptr<
-                DemuxerBase> DemuxerPointer;
 
             StreamPointer read_stream_;
             StreamPointer write_stream_;
