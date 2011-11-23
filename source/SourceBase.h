@@ -126,145 +126,183 @@ namespace ppbox
             Segment segment_;
         };
 
+        class SourceTreeItem;
+
+        struct SegmentPosition
+        {
+            SegmentPosition(
+                boost::uint64_t seg_off = 0)
+                : next_child(NULL)
+                , segment((size_t)-1)
+                , seg_off(seg_off)
+                , seg_beg(0)
+                , seg_end((boost::uint64_t)-1)
+            {
+            }
+
+            SegmentPosition(
+                size_t segment,
+                boost::uint64_t seg_off = 0)
+                : segment(segment)
+                , seg_off(seg_off)
+                , seg_beg(0)
+                , seg_end((boost::uint64_t)-1)
+            {
+            }
+
+            SourceTreeItem * next_child;// 处理流程中的下一个子节点
+            size_t segment;
+            boost::uint64_t seg_off;
+            boost::uint64_t seg_beg;
+            boost::uint64_t seg_end;
+        };
+
         class SourceBase;
 
-        class SegmentTreeItem
+        class SourceTreeItem
         {
         public:
-            SegmentTreeItem()
+            SourceTreeItem()
                 : insert_offset_(0)
                 , parent_(NULL)
                 , first_child_(NULL)
-                , pre_sibling_(NULL)
+                , prev_sibling_(NULL)
                 , next_sibling_(NULL)
-                , read_next_child_(NULL)
             {
             }
 
         public:
             bool insert_child(
                 boost::uint64_t position, // 相对于自身（被插入节点）的数据起始位置
-                boost::uint64_t write_pos,
-                SourceBase * child)
+                SegmentPosition & read_pos,
+                boost::uint64_t read_offset,
+                SegmentPosition & write_pos,
+                boost::uint64_t write_offset,
+                SourceTreeItem * child)
             {
-                SegmentTreeItem * insert = (SegmentTreeItem *) child;
-                insert->parent_ = this;
+                child->parent_ = this;
                 if (first_child_) {
-                    SegmentTreeItem * item = first_child_;
+                    SourceTreeItem * item = first_child_;
                     while (item) {
                         if (item->insert_offset_ > position) {
-                            if (item->pre_sibling_) {
-                                item->pre_sibling_->next_sibling_ = insert;
-                                insert->pre_sibling_ = item->pre_sibling_;
-                                insert->next_sibling_ = item;
-                                insert->insert_offset_ = position;
-                                item->pre_sibling_ = insert;
+                            if (item->prev_sibling_) {
+                                item->prev_sibling_->next_sibling_ = child;
+                                child->prev_sibling_ = item->prev_sibling_;
+                                child->next_sibling_ = item;
+                                child->insert_offset_ = position;
+                                item->prev_sibling_ = child;
                             } else {
-                                first_child_ = insert;
-                                insert->next_sibling_ = item;
-                                insert->insert_offset_ = position;
-                                item->pre_sibling_ = insert;
+                                first_child_ = child;
+                                child->next_sibling_ = item;
+                                child->insert_offset_ = position;
+                                item->prev_sibling_ = child;
                             }
                             break;
                         } else {
                             item = item->next_sibling_;
                             if (!item) {
-                                item->next_sibling_ = insert;
-                                insert->pre_sibling_ = item;
-                                insert->insert_offset_ = position;
+                                item->next_sibling_ = child;
+                                child->prev_sibling_ = item;
+                                child->insert_offset_ = position;
                                 break;
                             }
                         }
                     }
                 } else {
-                    first_child_ = insert;
+                    first_child_ = child;
                     first_child_->insert_offset_ = position;
                 }
-                if (position > write_pos) {
-                    if (insert->pre_sibling_) {
-                        if (write_pos > insert->pre_sibling_->insert_offset_) {
-                            read_next_child_ = insert;
+
+                if (position > write_offset) {
+                    if (write_pos.next_child) {
+                        if (position < write_pos.next_child->insert_offset_) {
+                            write_pos.next_child = child;
                         }
                     } else {
-                        read_next_child_ = insert;
+                        write_pos.next_child = child;
+                    }
+                }
+                if (position > read_offset) {
+                    if (read_pos.next_child) {
+                        if (position < read_pos.next_child->insert_offset_) {
+                            read_pos.next_child = child;
+                        }
+                    } else {
+                        read_pos.next_child = child;
                     }
                 }
                 return true;
             }
 
             bool remove_child(
-                SourceBase * child)
+                SourceBase * child,
+                SegmentPosition & read_pos,
+                SegmentPosition & write_pos)
             {
-                return remove_child(child, true);
+                return remove_child(child, read_pos, write_pos, true);
             }
 
-            SourceBase * next_source() // 返回下一个Source
+            SourceBase * next_source(
+                SegmentPosition & position) const // 返回下一个Source
             {
-                if (read_next_child_) {
-                    read_next_child_ = read_next_child_->next_sibling_;
-                    return (SourceBase *)read_next_child_;
+                if (position.next_child) {
+                    SourceTreeItem * next = position.next_child;
+                    position.next_child = next->first_child_;
+                    position.seg_off = next->offset(position);
+                    return (SourceBase *)next;
                 } else {
-                    if (parent_)
-                        return (SourceBase *)parent_;
-                    return NULL;
+                    position.next_child = next_sibling_;
+                    return (SourceBase *)parent_;
                 }
             }
 
-            bool remove_self()
+            bool remove_self(
+                SegmentPosition & read_pos,
+                SegmentPosition & write_pos)
             {
-                return parent_->remove_child((SourceBase *) this);
+                return parent_->remove_child((SourceBase *) this, read_pos, write_pos);
             }
 
-            boost::uint64_t begin() const
+            boost::uint64_t begin(
+                SegmentPosition & position) const
             {
-                if (read_next_child_) {
-                    return read_next_child_->insert_offset_;
+                /*if (position.next_child) {
+                    return position.next_child->insert_offset_;
                 }
-                return 0;
+                return 0;*/
             }
 
             boost::uint64_t end() const
             {
             }
 
-            boost::uint64_t offset() const   // 相对于所有数据的位置
+            boost::uint64_t offset(
+                SegmentPosition & position) const   // Source开始位置相对于所有数据的位置
             {
-                if (read_next_child_) {
-                    if (read_next_child_->pre_sibling_) {
-                        return size_before(read_next_child_->pre_sibling_)
-                            - read_next_child_->pre_sibling_->insert_offset_;
-                    }
-                    return 0;
+                if (position.next_child) {
+                    return size_before(position.next_child) - position.next_child->insert_offset_;
+                } else {
+                    return size_before(position.next_child) - total_size();
                 }
-                SegmentTreeItem * last_child = this->first_child_;
-                while (last_child) {
-                    last_child = last_child->next_sibling_;
-                }
-                if (last_child) {
-                    return size_before(last_child) - last_child->insert_offset_;
-                }
-                return 0;
-            }
-
-            boost::uint64_t size_before(
-                SegmentTreeItem * child) const
-            {
-                boost::uint64_t total = 0;
-                before_size(child, total);
-                return total;
             }
 
             boost::system::error_code seek (
                 boost::uint64_t offset,
-                boost::system::error_code & ec)
+                SegmentPosition & position, 
+                boost::system::error_code & ec) const
             {
-                SegmentTreeItem * child = this->first_child_;
-                read_next_child_ = NULL;
+                position.next_child = NULL;
+                SourceTreeItem * child = this->first_child_;
                 while (child) {
                     if (child->insert_offset_ > offset) {
-                        read_next_child_ = child;
+                        position.next_child = child;
                     }
                 }
+            }
+
+            boost::uint64_t insert_offset() const
+            {
+                return insert_offset_;
             }
 
         public:
@@ -273,85 +311,86 @@ namespace ppbox
         private:
             bool remove_child(
                 SourceBase * child,
+                SegmentPosition & read_pos,
+                SegmentPosition & write_pos,
                 bool is_first)
             {
-                SegmentTreeItem * child_item = (SegmentTreeItem *) child;
-                SegmentTreeItem * source = child_item;
+                SourceTreeItem * child_item = (SourceTreeItem *) child;
+                SourceTreeItem * source = child_item;
                 if (is_first && child_item->parent_) {
                     source = child_item->parent_;
                 }
-                SegmentTreeItem * item = source->first_child_;
+                SourceTreeItem * item = source->first_child_;
                 while (item) {
                     if (item == child_item) {
-                        if (item->pre_sibling_) {
+                        if (item->prev_sibling_) {
                             if (item->next_sibling_) {
-                                item->pre_sibling_->next_sibling_ = item->next_sibling_;
-                                item->next_sibling_->pre_sibling_ = item->pre_sibling_;
+                                item->prev_sibling_->next_sibling_ = item->next_sibling_;
+                                item->next_sibling_->prev_sibling_ = item->prev_sibling_;
                             } else {
-                                item->pre_sibling_->next_sibling_ = NULL;
+                                item->prev_sibling_->next_sibling_ = NULL;
                             }
                         } else {
                             source->first_child_ = item->next_sibling_;
                             if (item->next_sibling_) {
-                                item->next_sibling_->pre_sibling_ = NULL;
+                                item->next_sibling_->prev_sibling_ = NULL;
                             }
                         }
-                        if (source->read_next_child_ == item) {
-                            source->read_next_child_ = item->next_sibling_;
+                        if (read_pos.next_child == item) {
+                            read_pos.next_child = item->next_sibling_;
+                        }
+                        if (write_pos.next_child == item) {
+                            write_pos.next_child = item->next_sibling_;
                         }
                         return true;
                     }
-                    remove_child((SourceBase *) item, false);
+                    remove_child((SourceBase *) item, read_pos, write_pos, false);
                     item = item->next_sibling_;
                 }
                 return false;
             }
 
-            void total_tree_size(
-                SegmentTreeItem * src,
-                boost::uint64_t & total) const // 自己和所有子节点的size总和
+            boost::uint64_t total_tree_size() const // 自己和所有子节点的size总和
             {
-                total += src->total_size();
-                SegmentTreeItem * item = src->first_child_;
+                boost::uint64_t total = total_size();
+                SourceTreeItem * item = first_child_;
                 while (item) {
-                    total_tree_size(item, total);
+                    total += item->total_tree_size();
                     item = item->next_sibling_;
                 }
+                return total;
             }
 
-            void before_size(
-                SegmentTreeItem * src,
-                boost::uint64_t & total) const
+            boost::uint64_t size_before(
+                SourceTreeItem * child) const // 
             {
-                total += src->insert_offset_;
-                SegmentTreeItem * item = src;
-                while (item) {
-                    total_tree_size(item, total);
-                    item = item->pre_sibling_;
+                boost::uint64_t total = 0;
+                if (parent_) {
+                    total += parent_->size_before(const_cast<SourceTreeItem *>(this));
                 }
-                SegmentTreeItem * parent = src->parent_;
-                while (parent) {
-                    total += parent->insert_offset_;
-                    item = parent->pre_sibling_;
+                if (child) {
+                    total += child->insert_offset_;
+                    SourceTreeItem * item = child->prev_sibling_;
                     while (item) {
-                        total_tree_size(item, total);
-                        item = item->pre_sibling_;
+                        total += item->total_tree_size();
+                        item = item->prev_sibling_;
                     }
-                    parent = parent->parent_;
+                } else {
+                    total += total_tree_size();
                 }
+                return total;
             }
 
         private:
             boost::uint64_t insert_offset_;    // 插入在父节点的位置，相对于父节点的数据起始位置
-            SegmentTreeItem * parent_;         // 父节点
-            SegmentTreeItem * first_child_;    // 第一个子节点
-            SegmentTreeItem * pre_sibling_;    // 前一个兄弟节点
-            SegmentTreeItem * next_sibling_;   // 下一个兄弟节点
-            SegmentTreeItem * read_next_child_;// 下载流程中的下一个子节点
+            SourceTreeItem * parent_;         // 父节点
+            SourceTreeItem * first_child_;    // 第一个子节点
+            SourceTreeItem * prev_sibling_;    // 前一个兄弟节点
+            SourceTreeItem * next_sibling_;   // 下一个兄弟节点
         };
 
         class SourceBase
-            : public SegmentTreeItem
+            : public SourceTreeItem
         {
         protected:
             typedef util::buffers::Buffers<
@@ -450,6 +489,63 @@ namespace ppbox
                     total += (*this)[seg].file_length;
                 }
                 return total;
+            }
+
+        public:
+            boost::system::error_code offset_of_segment(
+                boost::uint64_t & offset,
+                SegmentPosition & position, 
+                boost::system::error_code & ec) const
+            {
+                SourceBase * source = const_cast<SourceBase *>(this);
+                boost::uint64_t total_offset = position.seg_off;
+                assert((position.segment < source->total_segments()&& offset <= (*source)[position.segment].file_length)
+                    || (position.segment == source->total_segments()&& offset == 0));
+                if ((position.segment >= source->total_segments()|| offset > (*source)[position.segment].file_length)
+                    && (position.segment != source->total_segments()|| offset != 0))
+                    return ec = framework::system::logic_error::out_of_range;
+                for (size_t i = 0; i < position.segment; ++i) {
+                    if ((*source)[i].total_state < Segment::is_valid)
+                        return ec = framework::system::logic_error::out_of_range;
+                    total_offset += (*source)[i].file_length;
+                }
+                position.seg_beg = total_offset - position.seg_off;
+                position.seg_end = 
+                    (position.segment < source->total_segments()&& 
+                    (*source)[position.segment].total_state >= Segment::is_valid) ? 
+                    position.seg_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
+                offset = total_offset;
+                return ec = boost::system::error_code();
+            }
+
+            boost::system::error_code offset_to_segment(
+                boost::uint64_t offset,
+                SegmentPosition & position,
+                boost::system::error_code & ec) const
+            {
+                SourceBase * source = const_cast<SourceBase *>(this);
+                boost::uint64_t seg_offset = offset;
+                size_t segment = 0;
+                if (position.next_child && offset >= position.next_child->insert_offset()) {
+                    return ec = framework::system::logic_error::out_of_range;
+                }
+                for (segment = 0; segment < source->total_segments()
+                    && (*source)[segment].total_state >= Segment::is_valid 
+                    && (*source)[segment].file_length <= offset; ++segment)
+                    offset -= (*source)[segment].file_length;
+                // 增加offset==0，使得position.offset为所有分段总长时，也认为是有效的
+                assert(segment < source->total_segments()|| offset == 0);
+                if (segment < source->total_segments()|| offset == 0) {
+                    position.segment = segment;
+                    position.seg_beg = offset - seg_offset + source->offset(position);
+                    position.seg_end = 
+                        (segment < source->total_segments()&& 
+                        (*source)[position.segment].total_state >= Segment::is_valid) ? 
+                        position.seg_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
+                    return ec = boost::system::error_code();
+                } else {
+                    return ec = framework::system::logic_error::out_of_range;
+                }
             }
         };
 

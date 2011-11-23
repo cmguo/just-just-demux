@@ -79,34 +79,25 @@ namespace ppbox
 
             struct PositionEx
                 : Position
+                , SegmentPosition
             {
                 PositionEx()
                     : source(NULL)
-                    , src_beg(0)
-                    , segment((size_t)-1)
-                    , seg_beg(0)
-                    , seg_end((boost::uint64_t)-1)
                 {
                 }
 
                 PositionEx(
                     size_t segment, 
-                    boost::uint64_t offset)
-                    : Position(offset)
+                    boost::uint64_t seg_off)
+                    : SegmentPosition(segment, offset)
                     , source(NULL)
-                    , src_beg(0)
-                    , segment(segment)
-                    , seg_beg(0)
-                    , seg_end((boost::uint64_t)-1)
                 {
                 }
 
                 PositionEx(
-                    boost::uint64_t offset)
-                    : Position(offset)
-                    , segment((size_t)-1)
-                    , seg_beg(0)
-                    , seg_end((boost::uint64_t)-1)
+                    boost::uint64_t seg_off)
+                    : SegmentPosition(seg_off)
+                    , source(NULL)
                 {
                 }
 
@@ -122,10 +113,6 @@ namespace ppbox
                 }
 
                 SourceBase * source;
-                boost::uint64_t src_beg;
-                size_t segment;
-                boost::uint64_t seg_beg;
-                boost::uint64_t seg_end;
             };
 
         public:
@@ -151,11 +138,11 @@ namespace ppbox
                 , data_beg_(0)
                 , data_end_(0)
                 , seek_end_(boost::uint64_t(-1))
+                ，seek_end_tmp_(boost::uint64_t(-1))
                 , amount_(0)
                 , expire_pause_time_(Time::now())
                 , total_req_(total_req)
                 , sended_req_(0)
-                , insert_pos_((boost::uint64_t)-1)
             {
                 buffer_ = (char *)memory_.alloc_block(buffer_size_);
                 //TODO:
@@ -185,7 +172,7 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 PositionEx position(segment, offset);
-                if (offset_of_segment(position, ec)) {
+                if (source_->offset_of_segment(position.offset, position, ec)) {
                     return ec;
                 }
                 return seek_to(position.offset, position.offset + size, ec);
@@ -199,7 +186,7 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 PositionEx position(segment, offset);
-                if (offset_of_segment(position, ec)) {
+                if (source_->offset_of_segment(position.offset, position, ec)) {
                     return ec;
                 }
                 return seek_to(position.offset, ec);
@@ -438,7 +425,7 @@ namespace ppbox
                 }
                 if (!ec) {
                     close_all_request(ec);
-                    offset_to_segment(write_, ec);
+                    write_.source->offset_to_segment(write_.offset, write_, ec);
                     if (ec == boost::asio::error::eof)
                         ec = boost::system::error_code();
                 }
@@ -578,12 +565,12 @@ namespace ppbox
                 }
                 if (read_.seg_end == (boost::uint64_t)-1) {
                     size_t seg = read_.segment ;
-                    offset_to_segment(read_, ec);
+                    read_.source->offset_to_segment(read_.offset, read_, ec);
                     if (read_.segment == seg + 1)
                         return ec;
                 }
                 read_seek_to(read_.seg_end, ec) || 
-                    offset_to_segment(read_, ec);
+                    read_.source->offset_to_segment(read_.offset, read_, ec);
                 return ec;
             }
 
@@ -611,94 +598,50 @@ namespace ppbox
                 data_beg_ = 0;
                 data_end_ = 0;
                 seek_end_ = (boost::uint64_t)-1;
+                seek_end_tmp_ = (boost::uint64_t)-1;
                 amount_ = 0;
                 expire_pause_time_ = Time::now();
                 clear_error();
             }
 
         public:
-            boost::uint32_t read_avail() const
-            {
-                if (read_.seg_end > write_.offset) {
-                    return (boost::uint32_t)(write_.offset - read_.offset);
-                } else {
-                    return (boost::uint32_t)(read_.seg_end - read_.offset); // file_length
-                }
-            }
 
-            boost::uint32_t segment_read_avail(
-                size_t segment) const
+            boost::uint64_t read_front() const
             {
-                if (read_.segment == segment) {
-                    return read_avail();
-                } else if (segment < read_.segment || segment >= source_->total_segments()) {
-                    return (boost::uint32_t)0;
-                } else {
-                    PositionEx position(segment, 0);
-                    boost::system::error_code ec;
-                    if (offset_of_segment(position, ec) || position.offset > data_end_) {
-                        return (boost::uint32_t)0;
-                    } else {
-                        Hole hole = write_hole_;
-                        boost::uint64_t beg = read_.offset;
-                        while (hole.next_beg < position.offset) {
-                            beg = write_hole_.this_end;
-                            read(hole.next_beg, sizeof(hole), &hole);
-                        }
-                        boost::uint64_t end = data_end_;
-                        if (end > hole.next_beg)
-                            end = hole.next_beg;
-                        if (beg >= position.offset) {
-                            return (boost::uint32_t)0;
-                        } else if ((*source_)[segment].total_state != Segment::is_valid) {
-                            return (boost::uint32_t)0;
-                        } else if (position.offset + (*source_)[segment].file_length < end) {
-                            return (boost::uint32_t)(*source_)[segment].file_length;
-                        } else {
-                            return (boost::uint32_t)(end - position.offset);
-                        }
-                    }
-                }
+                return segment_read_front(read_);
             }
 
             boost::uint64_t read_back() const
             {
-                if (read_.seg_end > write_.offset) {
-                    return (boost::uint64_t)(write_.offset - read_.seg_beg);
+                return segment_read_back(read_);
+            }
+
+            boost::uint64_t segment_read_front(
+                SegmentPosition const & segment) const
+            {
+                if (read_.offset <= segment.seg_beg) {
+                    return 0;
+                } else if (read_.offset < segment.seg_end) {
+                    return read_.offset - segment.seg_beg;
                 } else {
-                    return (boost::uint64_t)(read_.seg_end - read_.seg_beg); // file_length
+                    return segment.seg_end - segment.seg_beg;
                 }
             }
 
             boost::uint64_t segment_read_back(
-                size_t segment) const
+                SegmentPosition const & segment) const
             {
-                if (read_.segment == segment) {
-                    return read_back();
+                if (write_.offset <= segment.seg_beg) {
+                    return 0;
+                } else if (write_.offset < segment.seg_end) {
+                    return write_.offset - segment.seg_beg;
                 } else {
-                    return segment_read_avail(segment);
-                }
-            }
-
-            boost::uint64_t read_front() const
-            {
-                return (boost::uint64_t)(read_.offset - read_.seg_beg);
-            }
-
-            boost::uint64_t segment_read_front(
-                size_t segment) const
-            {
-                if (read_.segment == segment) {
-                    return read_front();
-                } else if (segment < source_->total_segments()) {
-                    return (*source_)[segment].begin;
-                } else {
-                    return boost::uint64_t(0);
+                    return segment.seg_end - segment.seg_beg;
                 }
             }
 
             boost::uint64_t segment_size(
-                size_t segment) const
+                SegmentPosition const & segment) const
             {
                 if (segment < source_->total_segments()) {
                     return (*source_)[segment].file_length;
@@ -712,14 +655,14 @@ namespace ppbox
                 return (boost::uint32_t)buffer_size_ - read_avail();
             }
 
-            size_t read_segment() const
+            SegmentPosition const & read_segment() const
             {
-                return read_.segment;
+                return read_;
             }
 
-            size_t write_segment() const
+            SegmentPosition const & write_segment() const
             {
-                return write_.segment;
+                return write_;
             }
 
             size_t read_offset() const
@@ -902,23 +845,24 @@ namespace ppbox
             }
 
             boost::system::error_code insert_source(
+                SourceBase * src,
                 size_t segment,
                 boost::uint64_t offset,
-                SourceBase * source,
+                SourceBase * dest,
                 boost::system::error_code & ec)
             {
                 PositionEx position(segment, offset);
-                if (offset_of_segment(position, ec)) {
+                if (src->offset_of_segment(position.offset, position, ec)) {
                     return ec;
                 }
-                source_->insert_child(position.offset, write_.offset, source);
-                insert_pos_ = position.offset;
+                src->insert_child(offset, read_, read_.offset,
+                    write_, write_.offset, dest);
             }
 
             void pause_download(
                 boost::uint64_t end)
             {
-                seek_end_ = end;
+                seek_end_tmp_ = end;
             }
 
         private:
@@ -1098,8 +1042,8 @@ namespace ppbox
                     // lay a read hole
                     read_hole_.next_beg = write_read_hole(read_hole_next_beg, read_hole_);
                 }
-                offset_to_segment(write_, ec);
-                offset_to_segment(read_, ec);
+                write_.source->offset_to_segment(write_.offset, write_, ec);
+                read_.source->offset_to_segment(read_.offset, read_, ec);
                 if (write_.offset != write_offset) {
                     write_tmp_ = write_;
                     write_tmp_.buffer = NULL;
@@ -1147,43 +1091,30 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 boost::uint64_t next_offset = read_write_hole(hole.next_beg, hole);
-                if (next_offset >= insert_pos_) {
-                    source_ = source_->next_source();
-                    if (source_) {
-                        pos.offset = source_->begin();
-                        pos.source = source_;
-                        if (offset_to_segment(pos, ec)) {
-                            return ec;
+
+                if (pos.source->offset_to_segment(next_offset, pos, ec)) {
+                    if (ec == framework::system::logic_error::out_of_range) {
+                        SourceBase * source = pos.source->next_source(pos);
+                        if (source) {
+                            pos.source = source;
+                            if (pos.source->offset_to_segment(pos.offset, pos, ec)) {
+                                return ec;
+                            }
                         }
-                        if (resp_.empty()) {
-                            return open_segment(true, ec);
-                        } else {
-                            async_open_segment(true, boost::bind(&BufferList::handle_async, this, _1, (size_t)-1));
-                            return ec;
-                        }
+                    } else {
+                        hole.this_end = hole.next_beg = pos.offset;
+                        return ec;
                     }
                 }
+
                 if (pos.buffer != NULL) {
                     move_front_to(pos, next_offset);
                 } else {
                     pos.offset = next_offset;
                 }
 
-                if (offset_to_segment(pos, ec)) {
-                    hole.this_end = hole.next_beg = pos.offset;
-                    return ec;
-                }
-                if (pos.segment >= source_->total_segments()|| pos.offset >= seek_end_) {
-                    hole.this_end = hole.next_beg = pos.offset;
-                    source_ = source_->next_source();
-                    if (source_) {
-                        pos.offset = source_->begin();
-                        if (offset_to_segment(pos, ec)) {
-                            return ec;
-                        }
-                        return open_segment(true, ec);
-                    }
-                    return ec = source_error::no_more_segment;
+                if (pos.offset >= seek_end_ || pos.offset >= seek_end_tmp_) {
+                    return ec = boost::asio::error::eof;
                 }
 
                 // W     e^b    e----b      e---
@@ -1656,58 +1587,6 @@ namespace ppbox
                 }
             }
 
-            boost::system::error_code offset_of_segment(
-                PositionEx & position, 
-                boost::system::error_code & ec) const
-            {
-                boost::uint64_t offset = position.offset;
-                assert((position.segment < source_->total_segments()&& offset <= (*source_)[position.segment].file_length)
-                     || (position.segment == source_->total_segments()&& offset == 0));
-                if ((position.segment >= source_->total_segments()|| offset > (*source_)[position.segment].file_length)
-                    && (position.segment != source_->total_segments()|| offset != 0))
-                        return ec = framework::system::logic_error::out_of_range;
-                for (size_t i = 0; i < position.segment; ++i) {
-                    if ((*source_)[i].total_state < Segment::is_valid)
-                        return ec = framework::system::logic_error::out_of_range;
-                    offset += (*source_)[i].file_length;
-                }
-                position.seg_beg = offset - position.offset;
-                position.seg_end = 
-                    (position.segment < source_->total_segments()&& 
-                    (*source_)[position.segment].total_state >= Segment::is_valid) ? 
-                    position.seg_beg + (*source_)[position.segment].file_length : boost::uint64_t(-1);
-                position.offset = offset;
-                return ec = boost::system::error_code();
-            }
-
-            boost::system::error_code offset_to_segment(
-                PositionEx & position, 
-                boost::system::error_code & ec) const
-            {
-                SourceBase * source = position.source;
-                boost::uint64_t offset = position.offset;
-                size_t segment = 0;
-                for (segment = 0; segment < source->total_segments()
-                    && (*source)[segment].total_state >= Segment::is_valid 
-                    && (*source)[segment].file_length <= offset; ++segment)
-                    offset -= (*source)[segment].file_length;
-                // 增加offset==0，使得position.offset为所有分段总长时，也认为是有效的
-                assert(segment < source->total_segments()|| offset == 0);
-                if (segment < source->total_segments()|| offset == 0) {
-                    position.segment = segment;
-                    position.seg_beg = position.offset - offset;
-                    position.seg_end = 
-                        (segment < source->total_segments()&& 
-                        (*source)[position.segment].total_state >= Segment::is_valid) ? 
-                            position.seg_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
-                    position.seg_end = position.seg_end > insert_pos_ ?
-                            insert_pos_ : position.seg_end;
-                    return ec = boost::system::error_code();
-                } else {
-                    return ec = framework::system::logic_error::out_of_range;
-                }
-            }
-
             char const * buffer_beg() const
             {
                 return buffer_;
@@ -1813,6 +1692,7 @@ namespace ppbox
             boost::uint64_t data_beg_;
             boost::uint64_t data_end_;
             boost::uint64_t seek_end_;  // 一般在seek操作时，如果获取头部数据，值为当前分段之前的分段总长+当前分段的head_size_；否则为-1
+            boost::uint64_t seek_end_tmp_;  // 插入下载中插入段头部的位置
             PositionEx read_;
             Hole read_hole_;
             PositionEx write_;
@@ -1829,7 +1709,6 @@ namespace ppbox
 
             size_t total_req_;
             size_t sended_req_;
-            boost::uint64_t insert_pos_;
         };
 
     } // namespace demux
