@@ -5,6 +5,7 @@
 
 #include "ppbox/demux/DemuxerError.h"
 #include "ppbox/demux/DemuxerBase.h"
+#include "ppbox/demux/BufferDemuxerStatistic.h"
 
 #include <boost/function.hpp>
 
@@ -13,7 +14,7 @@ namespace ppbox
     namespace demux
     {
         class BufferList;
-        class SourceBase;
+        class Source;
         class BytesStream;
         
         struct DemuxerEventType
@@ -27,6 +28,7 @@ namespace ppbox
         };
 
         class BufferDemuxer
+            : public BufferDemuxerStatistic
         {
         public:
             typedef boost::function<void (
@@ -38,7 +40,7 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size,
-                SourceBase * segmentbase);
+                Source * segmentbase);
 
             virtual ~BufferDemuxer();
 
@@ -78,19 +80,15 @@ namespace ppbox
                 boost::uint32_t & time, 
                 boost::system::error_code & ec);
 
+        protected:
             boost::system::error_code insert_source(
                 boost::uint32_t time,
-                SourceBase * src, 
-                SourceBase * dest, 
+                Source * source, 
                 boost::system::error_code & ec);
 
-        public:
-            virtual void on_event(
-                DemuxerEventType::Enum event_type,
-                void const * const arg,
-                boost::system::error_code & ec)
-            {
-            }
+            boost::system::error_code remove_source(
+                Source * source, 
+                boost::system::error_code & ec);
 
         private:
             void handle_async(
@@ -101,32 +99,31 @@ namespace ppbox
 
             DemuxerBase * create_demuxer(
                 DemuxerType::Enum demuxer_type,
-                BytesStream * buf);
+                BytesStream * stream);
 
             void create_demuxer(
-                boost::system::error_code & ec);
-
-            void create_segment_demuxer(
-                size_t segment_,
-                boost::system::error_code & ec);
-
-            void create_write_demuxer(
-                boost::system::error_code & ec);
-
-            void create_read_demuxer(
+                Source * source, 
+                size_t segment, 
+                StreamPointer & stream, 
+                DemuxerPointer & demuxer, 
                 boost::system::error_code & ec);
 
         protected:
+            Source * root_source_;
             BufferList * buffer_;
-            boost::uint32_t seek_time_;
-            boost::system::error_code pending_error_;
 
         private:
-            SourceBase * segments_;
-            BytesStream * read_stream_;
-            BytesStream * write_stream_;
-            DemuxerBase * read_demuxer_;
-            DemuxerBase * write_demuxer_;
+            boost::uint32_t seek_time_;
+
+            typedef boost::intrusive_ptr<
+                BytesStream> StreamPointer;
+            typedef boost::intrusive_ptr<
+                DemuxerBase> DemuxerPointer;
+
+            StreamPointer read_stream_;
+            StreamPointer write_stream_;
+            DemuxerPointer read_demuxer_;
+            DemuxerPointer write_demuxer_;
 
             open_response_type resp_;
         };

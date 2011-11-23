@@ -7,6 +7,7 @@
 
 #include <util/buffers/BufferSize.h>
 #include <util/buffers/StlBuffer.h>
+#include <util/smart_ptr/RefenceFromThis.h>
 
 #include <boost/asio/buffer.hpp>
 
@@ -17,6 +18,7 @@ namespace ppbox
 
         class BytesStream
             : public util::buffers::StlStream<boost::uint8_t>
+            , public util::smart_ptr::RefenceFromThis<DemuxerBase>
         {
         public:
             typedef BufferList::read_buffer_t read_buffer_t;
@@ -29,7 +31,8 @@ namespace ppbox
         public:
             BytesStream(
                 BufferList & buffer,
-                size_t segment)
+                SourceBase & source,
+                SegmentPosition const & segment)
                 : buffer_(buffer)
                 , size_(0)
                 , iter_(buffers_.begin())
@@ -40,6 +43,7 @@ namespace ppbox
                 , ec_(boost::asio::error::would_block)
             {
                 setg(NULL, NULL, NULL);
+                update_new();
             }
 
         public:
@@ -154,7 +158,13 @@ namespace ppbox
                 }
             }
 
-            size_t const segment() const
+        public:
+            SourceBase const & source() const
+            {
+                return source_;
+            }
+
+            SegmentPosition const & segment() const
             {
                 return segment_;
             }
@@ -313,13 +323,14 @@ namespace ppbox
 
         private:
             BufferList & buffer_;
+            SourceBase & source_;
+            SegmentPosition segment_;
             read_buffer_t buffers_; // 有效数据
             boost::uint32_t size_;  // buffers_数据的大小
             const_iterator iter_;   // 当前的内存段
             pos_type pos_;          // 与iter_对应分段的开头
             pos_type end_;          // 有效数据的结尾
             buffer_type buf_;       // 当前的内存段
-            size_t segment_;
             boost::system::error_code ec_;
         };
 

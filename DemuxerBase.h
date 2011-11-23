@@ -4,6 +4,9 @@
 #define _PPBOX_DEMUX_DEMUXER_BASE_H_
 
 #include "ppbox/demux/DemuxerType.h"
+
+#include <util/smart_ptr/RefenceFromThis.h>
+
 #include <boost/detail/endian.hpp>
 #include <boost/asio/buffer.hpp>
 
@@ -131,6 +134,7 @@ namespace ppbox
         };
 
         class DemuxerBase
+            : public util::smart_ptr::RefenceFromThis<DemuxerBase>
         {
         public:
             DemuxerBase(
