@@ -149,9 +149,41 @@ namespace ppbox
             virtual boost::uint64_t segment_size(
                 size_t segment) = 0;
 
-            virtual boost::uint64_t total_size();
+            virtual boost::uint64_t segment_time(
+                size_t segment) = 0;
 
-            virtual boost::uint64_t total_time();
+            // 自己所有分段的size总和
+            virtual boost::uint64_t source_size();
+
+            // 
+            virtual boost::uint64_t source_size_before(
+                size_t segment);
+
+            // 自己所有分段的time总和
+            virtual boost::uint64_t source_time();
+
+            virtual boost::uint64_t source_time_before(
+                size_t segment);
+
+            // 自己和所有子节点的size总和
+            virtual boost::uint64_t tree_size();
+
+            virtual boost::uint64_t tree_size_before(
+                SourceTreeItem * child);
+
+            // 自己和所有子节点的time总和
+            virtual boost::uint64_t tree_time();
+
+            virtual boost::uint64_t tree_time_before(
+                SourceTreeItem * child);
+
+            // 所有节点在child插入点之前的size总和
+            virtual boost::uint64_t total_size_before(
+                SourceTreeItem * child);
+
+            // 所有节点在child插入点之前的time总和
+            virtual boost::uint64_t total_time_before(
+                SourceTreeItem * child);
 
             virtual boost::system::error_code offset_of_segment(
                 boost::uint64_t & offset,
@@ -168,17 +200,6 @@ namespace ppbox
             {
                 return ec = boost::system::error_code();
             }
-
-        private:
-            // Source开始位置相对于所有数据的位置
-            boost::uint64_t offset(
-                SegmentPosition & position);
-
-            // 自己和所有子节点的size总和
-            boost::uint64_t total_tree_size();
-
-            boost::uint64_t size_before(
-                SourceTreeItem * child);
 
         private:
             size_t insert_segment_; // 插入在父节点的分段
