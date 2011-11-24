@@ -130,9 +130,8 @@ namespace ppbox
                 size_t segment) {}
 
         public:
-            virtual boost::system::error_code next_segment(
-                SegmentPosition & position, 
-                boost::system::error_code & ec);
+            virtual void next_segment(
+                SegmentPosition & position);
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // 微妙
@@ -145,13 +144,14 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            virtual size_t total_segments() const = 0;
+            virtual size_t segment_count() const = 0;
 
-            virtual void file_length(
-                size_t segment,
-                boost::uint64_t file_length) = 0;
+            virtual boost::uint64_t segment_size(
+                size_t segment) = 0;
 
-            virtual boost::uint64_t total_size() const = 0;
+            virtual boost::uint64_t total_size();
+
+            virtual boost::uint64_t total_time();
 
             virtual boost::system::error_code offset_of_segment(
                 boost::uint64_t & offset,
@@ -181,8 +181,10 @@ namespace ppbox
                 SourceTreeItem * child);
 
         private:
-            boost::uint64_t insert_offset_;    // 插入在父节点的位置，相对于父节点的数据起始位置
-            boost::uint64_t insert_time_;    // 插入在父节点的位置，相对于父节点的数据起始位置，微妙
+            size_t insert_segment_; // 插入在父节点的分段
+            boost::uint64_t insert_offset_; // 插入在分段上的偏移位置，相对于分段起始位置
+            boost::uint64_t insert_delta_; // 需要重复下载的数据量
+            boost::uint64_t insert_time_; // 插入在分段上的时间位置，相对于分段起始位置，单位：微妙
         };
 
     } // namespace demux
