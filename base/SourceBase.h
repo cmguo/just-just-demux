@@ -1,17 +1,9 @@
-// SegmentsBase.h
+// SourceBase.h
 
-#ifndef _PPBOX_DEMUX_SEGMENTS_BASE_H_
-#define _PPBOX_DEMUX_SEGMENTS_BASE_H_
+#ifndef _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
+#define _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
 
-#include <boost/filesystem/path.hpp>
-#include <boost/asio/buffer.hpp>
-
-#include <framework/network/NetName.h>
-#include <framework/string/Url.h>
-
-#include <util/buffers/Buffers.h>
-#include <util/protocol/http/HttpError.h>
-#include <util/protocol/http/HttpClient.h>
+#include "ppbox/demux/base/SourceTreeItem.h"
 
 namespace ppbox
 {
@@ -21,6 +13,7 @@ namespace ppbox
         class SourceTreeItem;
 
         struct SegmentPosition
+            : SourceTreePosition
         {
             SegmentPosition(
                 boost::uint64_t seg_off = 0)
@@ -55,181 +48,12 @@ namespace ppbox
             boost::uint64_t seg_end; // 全局的偏移
             boost::uint64_t time_beg; // 全局的偏移
             boost::uint64_t time_end; // 全局的偏移
-            SourceTreeItem * next_child;// 处理流程中的下一个子节点
-        };
-
-        class SourceTreeItem
-        {
-        public:
-            SourceTreeItem()
-                : insert_offset_(0)
-                , parent_(NULL)
-                , first_child_(NULL)
-                , prev_sibling_(NULL)
-                , next_sibling_(NULL)
-            {
-            }
-
-        protected:
-            bool insert_child(
-                boost::uint64_t position, // 相对于自身（被插入节点）的数据起始位置
-                SegmentPosition & read_pos,
-                boost::uint64_t read_offset,
-                SegmentPosition & write_pos,
-                boost::uint64_t write_offset,
-                SourceTreeItem * child)
-            {
-                child->parent_ = this;
-                if (first_child_) {
-                    SourceTreeItem * item = first_child_;
-                    while (item) {
-                        if (item->insert_offset_ > position) {
-                            if (item->prev_sibling_) {
-                                item->prev_sibling_->next_sibling_ = child;
-                                child->prev_sibling_ = item->prev_sibling_;
-                                child->next_sibling_ = item;
-                                child->insert_offset_ = position;
-                                item->prev_sibling_ = child;
-                            } else {
-                                first_child_ = child;
-                                child->next_sibling_ = item;
-                                child->insert_offset_ = position;
-                                item->prev_sibling_ = child;
-                            }
-                            break;
-                        } else {
-                            item = item->next_sibling_;
-                            if (!item) {
-                                item->next_sibling_ = child;
-                                child->prev_sibling_ = item;
-                                child->insert_offset_ = position;
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    first_child_ = child;
-                    first_child_->insert_offset_ = position;
-                }
-
-                if (position > write_offset) {
-                    if (write_pos.next_child) {
-                        if (position < write_pos.next_child->insert_offset_) {
-                            write_pos.next_child = child;
-                        }
-                    } else {
-                        write_pos.next_child = child;
-                    }
-                }
-                if (position > read_offset) {
-                    if (read_pos.next_child) {
-                        if (position < read_pos.next_child->insert_offset_) {
-                            read_pos.next_child = child;
-                        }
-                    } else {
-                        read_pos.next_child = child;
-                    }
-                }
-                return true;
-            }
-
-            bool remove_child(
-                SourceTreeItem * child,
-                SegmentPosition & read_pos,
-                SegmentPosition & write_pos)
-            {
-                return remove_child(child, read_pos, write_pos, true);
-            }
-
-            SourceTreeItem * next_source(
-                SegmentPosition & position) const // 返回下一个Source
-            {
-                if (position.next_child) {
-                    SourceTreeItem * next = position.next_child;
-                    position.next_child = next->first_child_;
-                    //position.seg_off = next->offset(position);
-                    return next;
-                } else {
-                    position.next_child = next_sibling_;
-                    return parent_;
-                }
-            }
-
-            bool remove_self(
-                SegmentPosition & read_pos,
-                SegmentPosition & write_pos)
-            {
-                return parent_->remove_child(this, read_pos, write_pos);
-            }
-
-            bool remove_child(
-                SourceTreeItem * child,
-                SegmentPosition & read_pos,
-                SegmentPosition & write_pos,
-                bool is_first)
-            {
-                SourceTreeItem * source = child;
-                if (is_first && child->parent_) {
-                    source = child->parent_;
-                }
-                SourceTreeItem * item = source->first_child_;
-                while (item) {
-                    if (item == child) {
-                        if (item->prev_sibling_) {
-                            if (item->next_sibling_) {
-                                item->prev_sibling_->next_sibling_ = item->next_sibling_;
-                                item->next_sibling_->prev_sibling_ = item->prev_sibling_;
-                            } else {
-                                item->prev_sibling_->next_sibling_ = NULL;
-                            }
-                        } else {
-                            source->first_child_ = item->next_sibling_;
-                            if (item->next_sibling_) {
-                                item->next_sibling_->prev_sibling_ = NULL;
-                            }
-                        }
-                        if (read_pos.next_child == item) {
-                            read_pos.next_child = item->next_sibling_;
-                        }
-                        if (write_pos.next_child == item) {
-                            write_pos.next_child = item->next_sibling_;
-                        }
-                        return true;
-                    }
-                    remove_child(item, read_pos, write_pos, false);
-                    item = item->next_sibling_;
-                }
-                return false;
-            }
-
-            boost::system::error_code seek (
-                size_t segment, 
-                boost::uint64_t offset, 
-                SegmentPosition & position, 
-                boost::system::error_code & ec) const
-            {
-                position.next_child = NULL;
-                SourceTreeItem * child = this->first_child_;
-                while (child) {
-                    if (child->insert_offset_ > offset) {
-                        position.next_child = child;
-                    }
-                }
-            }
-
-        public:
-            boost::uint64_t insert_offset_;    // 插入在父节点的位置，相对于父节点的数据起始位置
-            boost::uint64_t insert_time_;    // 插入在父节点的位置，相对于父节点的数据起始位置，微妙
-            SourceTreeItem * parent_;         // 父节点
-            SourceTreeItem * first_child_;    // 第一个子节点
-            SourceTreeItem * prev_sibling_;    // 前一个兄弟节点
-            SourceTreeItem * next_sibling_;   // 下一个兄弟节点
         };
 
         class SourceBase
             : public SourceTreeItem
         {
-        protected:
+        public:
             typedef util::buffers::Buffers<
                 boost::asio::mutable_buffer, 2
             > write_buffer_t;
@@ -246,8 +70,7 @@ namespace ppbox
 
         public:
             SourceBase(
-                boost::asio::io_service & io_svc, 
-                boost::uint16_t port)
+                boost::asio::io_service & io_svc)
             {
             }
 
@@ -306,90 +129,30 @@ namespace ppbox
             virtual void on_seg_end(
                 size_t segment) {}
 
-            virtual void on_seg_close(
-                size_t segment) {}
-
         public:
-            virtual SourceBase * next_source(
-                SegmentPosition & position)
-            {
-                SourceBase * next =  (SourceBase *)SourceTreeItem::next_source(position);
-                return next;
-            }
-
-            virtual void * next_segment(
-                SegmentPosition & position)
-            {
-            }
-
-            virtual boost::system::error_code seek (
-                size_t segment, 
-                boost::uint64_t offset, 
+            virtual boost::system::error_code next_segment(
                 SegmentPosition & position, 
-                boost::system::error_code & ec)
-            {
-                SourceTreeItem::seek(segment, offset, position, ec);
-            }
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code time_seek (
+                boost::uint64_t time, // 微妙
+                SegmentPosition & position, 
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code offset_seek (
+                boost::uint64_t offset,  
+                SegmentPosition & position, 
+                boost::system::error_code & ec);
 
         private:
-            boost::uint64_t offset(
-                SegmentPosition & position)   // Source开始位置相对于所有数据的位置
-            {
-                if (position.next_child) {
-                    return size_before(position.next_child) - position.next_child->insert_offset_;
-                } else {
-                    return size_before(position.next_child) - total_size();
-                }
-            }
-
-            boost::uint64_t total_tree_size() // 自己和所有子节点的size总和
-            {
-                boost::uint64_t total = total_size();
-                SourceBase * item = (SourceBase *)first_child_;
-                while (item) {
-                    total += item->total_tree_size();
-                    item = (SourceBase *)item->next_sibling_;
-                }
-                return total;
-            }
-
-            boost::uint64_t size_before(
-                SourceTreeItem * child) // 
-            {
-                boost::uint64_t total = 0;
-                if (parent_) {
-                    total += ((SourceBase *)parent_)->size_before(this);
-                }
-                if (child) {
-                    total += child->insert_offset_;
-                    SourceBase * item = (SourceBase *)child->prev_sibling_;
-                    while (item) {
-                        total += item->total_tree_size();
-                        item = (SourceBase *)item->prev_sibling_;
-                    }
-                } else {
-                    total += total_tree_size();
-                }
-                return total;
-            }
-
-        public:
-            //virtual Segment & operator [](
-            //    size_t segment) = 0;
-
-            //virtual Segment const & operator [](
-            //    size_t segment) const = 0;
-
             virtual size_t total_segments() const = 0;
 
             virtual void file_length(
                 size_t segment,
-                boost::uint64_t file_length) {}
+                boost::uint64_t file_length) = 0;
 
-        public:
             virtual boost::uint64_t total_size() const = 0;
 
-        private:
             virtual boost::system::error_code offset_of_segment(
                 boost::uint64_t & offset,
                 SegmentPosition & position, 
@@ -405,9 +168,24 @@ namespace ppbox
             {
                 return ec = boost::system::error_code();
             }
+
+        private:
+            // Source开始位置相对于所有数据的位置
+            boost::uint64_t offset(
+                SegmentPosition & position);
+
+            // 自己和所有子节点的size总和
+            boost::uint64_t total_tree_size();
+
+            boost::uint64_t size_before(
+                SourceTreeItem * child);
+
+        private:
+            boost::uint64_t insert_offset_;    // 插入在父节点的位置，相对于父节点的数据起始位置
+            boost::uint64_t insert_time_;    // 插入在父节点的位置，相对于父节点的数据起始位置，微妙
         };
 
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_SEGMENTS_BASE_H_
+#endif // _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
