@@ -75,7 +75,7 @@ namespace ppbox
             }
             StatusInfo info(type, play_position_);
             status_infos_.push_back(info);
-            state_ = new_state;
+            state_ = (StatusEnum)new_state;
         }
 
         void DemuxerStatistic::open_beg()

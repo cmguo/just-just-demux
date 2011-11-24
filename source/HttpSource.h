@@ -20,7 +20,7 @@ namespace ppbox
     {
 
         class HttpSource
-            : public SourceBase
+            : public DemuxerSource
         {
         protected:
             FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("HttpSegments", 0);

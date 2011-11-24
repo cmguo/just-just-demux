@@ -331,7 +331,7 @@ namespace ppbox
                 }
             }
 #endif
-            is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
+            /*is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
             if (is_) {
                 is_.seekg(ap4_sample.GetOffset(), std::ios_base::beg);
                 sample.data.resize(sample.size);
@@ -340,7 +340,7 @@ namespace ppbox
                 is_.clear();
                 ec = error::file_stream_error;
                 sample_put_back_ = true;
-            }
+            }*/
             if (tc.elapse() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_sample] elapse: " << tc.elapse());
             }

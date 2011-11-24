@@ -3,7 +3,6 @@
 #ifndef _PPBOX_DEMUX_PPTV_DEMUXER_STATISTIC_H_
 #define _PPBOX_DEMUX_PPTV_DEMUXER_STATISTIC_H_
 
-#include "ppbox/demux/base/BufferDemuxer.h"
 #include "ppbox/demux/pptv/PptvDemuxerType.h"
 
 #include <ppbox/common/HttpStatistics.h>
@@ -60,7 +59,6 @@ namespace ppbox
         };
 
         class PptvDemuxerStatistic
-            : public BufferDemuxer
         {
         public:
             PptvDemuxerStatistic();
@@ -89,11 +87,6 @@ namespace ppbox
             }
 
         public:
-            bool is_playing_state() const
-            {
-                return state_ > opened;
-            }
-
             PptvDemuxerType::Enum const & demuxer_type() const
             {
                 return play_type_;
@@ -102,11 +95,6 @@ namespace ppbox
             std::vector<ppbox::common::HttpStatistics> const & open_logs() const
             {
                 return open_logs_;
-            }
-
-            boost::uint32_t open_total_time() const
-            {
-                return open_total_time_;
             }
 
             bool is_ready()

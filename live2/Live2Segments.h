@@ -5,7 +5,7 @@
 
 #include "ppbox/demux/source/SourceBase.h"
 #include "ppbox/demux/source/HttpSource.h"
-#include "ppbox/demux/Live2Demuxer.h"
+#include "ppbox/demux/live2/Live2Demuxer.h"
 #include "ppbox/demux/Serialize.h"
 
 #include <util/protocol/pptv/Base64.h>

@@ -15,10 +15,12 @@ namespace ppbox
 {
     namespace demux
     {
+        class SegmentPosition;
         class BufferList;
-        class Source;
+        class DemuxerSource;
         class BytesStream;
-        
+
+        struct DemuxerInfo;
         struct DemuxerEventType
         {
             enum Enum
@@ -42,7 +44,7 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size,
-                Source * segmentbase);
+                DemuxerSource * source);
 
             virtual ~BufferDemuxer();
 
@@ -88,14 +90,18 @@ namespace ppbox
             boost::system::error_code close(
                 boost::system::error_code & ec);
 
+        public:
+            void on_error(
+                boost::system::error_code & ec);
+
         protected:
             boost::system::error_code insert_source(
                 boost::uint32_t time,
-                Source * source, 
+                DemuxerSource * source, 
                 boost::system::error_code & ec);
 
             boost::system::error_code remove_source(
-                Source * source, 
+                DemuxerSource * source, 
                 boost::system::error_code & ec);
 
         protected:
@@ -115,15 +121,10 @@ namespace ppbox
             void response(
                 boost::system::error_code const & ec);
 
-            DemuxerBase * create_demuxer(
-                DemuxerType::Enum demuxer_type,
-                BytesStream * stream);
-
             void create_demuxer(
-                Source * source, 
-                size_t segment, 
-                StreamPointer & stream, 
-                DemuxerPointer & demuxer, 
+                DemuxerSource * source, 
+                SegmentPosition segment, 
+                DemuxerInfo & demuxer, 
                 boost::system::error_code & ec);
 
             void update_stat();
@@ -131,17 +132,15 @@ namespace ppbox
         protected:
             boost::asio::io_service & io_svc_;
             boost::system::error_code extern_error_;
-            Source * root_source_;
+            DemuxerSource * root_source_;
             BufferList * buffer_;
 
         private:
             framework::timer::Ticker * ticker_;
             boost::uint32_t seek_time_;
 
-            StreamPointer read_stream_;
-            StreamPointer write_stream_;
-            DemuxerPointer read_demuxer_;
-            DemuxerPointer write_demuxer_;
+            DemuxerInfo read_demuxer_;
+            DemuxerInfo write_demuxer_;
 
             open_response_type resp_;
         };

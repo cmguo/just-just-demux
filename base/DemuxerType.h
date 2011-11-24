@@ -20,6 +20,13 @@ namespace ppbox
             };
         };
 
+        class DemuxerBase;
+        class BytesStream;
+
+        DemuxerBase * create_demuxer(
+            DemuxerType::Enum type,
+            BytesStream & stream);
+
     } // namespace demux
 } // namespace ppbox
 

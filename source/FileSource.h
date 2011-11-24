@@ -19,7 +19,7 @@ namespace ppbox
     {
 
         class FileSource
-            : public SourceBase
+            : public DemuxerSource
         {
         public:
             typedef boost::function<void (

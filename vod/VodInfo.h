@@ -20,17 +20,21 @@ namespace ppbox
         struct VodSegment
             :Segment
         {
-            //boost::uint32_t duration;   // 分段时长（毫秒）
+            boost::uint64_t head_length;
+            boost::uint64_t file_length;
+            boost::uint32_t duration;   // 分段时长（毫秒）
             std::string va_rid;
-            //boost::uint32_t duration_offset;    // 相对起始的时长起点，（毫秒）
-            //boost::uint64_t duration_offset_us; // 同上，（微秒）
+            boost::uint32_t duration_offset;    // 相对起始的时长起点，（毫秒）
+            boost::uint64_t duration_offset_us; // 同上，（微秒）
             boost::uint64_t block_size;
             boost::uint32_t block_num;
 
             VodSegment()
-                //: duration(0)
-                //, duration_offset(0)
-                //, duration_offset_us(0)
+                : head_length(0)
+                , file_length(0)
+                , duration(0)
+                , duration_offset(0)
+                , duration_offset_us(0)
                 : block_size(0)
                 , block_num(0)
             {

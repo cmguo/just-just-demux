@@ -4,7 +4,6 @@
 #define _PPBOX_DEMUX_LIVE_LIVE_DEMUXER_H_
 
 #include "ppbox/demux/pptv/PptvDemuxer.h"
-#include "ppbox/demux/source/BufferList.h"
 
 namespace ppbox
 {

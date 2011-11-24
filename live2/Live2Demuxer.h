@@ -3,9 +3,7 @@
 #ifndef _PPBOX_DEMUX_LIVE2_DEMUXER_H_
 #define _PPBOX_DEMUX_LIVE2_DEMUXER_H_
 
-#include "ppbox/demux/PptvDemuxer.h"
-
-#include <boost/asio/io_service.hpp>
+#include "ppbox/demux/pptv/PptvDemuxer.h"
 
 namespace ppbox
 {

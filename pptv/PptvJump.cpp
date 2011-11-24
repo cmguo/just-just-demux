@@ -1,7 +1,7 @@
 // VodJump.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/PptvJump.h"
+#include "ppbox/demux/pptv/PptvJump.h"
 using namespace ppbox::demux::error;
 
 #include <framework/string/Format.h>

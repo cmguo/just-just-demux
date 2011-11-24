@@ -3,6 +3,8 @@
 #ifndef _PPBOX_DEMUX_PPTV_PPTV_DEMUXER_H_
 #define _PPBOX_DEMUX_PPTV_PPTV_DEMUXER_H_
 
+#include "ppbox/demux/base/BufferDemuxer.h"
+
 #include "ppbox/demux/pptv/PptvDemuxerStatistic.h"
 
 namespace framework { namespace timer { class Ticker; } }
@@ -30,7 +32,8 @@ namespace ppbox
         };
 
         class PptvDemuxer
-            : public PptvDemuxerStatistic
+            : public BufferDemuxer
+            , public PptvDemuxerStatistic
         {
 
         public:

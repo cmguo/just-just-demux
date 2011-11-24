@@ -1,9 +1,9 @@
 // LiveDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/LiveDemuxer.h"
-#include "ppbox/demux/PptvJump.h"
-#include "ppbox/demux/LiveSegments.h"
+#include "ppbox/demux/live/LiveDemuxer.h"
+#include "ppbox/demux/pptv/PptvJump.h"
+#include "ppbox/demux/live/LiveSegments.h"
 using namespace ppbox::demux::error;
 
 #include <util/archive/XmlIArchive.h>

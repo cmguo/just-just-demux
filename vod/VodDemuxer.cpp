@@ -1,10 +1,10 @@
 // VodDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/VodDemuxer.h"
-#include "ppbox/demux/PptvJump.h"
-#include "ppbox/demux/PptvDrag.h"
-#include "ppbox/demux/VodSegments.h"
+#include "ppbox/demux/vod/VodDemuxer.h"
+#include "ppbox/demux/pptv/PptvJump.h"
+#include "ppbox/demux/pptv/PptvDrag.h"
+#include "ppbox/demux/vod/VodSegments.h"
 using namespace ppbox::demux::error;
 
 #include <ppbox/common/Environment.h>
