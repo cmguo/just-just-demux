@@ -8,7 +8,7 @@ namespace ppbox
     namespace demux
     {
 
-        bool SourceTreeItem::insert_child(
+        void SourceTreeItem::insert_child(
             SourceTreeItem * child, 
             SourceTreeItem * where)
         {
@@ -40,29 +40,22 @@ namespace ppbox
         }
 
         void SourceTreeItem::next_source(
-            SegmentPosition & position) const
+            SourceTreePosition & position) const
         {
             if (position.next_child) {
-                position.source = position.next_child;
-                position.next_child = position.source->first_child_;
+                position.source = (SourceBase *)position.next_child;
+                position.next_child = position.next_child->first_child_;
             } else {
-                position.source = parent_;
+                position.source = (SourceBase *)parent_;
                 position.next_child = next_sibling_;
             }
         }
 
-        void SourceTreeItem::remove_self(
-            SegmentPosition & read_pos,
-            SegmentPosition & write_pos)
-        {
-            return parent_->remove_child(this);
-        }
-
         void SourceTreeItem::seek (
-            SegmentPosition & position, 
+            SourceTreePosition & position, 
             SourceTreeItem * where) const
         {
-            position.source = this;
+            position.source = (SourceBase *)this;
             position.next_child = where;
         }
 

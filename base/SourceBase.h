@@ -3,7 +3,12 @@
 #ifndef _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
 #define _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
 
+#include "ppbox/demux/base/DemuxerType.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
+
+#include <util/buffers/Buffers.h>
+
+#include <boost/asio/buffer.hpp>
 
 namespace ppbox
 {
@@ -15,21 +20,14 @@ namespace ppbox
         struct SegmentPosition
             : SourceTreePosition
         {
-            SegmentPosition(
-                boost::uint64_t seg_off = 0)
-                : next_child(NULL)
-                , segment((size_t)-1)
-                , seg_beg(0)
-                , seg_end((boost::uint64_t)-1)
-            {
-            }
-
-            SegmentPosition(
-                size_t segment,
-                boost::uint64_t seg_off = 0)
-                : segment(segment)
-                , seg_beg(0)
-                , seg_end((boost::uint64_t)-1)
+            SegmentPosition()
+                : segment(0)
+                , demuxer_type(DemuxerType::none)
+                , total_state(not_init)
+                , size_beg(0)
+                , size_end((boost::uint64_t)-1)
+                , time_beg(0)
+                , time_end((boost::uint64_t)-1)
             {
             }
 
@@ -41,13 +39,26 @@ namespace ppbox
                 by_guess, 
             };
 
-            TotalStateEnum total_state;
             size_t segment;
             DemuxerType::Enum demuxer_type;
-            boost::uint64_t seg_beg; // 全局的偏移
-            boost::uint64_t seg_end; // 全局的偏移
+            TotalStateEnum total_state;
+            boost::uint64_t size_beg; // 全局的偏移
+            boost::uint64_t size_end; // 全局的偏移
             boost::uint64_t time_beg; // 全局的偏移
             boost::uint64_t time_end; // 全局的偏移
+        };
+
+        typedef boost::intrusive_ptr<
+            BytesStream> StreamPointer;
+
+        typedef boost::intrusive_ptr<
+            DemuxerBase> DemuxerPointer;
+
+        struct DemuxerInfo
+        {
+            StreamPointer stream;
+            DemuxerPointer demuxer;
+            SegmentPosition segment;
         };
 
         class SourceBase
@@ -70,13 +81,9 @@ namespace ppbox
 
         public:
             SourceBase(
-                boost::asio::io_service & io_svc)
-            {
-            }
+                boost::asio::io_service & io_svc);
 
-            virtual ~SourceBase()
-            {
-            }
+            virtual ~SourceBase();
 
         public:
             virtual boost::system::error_code segment_open(
@@ -138,8 +145,8 @@ namespace ppbox
                 SegmentPosition & position, 
                 boost::system::error_code & ec);
 
-            virtual boost::system::error_code offset_seek (
-                boost::uint64_t offset,  
+            virtual boost::system::error_code size_seek (
+                boost::uint64_t size,  
                 SegmentPosition & position, 
                 boost::system::error_code & ec);
 
@@ -169,41 +176,25 @@ namespace ppbox
             virtual boost::uint64_t tree_size();
 
             virtual boost::uint64_t tree_size_before(
-                SourceTreeItem * child);
+                SourceBase * child);
 
             // 自己和所有子节点的time总和
             virtual boost::uint64_t tree_time();
 
             virtual boost::uint64_t tree_time_before(
-                SourceTreeItem * child);
+                SourceBase * child);
 
             // 所有节点在child插入点之前的size总和
             virtual boost::uint64_t total_size_before(
-                SourceTreeItem * child);
+                SourceBase * child);
 
             // 所有节点在child插入点之前的time总和
             virtual boost::uint64_t total_time_before(
-                SourceTreeItem * child);
-
-            virtual boost::system::error_code offset_of_segment(
-                boost::uint64_t & offset,
-                SegmentPosition & position, 
-                boost::system::error_code & ec) const
-            {
-                return ec = boost::system::error_code();
-            }
-
-            virtual boost::system::error_code offset_to_segment(
-                boost::uint64_t offset,
-                SegmentPosition & position,
-                boost::system::error_code & ec) const
-            {
-                return ec = boost::system::error_code();
-            }
+                SourceBase * child);
 
         private:
             size_t insert_segment_; // 插入在父节点的分段
-            boost::uint64_t insert_offset_; // 插入在分段上的偏移位置，相对于分段起始位置
+            boost::uint64_t insert_size_; // 插入在分段上的偏移位置，相对于分段起始位置
             boost::uint64_t insert_delta_; // 需要重复下载的数据量
             boost::uint64_t insert_time_; // 插入在分段上的时间位置，相对于分段起始位置，单位：微妙
         };

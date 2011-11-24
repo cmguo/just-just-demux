@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 #define _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 
-#include "ppbox/demux/source/BufferList.h"
+#include "ppbox/demux/base/BufferList.h"
 
 #include <util/buffers/BufferSize.h>
 #include <util/buffers/StlBuffer.h>

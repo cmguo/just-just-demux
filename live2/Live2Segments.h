@@ -155,7 +155,7 @@ namespace ppbox
             Live2Segments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t live_port)
-                : HttpSource(io_svc, live_port)
+                : HttpSource(io_svc)
                 , live_port_(live_port)
                 , server_time_(0)
                 , file_time_(0)

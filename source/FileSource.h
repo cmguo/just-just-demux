@@ -19,7 +19,7 @@ namespace ppbox
     {
 
         class FileSource
-            : public DemuxerSource
+            : public SourceBase
         {
         public:
             typedef boost::function<void (
@@ -28,9 +28,8 @@ namespace ppbox
 
         public:
             FileSource(
-                boost::asio::io_service & io_svc, 
-                boost::uint16_t port)
-                :SourceBase(io_svc, port)
+                boost::asio::io_service & io_svc)
+                :SourceBase(io_svc)
                 , is_open_(false)
             {
             }

@@ -3,6 +3,8 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SourceBase.h"
 
+#include <framework/system/LogicError.h>
+
 namespace ppbox
 {
     namespace demux
@@ -10,6 +12,10 @@ namespace ppbox
 
         SourceBase::SourceBase(
             boost::asio::io_service & io_svc)
+            : insert_segment_(0)
+            , insert_size_(0)
+            , insert_delta_(0)
+            , insert_time_(0)
         {
         }
 
@@ -18,22 +24,25 @@ namespace ppbox
         }
 
         void SourceBase::next_segment(
-            SegmentPosition & position)
+            SegmentPosition & segment)
         {
-            if (position.next_child 
-                && position.next_child->insert_segment_ == position.segment
-                && position.seg_beg + position.next_child->insert_offset_ == position.seg_end)
-                    next_source(position);
-                    position.segment = (size_t)-1;
-                    ((SourceBase *)position.source)->next_segment(position);
-            } else if (++position.segment == segment_count()) {
-                next_source(position);
-                position.segment = insert_segment_ - 1;
-                position.seg_end -= insert_offset_;
-                ((SourceBase *)position.source)->next_segment(position);
+            SourceBase * next_child = (SourceBase *)segment.next_child;
+            if (next_child 
+                && next_child->insert_segment_ == segment.segment
+                && segment.size_beg + next_child->insert_size_ == segment.size_end) {
+                    next_source(segment);
+                    segment.segment = (size_t)-1;
+                    ((SourceBase *)segment.source)->next_segment(segment);
+            } else if (++segment.segment == segment_count()) {
+                next_source(segment);
+                if (segment.source) {
+                    segment.segment = insert_segment_ - 1;
+                    segment.size_end -= insert_size_;
+                    ((SourceBase *)segment.source)->next_segment(segment);
+                }
             } else {
-                position.seg_beg = position.seg_end;
-                position.seg_end = position.seg_beg + segment_size(position.segment);
+                segment.size_beg = segment.size_end;
+                segment.size_end = segment.size_beg + segment_size(segment.segment);
             }
         }
 
@@ -49,7 +58,7 @@ namespace ppbox
                 if (time2 < item->insert_time_) {
                     break;
                 } else if (time2 < item->insert_time_ + item->tree_time()) {
-                    return item->time_seek(time - insert_time, position, ec);
+                    return item->time_seek(time - insert_time_, position, ec);
                 } else {
                     time2 -= item->tree_time();
                     skip_size += item->tree_size();
@@ -63,21 +72,21 @@ namespace ppbox
                 ++position.segment;
             }
             if (position.segment >= segment_count()) {
-                ec = logic_error::out_of_range; 
+                ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
-            position.seg_beg = skip_size + source_time_before(position.segment);
-            position.seg_end = position.seg_beg + segment_size(position.segment);
-            position.time_beg = time + source__time_before(position.segment) - time2;
+            position.size_beg = skip_size + source_time_before(position.segment);
+            position.size_end = position.size_beg + segment_size(position.segment);
+            position.time_beg = time + source_time_before(position.segment) - time2;
             position.time_end = position.time_beg + segment_time(position.segment);
-            if (item && item->insert_segment = position.segment) {
-                position.seg_end = position.seg_beg + item->insert_offset_;
-                position.time_end = position.seg_beg + item->insert_time_;
+            if (item && item->insert_segment_ == position.segment) {
+                position.size_end = position.size_beg + item->insert_size_;
+                position.time_end = position.size_beg + item->insert_time_;
             }
             return ec;
         }
 
-        boost::system::error_code SourceBase::offset_seek (
+        boost::system::error_code SourceBase::size_seek (
             boost::uint64_t size, 
             SegmentPosition & position, 
             boost::system::error_code & ec)
@@ -86,33 +95,33 @@ namespace ppbox
             boost::uint64_t skip_time = 0;
             SourceBase * item = (SourceBase *)first_child_;
             while (item) {
-                if (size2 < item->insert_offset_) {
+                if (size2 < item->insert_size_) {
                     break;
-                } else if (size2 < item->insert_offset_ + item->tree_size()) {
-                    return item->time_seek(time - item->insert_offset_, position, ec);
+                } else if (size2 < item->insert_size_ + item->tree_size()) {
+                    return item->time_seek(size2 - item->insert_size_, position, ec);
                 } else {
                     size2 -= item->tree_size();
                     skip_time += item->tree_time();
                 }
                 item = (SourceBase *)item->next_sibling_;
             }
-            assert(item == NULL || size2 < item->insert_offset_);
+            assert(item == NULL || size2 < item->insert_size_);
             SourceTreeItem::seek(position, item);
             position.segment = 1;
             while (position.segment < segment_count() && size2 >= source_size_before(position.segment)) {
                 ++position.segment;
             }
             if (position.segment >= segment_count()) {
-                ec = logic_error::out_of_range; 
+                ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
-            position.seg_beg = size + source_size_before(position.segment) - size2;
-            position.seg_end = position.seg_beg + segment_size(position.segment);
+            position.size_beg = size + source_size_before(position.segment) - size2;
+            position.size_end = position.size_beg + segment_size(position.segment);
             position.time_beg = skip_time + source_time_before(position.segment);
             position.time_end = position.time_beg + segment_time(position.segment);
-            if (item && item->insert_segment = position.segment) {
-                position.seg_end = position.seg_beg + item->insert_offset_;
-                position.time_end = position.seg_beg + item->insert_time_;
+            if (item && item->insert_segment_ == position.segment) {
+                position.size_end = position.size_beg + item->insert_size_;
+                position.time_end = position.size_beg + item->insert_time_;
             }
             return ec;
         }
@@ -140,14 +149,14 @@ namespace ppbox
         }
 
         boost::uint64_t SourceBase::tree_size_before(
-            SourceTreeItem * child)
+            SourceBase * child)
         {
             boost::uint64_t total = 0;
             if (child) {
-                total += source_size_before(child.segment) + child->insert_offset_;
+                total += source_size_before(child->insert_segment_) + child->insert_size_;
                 SourceBase * item = (SourceBase *)child->prev_sibling_;
                 while (item) {
-                    total += item->total_tree_size();
+                    total += item->tree_size();
                     total += item->insert_delta_;
                     item = (SourceBase *)item->prev_sibling_;
                 }
@@ -158,14 +167,14 @@ namespace ppbox
         }
 
         boost::uint64_t SourceBase::tree_time_before(
-            SourceTreeItem * child)
+            SourceBase * child)
         {
             boost::uint64_t total = 0;
             if (child) {
-                total = source_time_before(child.segment) + child->insert_time_;
+                total = source_time_before(child->insert_segment_) + child->insert_time_;
                 SourceBase * item = (SourceBase *)child->prev_sibling_;
                 while (item) {
-                    total += item->total_tree_time();
+                    total += item->tree_time();
                     item = (SourceBase *)item->prev_sibling_;
                 }
             } else {
@@ -175,7 +184,7 @@ namespace ppbox
         }
 
         boost::uint64_t SourceBase::total_size_before(
-            SourceTreeItem * child)
+            SourceBase * child)
         {
             boost::uint64_t total = 0;
             if (parent_) {
@@ -186,7 +195,7 @@ namespace ppbox
         }
 
         boost::uint64_t SourceBase::total_time_before(
-            SourceTreeItem * child)
+            SourceBase * child)
         {
             boost::uint64_t total = 0;
             if (parent_) {

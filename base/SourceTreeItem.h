@@ -9,9 +9,11 @@ namespace ppbox
     {
 
         class SourceTreeItem;
+        class SourceBase;
 
         struct SourceTreePosition
         {
+            SourceBase * source;// 处理流程中的下一个子节点
             SourceTreeItem * next_child;// 处理流程中的下一个子节点
         };
 
@@ -19,8 +21,7 @@ namespace ppbox
         {
         public:
             SourceTreeItem()
-                : insert_offset_(0)
-                , parent_(NULL)
+                : parent_(NULL)
                 , first_child_(NULL)
                 , prev_sibling_(NULL)
                 , next_sibling_(NULL)
@@ -32,14 +33,18 @@ namespace ppbox
                 SourceTreeItem * child, 
                 SourceTreeItem * where);
 
-            bool remove_child(
-                SourceTreeItem * child)
+            void remove_child(
+                SourceTreeItem * child);
 
             // 返回下一个Source
-            SourceTreeItem * next_source(
+            void next_source(
                 SourceTreePosition & position) const;
 
-            bool remove_self()
+            void seek(
+                SourceTreePosition & position, 
+                SourceTreeItem * where) const;
+
+            void remove_self()
             {
                 return parent_->remove_child(this);
             }

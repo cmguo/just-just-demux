@@ -17,10 +17,11 @@ namespace ppbox
     {
         class SegmentPosition;
         class BufferList;
-        class DemuxerSource;
+        class SourceBase;
         class BytesStream;
 
         struct DemuxerInfo;
+
         struct DemuxerEventType
         {
             enum Enum
@@ -44,7 +45,7 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size,
-                DemuxerSource * source);
+                SourceBase * source);
 
             virtual ~BufferDemuxer();
 
@@ -97,11 +98,11 @@ namespace ppbox
         protected:
             boost::system::error_code insert_source(
                 boost::uint32_t time,
-                DemuxerSource * source, 
+                SourceBase * source, 
                 boost::system::error_code & ec);
 
             boost::system::error_code remove_source(
-                DemuxerSource * source, 
+                SourceBase * source, 
                 boost::system::error_code & ec);
 
         protected:
@@ -122,7 +123,7 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
             void create_demuxer(
-                DemuxerSource * source, 
+                SourceBase * source, 
                 SegmentPosition segment, 
                 DemuxerInfo & demuxer, 
                 boost::system::error_code & ec);
@@ -132,7 +133,7 @@ namespace ppbox
         protected:
             boost::asio::io_service & io_svc_;
             boost::system::error_code extern_error_;
-            DemuxerSource * root_source_;
+            SourceBase * root_source_;
             BufferList * buffer_;
 
         private:

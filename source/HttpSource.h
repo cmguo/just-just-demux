@@ -20,7 +20,7 @@ namespace ppbox
     {
 
         class HttpSource
-            : public DemuxerSource
+            : public SourceBase
         {
         protected:
             FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("HttpSegments", 0);
@@ -32,9 +32,8 @@ namespace ppbox
 
         public:
             HttpSource(
-                boost::asio::io_service & io_svc, 
-                boost::uint16_t port)
-                : SourceBase(io_svc, port)
+                boost::asio::io_service & io_svc)
+                : SourceBase(io_svc)
                 , http_(io_svc)
             {
                 addr_.svc("80");

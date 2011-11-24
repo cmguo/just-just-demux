@@ -54,7 +54,7 @@ namespace ppbox
             VodSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t vod_port)
-                : HttpSource(io_svc, vod_port)
+                : HttpSource(io_svc)
                 , vod_port_(vod_port)
                 , first_seg_(true)
                 , bwtype_(0)
@@ -270,11 +270,11 @@ namespace ppbox
                             return ec = framework::system::logic_error::out_of_range;
                         total_offset += (*source)[i].file_length;
                     }
-                    position.seg_beg = total_offset;
-                    position.seg_end = 
+                    position.size_beg = total_offset;
+                    position.size_end = 
                         (position.segment < source->total_segments()&& 
                         (*source)[position.segment].total_state >= Segment::is_valid) ? 
-                        position.seg_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
+                        position.size_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
                     offset = total_offset;
                     return ec = boost::system::error_code();
                 }
@@ -298,11 +298,11 @@ namespace ppbox
                     assert(segment < source->total_segments()|| offset == 0);
                     if (segment < source->total_segments()|| offset == 0) {
                         position.segment = segment;
-                        position.seg_beg = offset - seg_offset + source->offset(position);
-                        position.seg_end = 
+                        position.size_beg = offset - seg_offset + source->offset(position);
+                        position.size_end = 
                             (segment < source->total_segments()&& 
                             (*source)[position.segment].total_state >= Segment::is_valid) ? 
-                            position.seg_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
+                            position.size_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
                         return ec = boost::system::error_code();
                     } else {
                         return ec = framework::system::logic_error::out_of_range;
@@ -314,8 +314,8 @@ namespace ppbox
                 {
                     SourceBase * next =  (SourceBase *)SourceTreeItem::next_source(position);
                     position.segment = 0;
-                    position.seg_beg = 0;
-                    position.seg_end = segments_[0].file_length >0 ?
+                    position.size_beg = 0;
+                    position.size_end = segments_[0].file_length >0 ?
                         segments_[0].file_length : boost::uint64_t(-1);
                     return next;
                 }

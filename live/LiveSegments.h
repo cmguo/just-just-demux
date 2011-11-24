@@ -66,7 +66,7 @@ namespace ppbox
             LiveSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t live_port)
-                : HttpSource(io_svc, live_port)
+                : HttpSource(io_svc)
                 , live_port_(live_port)
                 , live_demuxer_(NULL)
             {
