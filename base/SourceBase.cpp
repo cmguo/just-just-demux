@@ -55,9 +55,10 @@ namespace ppbox
             boost::uint64_t skip_size = 0;
             SourceBase * item = (SourceBase *)first_child_;
             while (item) {
-                if (time2 < item->insert_time_) {
+                boost::uint64_t insert_time = source_time_before(item->insert_segment_) + item->insert_time_;
+                if (time2 < insert_time) {
                     break;
-                } else if (time2 < item->insert_time_ + item->tree_time()) {
+                } else if (time2 < insert_time + item->tree_time()) {
                     return item->time_seek(time - insert_time_, position, ec);
                 } else {
                     time2 -= item->tree_time();
@@ -65,7 +66,6 @@ namespace ppbox
                 }
                 item = (SourceBase *)item->next_sibling_;
             }
-            assert(item == NULL || time2 < item->insert_time_);
             SourceTreeItem::seek(position, item);
             position.segment = 1;
             while (position.segment < segment_count() && time2 >= source_time_before(position.segment)) {
@@ -95,9 +95,10 @@ namespace ppbox
             boost::uint64_t skip_time = 0;
             SourceBase * item = (SourceBase *)first_child_;
             while (item) {
-                if (size2 < item->insert_size_) {
+                boost::uint64_t insert_size = source_size_before(item->insert_segment_) + item->insert_size_;
+                if (size2 < insert_size) {
                     break;
-                } else if (size2 < item->insert_size_ + item->tree_size()) {
+                } else if (size2 < insert_size + item->tree_size()) {
                     return item->time_seek(size2 - item->insert_size_, position, ec);
                 } else {
                     size2 -= item->tree_size();
