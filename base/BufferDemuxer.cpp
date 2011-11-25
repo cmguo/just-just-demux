@@ -404,11 +404,5 @@ namespace ppbox
             return buffer_time;
         }
 
-        void BufferDemuxer::on_error(
-            boost::system::error_code &ec)
-        {
-            
-        }
-
     } // namespace demux
 } // namespace ppbox

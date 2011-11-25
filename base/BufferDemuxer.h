@@ -91,9 +91,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-            void on_error(
-                boost::system::error_code & ec);
-
             virtual boost::system::error_code set_time_out(
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec) = 0;
