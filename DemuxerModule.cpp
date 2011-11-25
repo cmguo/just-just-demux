@@ -354,7 +354,7 @@ namespace ppbox
 #endif			
             ec
 #ifndef PPBOX_DISABLE_CERTIFY			   	
-                //|| cert_.certify_url(info->cert_type, info->play_link, key, ec)
+                || cert_.certify_url(demuxer->demuxer_type(), info->play_link, key, ec)
 #endif
                 //|| demuxer->set_time_out(5 * 1000, ec) // 5 seconds
                 || (!http_proxy_.host().empty() && demuxer->set_http_proxy(http_proxy_, ec));
