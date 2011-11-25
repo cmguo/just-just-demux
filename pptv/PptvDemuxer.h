@@ -4,8 +4,9 @@
 #define _PPBOX_DEMUX_PPTV_PPTV_DEMUXER_H_
 
 #include "ppbox/demux/base/BufferDemuxer.h"
-
+#include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/pptv/PptvDemuxerStatistic.h"
+
 
 namespace framework { namespace timer { class Ticker; } }
 namespace framework { namespace network { class NetName; } }
@@ -63,6 +64,11 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
+            BufferStatistic const & buffer_stat() const
+            {
+                return (BufferStatistic&)(*BufferDemuxer::buffer_);
+            }
+
             boost::system::error_code get_sample_buffered(
                 Sample & sample, 
                 boost::system::error_code & ec);

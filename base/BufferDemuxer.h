@@ -106,6 +106,13 @@ namespace ppbox
             void on_extern_error(
                 boost::system::error_code const & ec);
 
+        public:
+            virtual boost::system::error_code pause(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code resume(
+                boost::system::error_code & ec) = 0;
+
         protected:
             boost::system::error_code insert_source(
                 boost::uint32_t time,

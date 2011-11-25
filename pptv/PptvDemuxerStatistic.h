@@ -97,6 +97,11 @@ namespace ppbox
                 return open_logs_;
             }
 
+            boost::uint32_t open_total_time() const
+            {
+                return open_total_time_;
+            }
+
             bool is_ready()
             {
                 return is_ready_;

@@ -270,6 +270,13 @@ namespace ppbox
             return ec;
         }
 
+        boost::system::error_code BufferDemuxer::remove_source(
+            SourceBase * source, 
+            boost::system::error_code & ec)
+        {
+            return ec;
+        }
+
         void BufferDemuxer::handle_async(
             boost::system::error_code const & ecc)
         {
