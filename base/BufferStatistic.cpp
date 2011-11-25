@@ -1,7 +1,7 @@
 // BufferStatistic.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/source/BufferStatistic.h"
+#include "ppbox/demux/base/BufferStatistic.h"
 
 #include <framework/timer/Ticker.h>
 

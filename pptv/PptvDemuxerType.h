@@ -16,6 +16,7 @@ namespace ppbox
                 vod, 
                 live, 
                 live2, 
+                test,
             };
         };
 

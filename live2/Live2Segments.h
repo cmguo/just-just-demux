@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_LIVE2_SEGMENTS_H_
 #define _PPBOX_DEMUX_LIVE2_SEGMENTS_H_
 
-#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/base/SourceBase.h"
 #include "ppbox/demux/source/HttpSource.h"
 #include "ppbox/demux/live2/Live2Demuxer.h"
 #include "ppbox/demux/Serialize.h"
@@ -163,7 +163,6 @@ namespace ppbox
                 , interval_(10)
                 , live_demuxer_(NULL)
             {
-                segments_.push_back(Segment(DemuxerType::flv));
             }
 
         public:
@@ -225,8 +224,6 @@ namespace ppbox
                 if (ec == source_error::no_more_segment) {
                     update();
                     ec.clear();
-                    segments_.push_back(Segment(DemuxerType::flv));
-                    clear_readed_segment(ec);
                 } else if (ec == http_error::not_found) {
                     HttpSource::buffer_->pause(5 * 1000);
                     ec.clear();
@@ -322,7 +319,7 @@ namespace ppbox
                 live_demuxer_ = live_demuxer;
             }
 
-            size_t segment() const
+            SegmentPosition const & segment() const
             {
                 return HttpSource::buffer_->write_segment();
             }
@@ -342,44 +339,22 @@ namespace ppbox
                 return interval_;
             }
 
-        public:
-            boost::system::error_code get_segment(
-                size_t index,
-                Segment & segment,
-                boost::system::error_code & ec)
+        private:
+            size_t segment_count() const
             {
-                if (index < segments_.size()) {
-                    segment = segments_[index];
-                } else {
-                    segment = Segment(DemuxerType::flv);
-                }
-                return ec;
+                return (size_t)-1;
             }
 
-            Segment & operator [](
+            boost::uint64_t segment_size(
                 size_t segment)
             {
-                return segments_[segment];
+                return boost::uint64_t(-1);
             }
 
-            Segment const & operator [](
-                size_t segment) const
+            boost::uint64_t segment_time(
+                size_t segment)
             {
-                return segments_[segment];
-            }
-
-            size_t total_segments() const
-            {
-                return segments_.size();
-            }
-
-        private:
-            void clear_readed_segment(
-                boost::system::error_code & ec)
-            {
-                while (segments_.num_del() < HttpSource::buffer_->read_segment()) {
-                    segments_.pop_front();
-                }
+                return boost::uint64_t(-1);
             }
 
         private:
@@ -405,7 +380,6 @@ namespace ppbox
             boost::uint16_t interval_;
 
             Live2Demuxer * live_demuxer_;
-            Segments segments_;
         };
 
     } // namespace demux

@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 #define _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 
-#include "ppbox/demux/base/BufferDemuxer.h"
+#include "ppbox/demux/pptv/PptvDemuxer.h"
 
 namespace ppbox
 {
@@ -152,7 +152,7 @@ namespace ppbox
             }
 
         private:
-            BufferStatistic * buffer_stat_;
+            PptvDemuxerStatistic * buffer_stat_;
         };
     } // namespace demux
 } // namespace ppbox

@@ -14,6 +14,7 @@
 #include <framework/timer/TimeCounter.h>
 
 #include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -77,26 +78,6 @@ namespace ppbox
                 : Position
                 , SegmentPosition
             {
-                PositionEx()
-                    : source(NULL)
-                {
-                }
-
-                PositionEx(
-                    size_t segment, 
-                    boost::uint64_t seg_off)
-                    : SegmentPosition(segment, offset)
-                    , source(NULL)
-                {
-                }
-
-                PositionEx(
-                    boost::uint64_t seg_off)
-                    : SegmentPosition(seg_off)
-                    , source(NULL)
-                {
-                }
-
                 friend std::ostream & operator << (
                     std::ostream & os, 
                     PositionEx const & p)
@@ -107,8 +88,6 @@ namespace ppbox
                     os << " seg_end=" << p.size_end;
                     return os;
                 }
-
-                SourceBase * source;
             };
 
         public:
@@ -163,22 +142,41 @@ namespace ppbox
             // 此时size为head_size_头部数据大小
             // TO BE FIXED
             boost::system::error_code seek(
-                SegmentPosition const & position,
+                SegmentPosition & position,
                 boost::uint64_t offset, 
                 boost::uint64_t size, 
                 boost::system::error_code & ec)
             {
-                return seek_to(position.size_beg + offset, size, ec);
+                if (offset < read_.offset || offset > write_.offset) {
+                    // close source for open from new offset
+                    boost::system::error_code ec1;
+                    close_segment(ec1);
+                    close_all_request(ec1);
+                }
+                boost::uint64_t write_offset = write_.offset;
+                seek_to(position.size_beg + offset);
+                SegmentPosition & read = read_;
+                read = position;
+                root_source_->size_seek(write_.offset, write_, ec);
+                if (!ec) {
+                    seek_end_ = size;
+                }
+                if (write_.offset != write_offset) {
+                    write_tmp_ = write_;
+                    write_tmp_.buffer = NULL;
+                    write_hole_tmp_ = write_hole_;
+                }
+                return ec;
             }
 
             // seek到分段的具体位置offset
             // TO BE FIXED
             boost::system::error_code seek(
-                SegmentPosition const & position, 
+                SegmentPosition & position, 
                 boost::uint64_t offset, 
                 boost::system::error_code & ec)
             {
-                return seek_to(position.size_beg + offset, ec);
+                return seek(position, position.size_beg + offset, (boost::uint64_t)-1, ec);
             }
 
             void pause(
@@ -532,8 +530,11 @@ namespace ppbox
                     if (read_.segment == seg + 1)
                         return ec;
                 }
-                read_seek_to(read_.size_end, ec) || 
+                read_seek_to(read_.size_end, ec);
+                if (!ec) {
                     read_.source->next_segment(read_);
+                }
+                    
                 return ec;
             }
 
@@ -760,27 +761,11 @@ namespace ppbox
                 return num_try_ < max_try_;
             }
 
-            boost::system::error_code seek_to(
-                boost::uint64_t offset, 
-                boost::system::error_code & ec)
-            {
-                return seek_to(offset, boost::uint64_t(-1), ec);
-            }
-
-            boost::system::error_code seek_to(
-                boost::uint64_t offset, 
-                boost::uint64_t end, 
-                boost::system::error_code & ec)
+            void seek_to(
+                boost::uint64_t offset)
             {
                 LOG_S(framework::logger::Logger::kLevelDebug2, 
                     "seek_to " << offset);
-                if (offset < read_.offset || offset > write_.offset) {
-                    // close source for open from new offset
-                    boost::system::error_code ec1;
-                    close_segment(ec1);
-                    close_all_request(ec1);
-                }
-                boost::uint64_t write_offset = write_.offset;
                 if (data_end_ > data_beg_ + buffer_size_)
                     data_beg_ = data_end_ - buffer_size_;
                 dump();
@@ -886,20 +871,9 @@ namespace ppbox
                     // lay a read hole
                     read_hole_.next_beg = write_read_hole(read_hole_next_beg, read_hole_);
                 }
-                //write_.source->offset_to_segment(write_.offset, write_, ec);
-                //read_.source->offset_to_segment(read_.offset, read_, ec);
-                if (write_.offset != write_offset) {
-                    write_tmp_ = write_;
-                    write_tmp_.buffer = NULL;
-                    write_hole_tmp_ = write_hole_;
-                }
-                if (!ec) {
-                    seek_end_ = end;
-                }
                 LOG_S(framework::logger::Logger::kLevelDebug2, 
                     "after seek_to " << offset);
                 dump();
-                return ec;
             }
 
             /**

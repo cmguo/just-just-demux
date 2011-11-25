@@ -2,8 +2,8 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/pptv/PptvDemuxer.h"
-#include "ppbox/demux/source/BufferList.h"
-#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/base/BufferList.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 #include <framework/logger/LoggerSection.h>
 using namespace framework::logger;
@@ -26,7 +26,6 @@ namespace ppbox
             SourceBase * segmentbase)
             : BufferDemuxer(io_svc, buffer_size, prepare_size, segmentbase)
             , io_svc_(io_svc)
-            , segments_(segmentbase)
         {
         }
 

@@ -2,7 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/DemuxerType.h"
-#include "ppbox/demux/source/BytesStream.h"
+#include "ppbox/demux/base/BytesStream.h"
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/asf/AsfDemuxerBase.h"
 #include "ppbox/demux/flv/FlvDemuxerBase.h"

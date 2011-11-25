@@ -54,7 +54,7 @@ namespace ppbox
             , open_step_(StepType::not_open)
             , pending_error_(would_block)
         {
-            set_play_type(DemuxerType::vod);
+            set_play_type(PptvDemuxerType::vod);
             segments_->set_vod_demuxer(this);
             segments_->set_buffer_list(buffer_);
 
@@ -237,7 +237,8 @@ namespace ppbox
                         LOG_S(Logger::kLevelDebug, "drag failure (" << open_logs_[2].total_elapse << " milliseconds)");
                     }
 
-                    open_end(ec);
+                    open_end();
+                    DemuxerStatistic::on_error(ec);
                 }
 
                 is_ready_ = true;
@@ -248,7 +249,8 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    PptvDemuxer::open_beg(name_);
+                    open_beg();
+                    demux_data().set_name(name_);
 
                     open_logs_.resize(3);
 
@@ -360,7 +362,7 @@ namespace ppbox
                     LOG_S(Logger::kLevelEvent, "data: success");
 
                     // 假造的seg_end
-                    seg_end(segments_->segment());
+                    seg_end(segments_->segment().segment);
                     LOG_S(Logger::kLevelDebug, "data used (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::drag_normal;
@@ -416,7 +418,7 @@ namespace ppbox
                     LOG_S(Logger::kLevelEvent, "data: success");
 
                     // 假造的seg_end
-                    seg_end(segments_->segment());
+                    seg_end(segments_->segment().segment);
                     LOG_S(Logger::kLevelDebug, "data used (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::finish;
@@ -429,7 +431,8 @@ namespace ppbox
             }
 
             if (ec != boost::asio::error::would_block) {
-                open_end(ec);
+                open_end();
+                DemuxerStatistic::on_error(ec);
             }
 
             is_ready_ = drag_info_->is_ready;
@@ -594,81 +597,6 @@ namespace ppbox
             return 0;
         }
 
-        boost::uint32_t VodDemuxer::get_end_time(
-            error_code & ec, 
-            error_code & ec_buf)
-        {
-            tick_on();
-            if ((ec = extern_error_)) {
-                return 0;
-            } else if (is_open(seek_time_, ec)) {
-                return BufferDemuxer::get_end_time(ec, ec_buf);
-            } else if (ec == would_block) {
-                ec_buf = ec;
-                return (*segments_)[segments_->total_segments() - 1].duration_offset + (*segments_)[segments_->total_segments() - 1].duration;
-            } else {
-                ec_buf = ec;
-                return 0;
-            }
-        }
-
-        boost::uint32_t VodDemuxer::get_cur_time(
-            error_code & ec)
-        {
-            if (is_open(seek_time_, ec)) {
-                return BufferDemuxer::get_cur_time(ec);
-            } else if (ec == would_block) {
-                return (*segments_)[segments_->total_segments() - 1].duration_offset + (*segments_)[segments_->total_segments() - 1].duration;
-            } else {
-                return 0;
-            }
-        }
-
-        error_code VodDemuxer::seek(
-            boost::uint32_t & time, 
-            error_code & ec)
-        {
-            boost::uint32_t seek_time = seek_time_;
-            seek_time_ = 0; // discard old seek
-            if (seek_time == (boost::uint32_t)-1 // do not call is_open when called by is_open
-                || is_open(ec)) {
-                if (time < video_->duration) {
-                    BufferDemuxer::seek(time, ec);
-                } else {
-                    ec = out_of_range;
-                }
-            }
-            return ec;
-        }
-
-        error_code VodDemuxer::get_sample(
-            Sample & sample, 
-            error_code & ec)
-        {
-            tick_on();
-            //framework::timer::TimeCounter tc;
-            //if (tc.elapse() > 10) {
-            //    LOG_S(Logger::kLevelDebug, "[get_sample] elapse1: " << tc.elapse());
-            //}
-            if ((ec = extern_error_)) {
-            } else if (is_open(seek_time_, ec)) {
-                BufferDemuxer::get_sample(sample, ec);
-                if (!ec) {
-                    Segment read_segment = (*segments_)[buffer_->read_segment()];
-                    sample.time += read_segment.duration_offset;
-                    sample.ustime += read_segment.duration_offset_us;
-                    play_on(sample.time);
-                }
-            }
-            if (ec == would_block) {
-                block_on();
-            }
-            //if (tc.elapse() > 20) {
-            //    LOG_S(Logger::kLevelDebug, "[get_sample] elapse2: " << tc.elapse());
-            //}
-            return ec;
-        }
-
         error_code VodDemuxer::set_non_block(
             bool non_block, 
             error_code & ec)
@@ -701,7 +629,7 @@ namespace ppbox
 
             std::vector<VodSegmentNew> & segments = drag_info.segments;
             for (size_t i = 0; !ec && i < segments.size(); ++i) {
-                if (i == 0 && segments_->total_segments() > 0)
+                if (i == 0 && segments_->segments_info().size() > 0)
                     continue;
                 segments_->add_segment(segments[i]);
             }
@@ -710,12 +638,12 @@ namespace ppbox
         void VodDemuxer::seg_beg(
             size_t segment)
         {
-            if (segment < segments_->total_segments()) {
+            if (segment < segments_->segments_info().size()) {
                 if (segment == 0) {
                     open_logs_[1].begin_try();
                 }
-                if ((* segments_)[segment].va_rid.size() >= 32) {
-                    demux_data().set_rid((* segments_)[segment].va_rid);
+                if (segments_->segments_info()[segment].va_rid.size() >= 32) {
+                    demux_data().set_rid(segments_->segments_info()[segment].va_rid);
                 }
             }
         }
@@ -723,7 +651,7 @@ namespace ppbox
         void VodDemuxer::seg_end(
             size_t segment)
         {
-            if (segment < segments_->total_segments()) {
+            if (segment < segments_->segments_info().size()) {
                 if (segment == 0) {
                     open_logs_[1].end_try(segments_->http_stat());
                     if (open_logs_[1].try_times == 1)
@@ -732,7 +660,7 @@ namespace ppbox
             }
         }
 
-        error_code VodDemuxer::check_pending_seek(
+        /*error_code VodDemuxer::check_pending_seek(
             error_code & ec)
         {
             if (seek_time_ > 1) {
@@ -743,7 +671,7 @@ namespace ppbox
                 ec.clear();
             }
             return ec;
-        }
+        }*/
 
     } // namespace demux
 } // namespace ppbox

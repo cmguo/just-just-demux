@@ -150,6 +150,12 @@ namespace ppbox
                 SegmentPosition & position, 
                 boost::system::error_code & ec);
 
+            virtual boost::uint64_t segment_head_size(
+                size_t segment)
+            {
+                return 0;
+            }
+
         private:
             virtual size_t segment_count() const = 0;
 

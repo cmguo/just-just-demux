@@ -3,8 +3,7 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/BytesStream.h"
-#include "ppbox/demux/base/SourceBase.h"
-
+#include "ppbox/demux/base/DemuxerType.h"
 #include "ppbox/demux/base/BufferDemuxer.h"
 
 #include <framework/timer/Ticker.h>
@@ -107,6 +106,7 @@ namespace ppbox
                 }
             }
             on_error(ec);
+            return time;
         }
 
         boost::uint32_t BufferDemuxer::get_end_time(
@@ -122,7 +122,7 @@ namespace ppbox
                 }
             } else {
                 if (write_demuxer_.demuxer) {
-                    if (buffer_->write_segment().segment != write_demuxer_.stream->segment()) {
+                    if (write_demuxer_.stream->segment().segment != buffer_->write_segment().segment) {
                         create_demuxer((SourceBase *)const_cast<SourceBase *>(buffer_->write_segment().source), buffer_->write_segment(), write_demuxer_, ec);
                     }
                     time = write_demuxer_.segment.time_beg + write_demuxer_.demuxer->get_end_time(ec);
@@ -156,13 +156,14 @@ namespace ppbox
                     read_demuxer_.stream->seek(offset);
                     time = read_demuxer_.demuxer->get_cur_time(ec);
                 } else {
-                    if (segment.head_length && seek_time_) {
-                        read_demuxer_.stream->seek(0, segment.head_length);
+                    boost::uint64_t head_length = position.source->segment_head_size(position.segment);
+                    if (head_length && seek_time_) {
+                        read_demuxer_.stream->seek(0, head_length);
                     } else {
                         read_demuxer_.stream->seek(0);
                     }
                 }
-                create_demuxer((SourceBase *)const_cast<SourceBase *>(buffer_->write_segment().source), buffer_->write_segment().segment, write_demuxer_, ec);
+                create_demuxer((SourceBase *)const_cast<SourceBase *>(buffer_->write_segment().source), buffer_->write_segment(), write_demuxer_, ec);
                 time += read_demuxer_.segment.time_beg;
             }
             if (ec)
@@ -191,15 +192,21 @@ namespace ppbox
                     if (buffer_->read_segment().segment != buffer_->write_segment().segment) {
                         std::cout << "drop_all" << std::endl;
                         read_demuxer_.stream->drop_all();
-                        
-                        create_demuxer((SourceBase *)const_cast<SourceBase *>(buffer_->read_segment().source), buffer_->read_segment().segment, read_demuxer_, ec);
-                        boost::uint32_t seek_time = 0;
-                        read_demuxer_.demuxer->seek(seek_time, ec);
-                        if (!ec) {
-                            read_demuxer_.demuxer->get_sample(sample, ec);
-                        }
-                        if (ec == error::file_stream_error) {
+                        SegmentPosition position;
+                        read_demuxer_.segment.source->next_segment(position);
+                        if (position.source) {
+                            create_demuxer(position.source, position, read_demuxer_, ec);
+                            boost::uint32_t seek_time = 0;
+                            read_demuxer_.demuxer->seek(seek_time, ec);
+                            if (!ec) {
+                                read_demuxer_.demuxer->get_sample(sample, ec);
+                            }
+                            if (ec == error::file_stream_error) {
+                                ec = read_demuxer_.stream->error();
+                            }
+                        } else {
                             ec = read_demuxer_.stream->error();
+                            break;
                         }
                     } else {
                         ec = read_demuxer_.stream->error();
@@ -208,7 +215,9 @@ namespace ppbox
                 }
             }
             if (!ec) {
-                play_on();
+                sample.time += read_demuxer_.segment.time_beg;
+                sample.ustime += read_demuxer_.segment.time_beg * 1000;
+                play_on(sample.time);
                 sample.data.clear();
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     buffer_->peek(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
@@ -254,18 +263,10 @@ namespace ppbox
 
         boost::system::error_code BufferDemuxer::insert_source(
             boost::uint32_t time, 
-            SourceBase * src, 
-            SourceBase * dest, 
+            SourceBase * source, 
             boost::system::error_code & ec)
         {
-            for (size_t i = 0; i < src->total_segments(); i++) {
-                DemuxerSegment segment = src->demuxer_segment(i);
-                if (time < segment.duration_offset + segment.duration) {
-                    if (i > buffer_->write_segment().segment) {
-                        
-                    }
-                }
-            }
+            
             return ec;
         }
 
@@ -308,22 +309,22 @@ namespace ppbox
         }
 
         void BufferDemuxer::create_demuxer(
-            SourceBase & source, 
+            SourceBase * source, 
             SegmentPosition const & segment, 
             DemuxerInfo & demuxer, 
             boost::system::error_code & ec)
         {
             ec.clear();
-            if (&source == &read_demuxer_.stream->source() && segment == read_demuxer_.stream->segment()) {
+            if (source == &read_demuxer_.stream->source() && segment.segment == read_demuxer_.stream->segment().segment) {
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
-            } else if (&source == &write_demuxer_.stream->source() && segment = write_demuxer_.stream->segment()) {
+            } else if (source == &write_demuxer_.stream->source() && segment.segment == write_demuxer_.stream->segment().segment) {
                 demuxer.stream = write_demuxer_.stream;
                 demuxer.demuxer = write_demuxer_.demuxer;
             } else {
-                demuxer.segment = source.demuxer_segment(segment.segment);
-                demuxer.stream.reset(new BytesStream(*buffer_, source, segment));
-                demuxer.demuxer.reset(create_demuxer(demuxer.segment.demuxer_type, *demuxer.stream));
+                demuxer.segment = segment;
+                demuxer.stream.reset(new BytesStream(*buffer_, *source, segment));
+                demuxer.demuxer.reset(ppbox::demux::create_demuxer(demuxer.segment.demuxer_type, *demuxer.stream));
                 demuxer.demuxer->open(ec);
             }
         }
@@ -337,10 +338,10 @@ namespace ppbox
 
         void BufferDemuxer::update_stat()
         {
-            error_code ec;
-            error_code ec_buf;
+            boost::system::error_code ec;
+            boost::system::error_code ec_buf;
             boost::uint32_t buffer_time = get_buffer_time(ec, ec_buf);
-            set_buf_time(buffer_time);
+            buf_time(buffer_time);
         }
 
         void BufferDemuxer::on_extern_error(

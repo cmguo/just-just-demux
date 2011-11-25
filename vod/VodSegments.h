@@ -3,10 +3,10 @@
 #ifndef _PPBOX_DEMUX_VOD_SEGMENTS_H_
 #define _PPBOX_DEMUX_VOD_SEGMENTS_H_
 
-#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/base/SourceBase.h"
 #include "ppbox/demux/source/HttpSource.h"
-#include "ppbox/demux/VodDemuxer.h"
-#include "ppbox/demux/VodInfo.h"
+#include "ppbox/demux/vod/VodDemuxer.h"
+#include "ppbox/demux/vod/VodInfo.h"
 
 #include <util/protocol/pptv/TimeKey.h>
 #include <util/serialization/NVPair.h>
@@ -77,7 +77,7 @@ namespace ppbox
                 ec = error_code();
                 if (segment < segments_.size()) {
                     if (vod_port_ 
-                        && HttpSource::buffer_->get_num_try(ec) > 3) {
+                        && HttpSource::buffer_->num_try() > 3) {
                             HttpSource::buffer_->set_total_req(1);
                             first_seg_ = true;
                             vod_port_ = 0;
@@ -113,7 +113,7 @@ namespace ppbox
                         url.param("filelength", format(segments_[segment].file_length));
                         url.param("headlength", format(segments_[segment].head_length));
                         url.param("autoclose", "false");
-                        boost::uint32_t buf_time = vod_demuxer_->stat().get_buf_time();
+                        boost::uint32_t buf_time = vod_demuxer_->buf_time();
                         url.param("drag", buf_time < 15000 ? "1" : "0");
                         url.param("headonly", end <= segments_[segment].head_length ? "1" : "0");
                         url.param("BWType", format(bwtype_));
@@ -191,12 +191,14 @@ namespace ppbox
             void add_segment(
                 VodSegmentNew & segment)
             {
-                if (segment.file_length != 0) {
-                    segment.total_state = Segment::is_valid;
-                }
                 segments_.push_back(segment);
                 boost::system::error_code ec;
                 HttpSource::buffer_->add_request(ec);
+            }
+
+            std::vector<VodSegmentNew> const & segments_info() const
+            {
+                return segments_;
             }
 
             void set_http_proxy(
@@ -211,7 +213,7 @@ namespace ppbox
                 max_dl_speed_ = speed;
             }
 
-            size_t segment() const
+            SegmentPosition const & segment() const
             {
                 return HttpSource::buffer_->write_segment();
             }
@@ -235,97 +237,23 @@ namespace ppbox
                 }
             }
 
-            public:
-                /*VodSegment & operator [](
-                    size_t segment)
-                {
-                    return segments_[segment];
-                }
+        private:
+            size_t segment_count() const
+            {
+                return segments_.size();
+            }
 
-                VodSegment const & operator [](
-                    size_t segment) const
-                {
-                    return segments_[segment];
-                }*/
+            boost::uint64_t segment_size(
+                size_t segment)
+            {
+                return segments_[segment].file_length;
+            }
 
-                size_t total_segments() const
-                {
-                    return segments_.size();
-                }
-
-                boost::system::error_code offset_of_segment(
-                    boost::uint64_t & offset,
-                    SegmentPosition & position, 
-                    boost::system::error_code & ec) const
-                {
-                    SourceBase * source = const_cast<SourceBase *>(this);
-                    boost::uint64_t total_offset = 0;
-                    assert((position.segment < source->total_segments()&& offset <= (*source)[position.segment].file_length)
-                        || (position.segment == source->total_segments()&& offset == 0));
-                    if ((position.segment >= source->total_segments()|| offset > (*source)[position.segment].file_length)
-                        && (position.segment != source->total_segments()|| offset != 0))
-                        return ec = framework::system::logic_error::out_of_range;
-                    for (size_t i = 0; i < position.segment; ++i) {
-                        if ((*source)[i].total_state < Segment::is_valid)
-                            return ec = framework::system::logic_error::out_of_range;
-                        total_offset += (*source)[i].file_length;
-                    }
-                    position.size_beg = total_offset;
-                    position.size_end = 
-                        (position.segment < source->total_segments()&& 
-                        (*source)[position.segment].total_state >= Segment::is_valid) ? 
-                        position.size_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
-                    offset = total_offset;
-                    return ec = boost::system::error_code();
-                }
-
-                boost::system::error_code offset_to_segment(
-                    boost::uint64_t offset,
-                    SegmentPosition & position,
-                    boost::system::error_code & ec) const
-                {
-                    SourceBase * source = const_cast<SourceBase *>(this);
-                    boost::uint64_t seg_offset = offset;
-                    size_t segment = 0;
-                    if (position.next_child && offset >= position.next_child->insert_offset()) {
-                        return ec = framework::system::logic_error::out_of_range;
-                    }
-                    for (segment = 0; segment < source->total_segments()
-                        && (*source)[segment].total_state >= Segment::is_valid 
-                        && (*source)[segment].file_length <= offset; ++segment)
-                        offset -= (*source)[segment].file_length;
-                    // 增加offset==0，使得position.offset为所有分段总长时，也认为是有效的
-                    assert(segment < source->total_segments()|| offset == 0);
-                    if (segment < source->total_segments()|| offset == 0) {
-                        position.segment = segment;
-                        position.size_beg = offset - seg_offset + source->offset(position);
-                        position.size_end = 
-                            (segment < source->total_segments()&& 
-                            (*source)[position.segment].total_state >= Segment::is_valid) ? 
-                            position.size_beg + (*source)[position.segment].file_length : boost::uint64_t(-1);
-                        return ec = boost::system::error_code();
-                    } else {
-                        return ec = framework::system::logic_error::out_of_range;
-                    }
-                }
-
-                SourceBase * next_source(
-                    SegmentPosition & position)
-                {
-                    SourceBase * next =  (SourceBase *)SourceTreeItem::next_source(position);
-                    position.segment = 0;
-                    position.size_beg = 0;
-                    position.size_end = segments_[0].file_length >0 ?
-                        segments_[0].file_length : boost::uint64_t(-1);
-                    return next;
-                }
-
-                void * next_segment(
-                    SegmentPosition & position)
-                {
-                    size_t segment = position.segment;
-                    
-                }
+            boost::uint64_t segment_time(
+                size_t segment)
+            {
+                return segments_[segment].duration;
+            }
 
         private:
             std::string get_key() const

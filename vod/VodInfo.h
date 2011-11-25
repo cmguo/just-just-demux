@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_VOD_INFO_H_
 
 #include "ppbox/demux/Serialize.h"
-#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 #include <util/serialization/stl/vector.h>
 #include <util/archive/XmlIArchive.h>
@@ -18,7 +18,6 @@ namespace ppbox
     {
 
         struct VodSegment
-            :Segment
         {
             boost::uint64_t head_length;
             boost::uint64_t file_length;
@@ -35,7 +34,7 @@ namespace ppbox
                 , duration(0)
                 , duration_offset(0)
                 , duration_offset_us(0)
-                : block_size(0)
+                , block_size(0)
                 , block_num(0)
             {
             }

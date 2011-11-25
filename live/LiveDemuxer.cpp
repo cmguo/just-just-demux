@@ -40,7 +40,7 @@ namespace ppbox
             , jump_(new PptvJump(io_svc, JumpType::live))
             , open_step_(StepType::not_open)
         {
-            set_play_type(DemuxerType::live);
+            set_play_type(PptvDemuxerType::live);
             segments_->set_live_demuxer(this);
             segments_->set_buffer_list(buffer_);
         }
@@ -121,7 +121,8 @@ namespace ppbox
                         //seg_end(buffer_->segment());
                     }
 
-                    open_end(ec);
+                    open_end();
+                    DemuxerStatistic::on_error(ec);
                 }
 
                 is_ready_ = true;
@@ -132,7 +133,8 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    PptvDemuxer::open_beg(name_);
+                    open_beg();
+                    demux_data().set_name(name_);
 
                     open_logs_.resize(2);
 
@@ -192,7 +194,7 @@ namespace ppbox
                 {
                     LOG_S(Logger::kLevelEvent, "data: success");
 
-                    seg_end(segments_->segment());
+                    seg_end(segments_->segment().segment);
                     LOG_S(Logger::kLevelDebug, "open asf head succeed (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::finish;
@@ -204,7 +206,8 @@ namespace ppbox
             }
 
             if (ec != boost::asio::error::would_block) {
-                open_end(ec);
+                open_end();
+                DemuxerStatistic::on_error(ec);
             }
 
             is_ready_ = true;

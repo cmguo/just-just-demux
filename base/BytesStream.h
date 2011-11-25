@@ -131,7 +131,7 @@ namespace ppbox
             void seek(
                 boost::uint64_t offset)
             {
-                buffer_.seek(segment_.segment, offset, ec_);
+                buffer_.seek(segment_, offset, ec_);
                 update();
                 pos_ = offset;
                 end_ = offset + size_;
@@ -147,7 +147,7 @@ namespace ppbox
                 boost::uint64_t offset,
                 boost::uint64_t head_length)
             {
-                buffer_.seek(segment_.segment, offset, head_length, ec_);
+                buffer_.seek(segment_, offset, head_length, ec_);
                 update();
                 pos_ = offset;
                 end_ = offset + size_;

@@ -6,6 +6,7 @@
 #include "ppbox/demux/base/DemuxerError.h"
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/DemuxerStatistic.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 #include <framework/timer/Ticker.h>
 
@@ -15,9 +16,7 @@ namespace ppbox
 {
     namespace demux
     {
-        class SegmentPosition;
         class BufferList;
-        class SourceBase;
         class BytesStream;
 
         struct DemuxerInfo;
@@ -95,6 +94,21 @@ namespace ppbox
             void on_error(
                 boost::system::error_code & ec);
 
+            virtual boost::system::error_code set_time_out(
+                boost::uint32_t time_out, 
+                boost::system::error_code & ec) = 0;
+
+            boost::system::error_code get_sample_buffered(
+                Sample & sample, 
+                boost::system::error_code & ec);
+
+            boost::uint32_t get_buffer_time(
+                boost::system::error_code & ec, 
+                boost::system::error_code & ec_buf);
+
+            void on_extern_error(
+                boost::system::error_code const & ec);
+
         protected:
             boost::system::error_code insert_source(
                 boost::uint32_t time,
@@ -124,7 +138,7 @@ namespace ppbox
 
             void create_demuxer(
                 SourceBase * source, 
-                SegmentPosition segment, 
+                SegmentPosition const & segment, 
                 DemuxerInfo & demuxer, 
                 boost::system::error_code & ec);
 

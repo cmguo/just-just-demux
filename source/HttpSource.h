@@ -3,15 +3,15 @@
 #ifndef _PPBOX_DEMUX_SOURCE_HTTP_BUFFER_LIST_H_
 #define _PPBOX_DEMUX_SOURCE_HTTP_BUFFER_LIST_H_
 
-#include "ppbox/demux/source/BufferList.h"
-#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/base/BufferList.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 #include <util/protocol/http/HttpClient.h>
 #include <util/protocol/http/HttpError.h>
 
 #include <framework/string/Url.h>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/read.hpp>
 #include <boost/asio/buffer.hpp>
 
 namespace ppbox
@@ -119,7 +119,7 @@ namespace ppbox
                 size_t segment, 
                 boost::system::error_code & ec)
             {
-                on_seg_close(segment);
+                on_seg_end(segment);
                 return http_.close(ec);
             }
 
