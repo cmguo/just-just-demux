@@ -34,8 +34,8 @@ namespace ppbox
                 std::string const & name, 
                 open_response_type const & resp);
 
-            bool is_open(
-                boost::system::error_code & ec);
+           /* bool is_open(
+                boost::system::error_code & ec);*/
 
             boost::system::error_code cancel(
                 boost::system::error_code & ec);

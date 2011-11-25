@@ -127,6 +127,50 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint64_t SourceBase::source_size()
+        {
+            boost::uint64_t total = 0;
+            for (int i = 0; i < segment_count(); i++) {
+                total += segment_size(i);
+            }
+            return total;
+        }
+
+        boost::uint64_t SourceBase::source_size_before(
+            size_t segment)
+        {
+            boost::uint64_t total = 0;
+            if (segment > segment_count()) {
+                segment = segment_count();
+            }
+            for (int i = 0; i< segment; i++) {
+                total += segment_size(i);
+            }
+            return total;
+        }
+
+        boost::uint64_t SourceBase::source_time()
+        {
+            boost::uint64_t total = 0;
+            for (int i = 0; i< segment_count(); i++) {
+                total += segment_time(i);
+            }
+            return total;
+        }
+
+        boost::uint64_t SourceBase::source_time_before(
+            size_t segment)
+        {
+            boost::uint64_t total = 0;
+            if (segment > segment_count()) {
+                segment = segment_count();
+            }
+            for (int i = 0; i < segment; i++) {
+                total += segment_time(segment);
+            }
+            return total;
+        }
+
         boost::uint64_t SourceBase::tree_size()
         {
             boost::uint64_t total = source_size();

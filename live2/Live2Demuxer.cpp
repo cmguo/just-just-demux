@@ -237,12 +237,6 @@ namespace ppbox
             io_svc_.post(boost::bind(resp, ec));
         }
 
-        bool Live2Demuxer::is_open(
-            error_code & ec)
-        {
-            return BufferDemuxer::is_open(ec);
-        }
-
         error_code Live2Demuxer::cancel(
             error_code & ec)
         {

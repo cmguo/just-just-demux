@@ -660,18 +660,18 @@ namespace ppbox
             }
         }
 
-        /*error_code VodDemuxer::check_pending_seek(
+        error_code VodDemuxer::check_pending_seek(
             error_code & ec)
         {
-            if (seek_time_ > 1) {
+            /*if (seek_time_ > 1) {
                 boost::uint32_t seek_time = seek_time_;
                 seek_time_ = boost::uint32_t(-1);
                 seek(seek_time, ec);
             } else {
                 ec.clear();
-            }
+            }*/
             return ec;
-        }*/
+        }
 
     } // namespace demux
 } // namespace ppbox

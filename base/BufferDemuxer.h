@@ -55,9 +55,6 @@ namespace ppbox
             void async_open(
                 open_response_type const & resp);
 
-            bool is_open(
-                boost::system::error_code & ec);
-
             size_t get_media_count(
                 boost::system::error_code & ec);
 
