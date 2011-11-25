@@ -8,15 +8,17 @@
 #include "ppbox/demux/live/LiveDemuxer.h"
 #include "ppbox/demux/live2/Live2Demuxer.h"
 
+#include <ppbox/vod/Vod.h>
+#include <ppbox/live/Live.h>
+
 namespace ppbox
 {
     namespace demux
     {
 
         PptvDemuxer * pptv_create_demuxer(
+            util::daemon::Daemon & daemon,
             std::string const & proto,
-            boost::asio::io_service & io_svc,
-            boost::uint16_t port,
             boost::uint32_t buffer_size,
             boost::uint32_t prepare_size)
         {
@@ -37,21 +39,21 @@ namespace ppbox
             switch (demux_type) {
                 case PptvDemuxerType::vod:
 #ifdef PPBOX_DISABLE_VOD
-                    demuxer = new VodDemuxer(io_svc, 0, buffer_size, prepare_size);
+                    demuxer = new VodDemuxer(daemon.io_svc(), 0, buffer_size, prepare_size);
 #else
-                    demuxer = new VodDemuxer(io_svc, port, buffer_size, prepare_size);
+                    demuxer = new VodDemuxer(daemon.io_svc(), util::daemon::use_module<ppbox::vod::Vod>(daemon).port(), buffer_size, prepare_size);
 #endif
                     break;
 #ifndef PPBOX_DISABLE_LIVE
                 case PptvDemuxerType::live:
-                    demuxer = new LiveDemuxer(io_svc, port, buffer_size, prepare_size);
+                    demuxer = new LiveDemuxer(daemon.io_svc(), util::daemon::use_module<ppbox::live::Live>(daemon).port(), buffer_size, prepare_size);
                     break;
 #endif
                 case PptvDemuxerType::live2:
-                    demuxer = new Live2Demuxer(io_svc, 0, buffer_size, prepare_size);
+                    demuxer = new Live2Demuxer(daemon.io_svc(), 0, buffer_size, prepare_size);
                     break;
                 default:
-                    demuxer = new EmptyDemuxer(io_svc);
+                    demuxer = new EmptyDemuxer(daemon.io_svc());
                     assert(0);
             }
             return demuxer;

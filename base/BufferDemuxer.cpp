@@ -261,6 +261,18 @@ namespace ppbox
             return d;
         }
 
+        boost::system::error_code BufferDemuxer::cancel(
+            boost::system::error_code & ec)
+        {
+            return ec;
+        }
+
+        boost::system::error_code BufferDemuxer::close(
+            boost::system::error_code & ec)
+        {
+            return ec;
+        }
+
         boost::system::error_code BufferDemuxer::insert_source(
             boost::uint32_t time, 
             SourceBase * source, 

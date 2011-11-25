@@ -142,6 +142,7 @@ namespace ppbox
             framework::network::NetName http_proxy_;
 
         private:
+            util::daemon::Daemon & daemon_;
             dac::Dac & dac_;
 
         private:

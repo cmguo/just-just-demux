@@ -23,7 +23,10 @@ namespace ppbox
         class PptvDemuxer;
 
         PptvDemuxer * pptv_create_demuxer(
-            std::string const & proto);
+            util::daemon::Daemon & daemon,
+            std::string const & proto,
+            boost::uint32_t buffer_size,
+            boost::uint32_t prepare_size);
 
     } // namespace demux
 } // namespace ppbox

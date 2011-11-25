@@ -86,6 +86,7 @@ namespace ppbox
 #else  
             : ppbox::certify::CertifyUserModuleBase<DemuxerModule>(daemon, "DemuxerModule")
 #endif
+            , daemon_(daemon)
             , dac_(util::daemon::use_module<ppbox::dac::Dac>(daemon))
             , timer_(NULL)
         {
@@ -310,7 +311,7 @@ namespace ppbox
                 pos_param -= pos_colon;
             }
 
-            PptvDemuxer * demuxer = pptv_create_demuxer(proto);
+            PptvDemuxer * demuxer = pptv_create_demuxer(daemon_, proto, buffer_size_, prepare_size_);
             if (demuxer == NULL) {
                 //demuxer = new EmptyDemuxer();
             }

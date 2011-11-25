@@ -69,7 +69,7 @@ namespace ppbox
                 return (BufferStatistic&)(*BufferDemuxer::buffer_);
             }
 
-            boost::system::error_code get_sample_buffered(
+            /*boost::system::error_code get_sample_buffered(
                 Sample & sample, 
                 boost::system::error_code & ec);
 
@@ -78,7 +78,7 @@ namespace ppbox
                 boost::system::error_code & ec_buf);
 
             void on_extern_error(
-                boost::system::error_code const & ec);
+                boost::system::error_code const & ec);*/
 
         private:
             void update_stat();
