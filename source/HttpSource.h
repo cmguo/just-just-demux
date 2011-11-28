@@ -32,8 +32,9 @@ namespace ppbox
 
         public:
             HttpSource(
-                boost::asio::io_service & io_svc)
-                : SourceBase(io_svc)
+                boost::asio::io_service & io_svc,
+                DemuxerType::Enum demuxer_type)
+                : SourceBase(io_svc, demuxer_type)
                 , http_(io_svc)
             {
                 addr_.svc("80");

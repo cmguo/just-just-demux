@@ -123,6 +123,10 @@ namespace ppbox
         protected:
             void tick_on();
 
+        protected:
+            virtual void handle_message(
+                boost::system::error_code & ec) {}
+
         private:
             typedef boost::intrusive_ptr<
                 BytesStream> StreamPointer;
@@ -145,11 +149,14 @@ namespace ppbox
 
             void update_stat();
 
+            void judge_message();
+
         protected:
             boost::asio::io_service & io_svc_;
             boost::system::error_code extern_error_;
             SourceBase * root_source_;
             BufferList * buffer_;
+            static bool has_message_;
 
         private:
             framework::timer::Ticker * ticker_;

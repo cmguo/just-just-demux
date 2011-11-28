@@ -11,8 +11,10 @@ namespace ppbox
     {
 
         SourceBase::SourceBase(
-            boost::asio::io_service & io_svc)
-            : insert_segment_(0)
+            boost::asio::io_service & io_svc,
+            DemuxerType::Enum demuxer_type)
+            : demuxer_type_(demuxer_type)
+            , insert_segment_(0)
             , insert_size_(0)
             , insert_delta_(0)
             , insert_time_(0)
@@ -26,6 +28,7 @@ namespace ppbox
         void SourceBase::next_segment(
             SegmentPosition & segment)
         {
+            segment.demuxer_type = demuxer_type_;
             SourceBase * next_child = (SourceBase *)segment.next_child;
             if (next_child 
                 && next_child->insert_segment_ == segment.segment
@@ -33,6 +36,9 @@ namespace ppbox
                     next_source(segment);
                     segment.segment = (size_t)-1;
                     ((SourceBase *)segment.source)->next_segment(segment);
+            } else if (segment.segment == 0 && segment.size_end == (boost::uint64_t)-1) {
+                segment.size_beg = segment.size_beg;
+                segment.size_end = segment.size_beg + segment_size(segment.segment);
             } else if (++segment.segment == segment_count()) {
                 next_source(segment);
                 if (segment.source) {

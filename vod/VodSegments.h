@@ -54,7 +54,7 @@ namespace ppbox
             VodSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t vod_port)
-                : HttpSource(io_svc)
+                : HttpSource(io_svc, DemuxerType::mp4)
                 , vod_port_(vod_port)
                 , first_seg_(true)
                 , bwtype_(0)

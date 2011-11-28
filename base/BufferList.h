@@ -302,7 +302,7 @@ namespace ppbox
                     is_open_callback = true;
                     bytes_transferred = 0;
                 }
-                if (ec && !write_.source->continuable(ec)) {
+                if (ec && write_.source && !write_.source->continuable(ec)) {
                     if (is_open_callback) {
                         LOG_S(framework::logger::Logger::kLevelDebug, 
                             "[handle_async] open_segment: " << ec.message() << 

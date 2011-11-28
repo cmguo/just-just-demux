@@ -287,6 +287,8 @@ namespace ppbox
                 return ec;
             }
 
+            is_.seekg(min_offset_, std::ios_base::beg);
+
             framework::timer::TimeCounter tc;
 
             if (!sample_put_back_) {
@@ -331,16 +333,14 @@ namespace ppbox
                 }
             }
 #endif
-            /*is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
-            if (is_) {
-                is_.seekg(ap4_sample.GetOffset(), std::ios_base::beg);
-                sample.data.resize(sample.size);
-                is_.read((char *)&sample.data.front(), sample.size);
-            } else {
+            size_t position = is_.tellg();
+            is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
+            if (!is_) {
                 is_.clear();
                 ec = error::file_stream_error;
                 sample_put_back_ = true;
-            }*/
+            }
+            is_.seekg(position, std::ios_base::beg);
             if (tc.elapse() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_sample] elapse: " << tc.elapse());
             }
@@ -442,8 +442,10 @@ namespace ppbox
             if (!is_open(ec)) {
                 return 0;
             }
+            size_t position = is_.tellg();
             is_.seekg(0, std::ios_base::end);
             size_t offset = is_.tellg();
+            is_.seekg(position, std::ios_base::beg);
             AP4_UI32 time = get_duration(ec);
             if (ec) {
                 return 0;

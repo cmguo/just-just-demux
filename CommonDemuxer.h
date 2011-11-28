@@ -23,7 +23,7 @@ namespace ppbox
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size,
                 DemuxerType::Enum demuxer_type)
-                : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new Segments(io_svc, 0))
+                : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new Segments(io_svc, demuxer_type))
             {
                 segments_->set_buffer_list(BufferDemuxer::buffer_);
                 segments_->set_demuxer_type(demuxer_type);

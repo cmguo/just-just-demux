@@ -28,8 +28,9 @@ namespace ppbox
 
         public:
             FileSource(
-                boost::asio::io_service & io_svc)
-                :SourceBase(io_svc)
+                boost::asio::io_service & io_svc,
+                DemuxerType::Enum demuxer_type)
+                :SourceBase(io_svc, demuxer_type)
                 , is_open_(false)
             {
             }

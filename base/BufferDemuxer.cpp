@@ -26,6 +26,7 @@ namespace ppbox
             , seek_time_(0)
             , root_source_(source)
         {
+            ticker_ = new framework::timer::Ticker(1000);
         }
 
         BufferDemuxer::~BufferDemuxer()
@@ -33,6 +34,10 @@ namespace ppbox
             if (buffer_) {
                 delete buffer_;
                 buffer_ = NULL;
+            }
+            if (ticker_) {
+                delete ticker_;
+                ticker_ = NULL;
             }
         }
 
@@ -89,6 +94,7 @@ namespace ppbox
         boost::uint32_t BufferDemuxer::get_cur_time(
             boost::system::error_code & ec)
         {
+            judge_message();
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -113,6 +119,7 @@ namespace ppbox
             boost::system::error_code & ec, 
             boost::system::error_code & ec_buf)
         {
+            judge_message();
             tick_on();
             write_demuxer_.stream->more(0);
             boost::uint32_t time = 0;
@@ -177,6 +184,7 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
+            judge_message();
             tick_on();
             read_demuxer_.stream->more(0);
             if (seek_time_ && seek(seek_time_, ec)) {
@@ -334,10 +342,10 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             ec.clear();
-            if (source == &read_demuxer_.stream->source() && segment.segment == read_demuxer_.stream->segment().segment) {
+            if (read_demuxer_.stream && source == &read_demuxer_.stream->source() && segment.segment == read_demuxer_.stream->segment().segment) {
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
-            } else if (source == &write_demuxer_.stream->source() && segment.segment == write_demuxer_.stream->segment().segment) {
+            } else if (write_demuxer_.stream && source == &write_demuxer_.stream->source() && segment.segment == write_demuxer_.stream->segment().segment) {
                 demuxer.stream = write_demuxer_.stream;
                 demuxer.demuxer = write_demuxer_.demuxer;
             } else {
@@ -345,6 +353,17 @@ namespace ppbox
                 demuxer.stream.reset(new BytesStream(*buffer_, *source, segment));
                 demuxer.demuxer.reset(ppbox::demux::create_demuxer(demuxer.segment.demuxer_type, *demuxer.stream));
                 demuxer.demuxer->open(ec);
+            }
+        }
+
+        void BufferDemuxer::judge_message()
+        {
+            if (has_message_) {
+                boost::system::error_code ec;
+                handle_message(ec);
+                if (!ec) {
+                    has_message_ = false;
+                }
             }
         }
 

@@ -497,6 +497,27 @@ namespace ppbox
             }
 
             drag_info.is_ready = true;
+
+            has_message_ = true;
+        }
+
+        void VodDemuxer::handle_message(
+            boost::system::error_code & ec)
+        {
+            if (drag_info_->is_ready) {
+                ec = drag_info_->ec;
+                open_logs_end(drag_->http_stat(), 2, drag_info_->ec);
+                LOG_S(Logger::kLevelDebug, "drag used (" << open_logs_[2].total_elapse << " milliseconds)");
+                if (!ec) {
+                    LOG_S(Logger::kLevelEvent, "drag: success");
+                    process_drag(*drag_info_, ec);
+                } else {
+                    LOG_S(Logger::kLevelAlarm, "drag: failure");
+                    LOG_S(Logger::kLevelDebug, "drag ec: " << drag_info_->ec.message());
+                }
+                open_step_ = StepType::finish;
+                is_ready_ = true;
+            }
         }
 
         void VodDemuxer::handle_drag(

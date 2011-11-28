@@ -171,6 +171,9 @@ namespace ppbox
                  bool need_check_seek, 
                  boost::system::error_code & ec);
 
+             void handle_message(
+                 boost::system::error_code & ec);
+
         private:
             struct StepType
             {

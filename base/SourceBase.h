@@ -81,7 +81,8 @@ namespace ppbox
 
         public:
             SourceBase(
-                boost::asio::io_service & io_svc);
+                boost::asio::io_service & io_svc,
+                DemuxerType::Enum demuxer_type);
 
             virtual ~SourceBase();
 
@@ -199,6 +200,7 @@ namespace ppbox
                 SourceBase * child);
 
         private:
+            DemuxerType::Enum demuxer_type_; 
             size_t insert_segment_; // 插入在父节点的分段
             boost::uint64_t insert_size_; // 插入在分段上的偏移位置，相对于分段起始位置
             boost::uint64_t insert_delta_; // 需要重复下载的数据量
