@@ -21,16 +21,6 @@ namespace ppbox
 
         struct DemuxerInfo;
 
-        struct DemuxerEventType
-        {
-            enum Enum
-            {
-                seek_segment, 
-                seek_statistic,
-                play_on,
-            };
-        };
-
         class BufferDemuxer
             : public DemuxerStatistic
         {
@@ -88,9 +78,13 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-            virtual boost::system::error_code set_time_out(
+            boost::system::error_code set_non_block(
+                bool non_block, 
+                boost::system::error_code & ec);
+
+            boost::system::error_code set_time_out(
                 boost::uint32_t time_out, 
-                boost::system::error_code & ec) = 0;
+                boost::system::error_code & ec);
 
             boost::system::error_code get_sample_buffered(
                 Sample & sample, 

@@ -618,20 +618,6 @@ namespace ppbox
             return 0;
         }
 
-        error_code VodDemuxer::set_non_block(
-            bool non_block, 
-            error_code & ec)
-        {
-            return segments_->set_non_block(non_block, ec);
-        }
-
-        error_code VodDemuxer::set_time_out(
-            boost::uint32_t time_out, 
-            error_code & ec)
-        {
-            return segments_->set_time_out(time_out, ec);
-        }
-
         error_code VodDemuxer::set_http_proxy(
             framework::network::NetName const & addr, 
             error_code & ec)

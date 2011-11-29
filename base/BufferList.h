@@ -127,8 +127,8 @@ namespace ppbox
                 read_.offset = 0;
                 read_.segment = 0;
                 read_.size_beg = 0;
-                read_.source = source;
                 write_tmp_ = write_ = read_;
+                write_hole_.this_end = boost::uint64_t(-1);
                 write_tmp_.buffer = NULL;
             }
 
@@ -709,6 +709,12 @@ namespace ppbox
             {
                 sended_req_++;
                 source_closed_ = false;
+            }
+
+            void source_init()
+            {
+                root_source_->next_segment(write_);
+                read_ = write_;
             }
 
         private:

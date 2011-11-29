@@ -96,14 +96,6 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
-            boost::system::error_code set_non_block(
-                bool non_block, 
-                boost::system::error_code & ec);
-
-            boost::system::error_code set_time_out(
-                boost::uint32_t time_out, 
-                boost::system::error_code & ec);
-
             boost::system::error_code set_http_proxy(
                 framework::network::NetName const & addr, 
                 boost::system::error_code & ec);

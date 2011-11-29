@@ -41,6 +41,8 @@ namespace ppbox
             }
         }
 
+        bool BufferDemuxer::has_message_ = false;
+
         struct SyncResponse
         {
             SyncResponse(
@@ -86,6 +88,7 @@ namespace ppbox
         {
             resp_ = resp;
             boost::system::error_code ec;
+            buffer_->source_init();
             create_demuxer(root_source_, buffer_->read_segment(), read_demuxer_, ec);
             create_demuxer(root_source_, buffer_->write_segment(), write_demuxer_, ec);
             handle_async(boost::system::error_code());
@@ -206,7 +209,7 @@ namespace ppbox
                             create_demuxer(position.source, position, read_demuxer_, ec);
                             boost::uint32_t seek_time = 0;
                             read_demuxer_.demuxer->seek(seek_time, ec);
-                            if (!ec) {
+                            if (!ec || ec == error::not_support) {
                                 read_demuxer_.demuxer->get_sample(sample, ec);
                             }
                             if (ec == error::file_stream_error) {
@@ -440,6 +443,20 @@ namespace ppbox
             // 直接赋值，减少输出日志，set_buf_time会输出buf_time
             buffer_time_ = buffer_time;
             return buffer_time;
+        }
+
+        boost::system::error_code BufferDemuxer::set_non_block(
+            bool non_block, 
+            boost::system::error_code & ec)
+        {
+            return root_source_->set_non_block(non_block, ec);
+        }
+
+        boost::system::error_code BufferDemuxer::set_time_out(
+            boost::uint32_t time_out, 
+            boost::system::error_code & ec)
+        {
+            return root_source_->set_time_out(time_out, ec);
         }
 
     } // namespace demux

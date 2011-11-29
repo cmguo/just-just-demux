@@ -127,6 +127,14 @@ namespace ppbox
                 size_t segment, 
                 boost::system::error_code & ec) = 0;
 
+            virtual boost::system::error_code set_non_block(
+                bool non_block, 
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code set_time_out(
+                boost::uint32_t time_out, 
+                boost::system::error_code & ec) = 0;
+
         public:
             virtual void on_error(
                 boost::system::error_code & ec) {}

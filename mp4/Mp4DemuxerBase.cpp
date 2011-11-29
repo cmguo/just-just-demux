@@ -104,7 +104,7 @@ namespace ppbox
                     ec = error::file_stream_error;
                     return false;
                 }
-                is_.seekg(0,std::ios_base::beg);
+                is_.seekg(0, std::ios_base::beg);
                 parse_head(ec);
                 if (ec) {
                     return false;
@@ -287,8 +287,6 @@ namespace ppbox
                 return ec;
             }
 
-            is_.seekg(min_offset_, std::ios_base::beg);
-
             framework::timer::TimeCounter tc;
 
             if (!sample_put_back_) {
@@ -333,14 +331,13 @@ namespace ppbox
                 }
             }
 #endif
-            size_t position = is_.tellg();
             is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
             if (!is_) {
                 is_.clear();
                 ec = error::file_stream_error;
                 sample_put_back_ = true;
             }
-            is_.seekg(position, std::ios_base::beg);
+            is_.seekg(min_offset_, std::ios_base::beg);
             if (tc.elapse() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_sample] elapse: " << tc.elapse());
             }

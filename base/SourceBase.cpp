@@ -28,7 +28,6 @@ namespace ppbox
         void SourceBase::next_segment(
             SegmentPosition & segment)
         {
-            segment.demuxer_type = demuxer_type_;
             SourceBase * next_child = (SourceBase *)segment.next_child;
             if (next_child 
                 && next_child->insert_segment_ == segment.segment
@@ -50,6 +49,8 @@ namespace ppbox
                 segment.size_beg = segment.size_end;
                 segment.size_end = segment.size_beg + segment_size(segment.segment);
             }
+            segment.demuxer_type = demuxer_type_;
+            segment.total_state = SegmentPosition::is_valid;
         }
 
         boost::system::error_code SourceBase::time_seek (
