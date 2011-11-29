@@ -2,6 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 namespace ppbox
 {
@@ -55,7 +56,7 @@ namespace ppbox
             SourceTreePosition & position, 
             SourceTreeItem * where) const
         {
-            position.source = (SourceBase *)this;
+            position.source = static_cast<SourceBase *>(const_cast<SourceTreeItem *>((this)));
             position.next_child = where;
         }
 

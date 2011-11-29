@@ -136,7 +136,6 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
             void create_demuxer(
-                SourceBase * source, 
                 SegmentPosition const & segment, 
                 DemuxerInfo & demuxer, 
                 boost::system::error_code & ec);

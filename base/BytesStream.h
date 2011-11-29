@@ -18,7 +18,7 @@ namespace ppbox
 
         class BytesStream
             : public util::buffers::StlStream<boost::uint8_t>
-            , public util::smart_ptr::RefenceFromThis<DemuxerBase>
+            , public util::smart_ptr::RefenceFromThis<BytesStream>
         {
         public:
             typedef BufferList::read_buffer_t read_buffer_t;

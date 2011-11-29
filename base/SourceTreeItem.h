@@ -15,6 +15,15 @@ namespace ppbox
         {
             SourceBase * source;// 处理流程中的下一个子节点
             SourceTreeItem * next_child;// 处理流程中的下一个子节点
+
+            friend bool operator == (
+                SourceTreePosition const & l, 
+                SourceTreePosition const & r)
+            {
+                return l.source == r.source
+                    && l.next_child == r.next_child;
+            }
+
         };
 
         class SourceTreeItem

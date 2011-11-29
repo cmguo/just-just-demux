@@ -35,9 +35,12 @@ namespace ppbox
                     next_source(segment);
                     segment.segment = (size_t)-1;
                     ((SourceBase *)segment.source)->next_segment(segment);
-            } else if (segment.segment == 0 && segment.size_end == (boost::uint64_t)-1) {
+            } else if (segment.segment == 0 && !segment.source) {
+                segment.source = this;
                 segment.size_beg = segment.size_beg;
                 segment.size_end = segment.size_beg + segment_size(segment.segment);
+                segment.time_beg = segment.time_beg;
+                segment.time_end = segment.time_beg + segment_time(segment.segment);
             } else if (++segment.segment == segment_count()) {
                 next_source(segment);
                 if (segment.source) {
@@ -48,6 +51,8 @@ namespace ppbox
             } else {
                 segment.size_beg = segment.size_end;
                 segment.size_end = segment.size_beg + segment_size(segment.segment);
+                segment.time_beg = segment.time_end;
+                segment.time_end = segment.time_beg + segment_time(segment.segment);
             }
             segment.demuxer_type = demuxer_type_;
             segment.total_state = SegmentPosition::is_valid;
@@ -88,7 +93,7 @@ namespace ppbox
             position.time_end = position.time_beg + segment_time(position.segment);
             if (item && item->insert_segment_ == position.segment) {
                 position.size_end = position.size_beg + item->insert_size_;
-                position.time_end = position.size_beg + item->insert_time_;
+                position.time_end = position.time_beg + item->insert_time_;
             }
             return ec;
         }

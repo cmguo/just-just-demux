@@ -714,6 +714,7 @@ namespace ppbox
             void source_init()
             {
                 root_source_->next_segment(write_);
+                write_hole_.this_end = write_hole_.next_beg = write_.size_end;
                 read_ = write_;
             }
 
