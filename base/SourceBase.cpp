@@ -87,7 +87,7 @@ namespace ppbox
                 ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
-            position.size_beg = skip_size + source_time_before(position.segment);
+            position.size_beg = skip_size + source_size_before(position.segment);
             position.size_end = position.size_beg + segment_size(position.segment);
             position.time_beg = time + source_time_before(position.segment) - time2;
             position.time_end = position.time_beg + segment_time(position.segment);
@@ -95,6 +95,8 @@ namespace ppbox
                 position.size_end = position.size_beg + item->insert_size_;
                 position.time_end = position.time_beg + item->insert_time_;
             }
+            position.demuxer_type = demuxer_type_;
+            position.total_state = SegmentPosition::is_valid;
             return ec;
         }
 
@@ -136,6 +138,8 @@ namespace ppbox
                 position.size_end = position.size_beg + item->insert_size_;
                 position.time_end = position.size_beg + item->insert_time_;
             }
+            position.demuxer_type = demuxer_type_;
+            position.total_state = SegmentPosition::is_valid;
             return ec;
         }
 

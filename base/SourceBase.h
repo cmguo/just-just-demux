@@ -31,6 +31,22 @@ namespace ppbox
             {
             }
 
+            friend bool operator == (
+                SegmentPosition const & l, 
+                SegmentPosition const & r)
+            {
+                return (SourceTreePosition)l == (SourceTreePosition)r
+                    && l.segment == r.segment;
+            }
+
+            friend bool operator != (
+                SegmentPosition const & l, 
+                SegmentPosition const & r)
+            {
+                return (SourceTreePosition)l != (SourceTreePosition)r
+                    || l.segment != r.segment;
+            }
+
             enum TotalStateEnum
             {
                 not_init, 

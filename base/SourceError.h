@@ -13,6 +13,7 @@ namespace ppbox
             enum errors
             {
                 no_more_segment = 1, 
+                at_end_point = 2, 
             };
 
             namespace detail {
@@ -35,6 +36,8 @@ namespace ppbox
                     {
                         if (value == source_error::no_more_segment)
                             return "source: has no more segments";
+                        if (value == source_error::at_end_point)
+                            return "source: at end point, write complete";
                         return "source: unknown error";
                     }
                 };

@@ -234,6 +234,8 @@ namespace ppbox
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
                     HttpSource::buffer_->increase_req();
+                } else if (ec == source_error::at_end_point) {
+                    vod_demuxer_->on_error(ec);
                 }
             }
 
@@ -253,6 +255,12 @@ namespace ppbox
                 size_t segment)
             {
                 return segments_[segment].duration;
+            }
+
+            boost::uint64_t segment_head_size(
+                size_t segment)
+            {
+                return segments_[segment].head_length;
             }
 
         private:

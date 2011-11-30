@@ -24,6 +24,14 @@ namespace ppbox
                     && l.next_child == r.next_child;
             }
 
+            friend bool operator != (
+                SourceTreePosition const & l, 
+                SourceTreePosition const & r)
+            {
+                return l.source != r.source
+                    || l.next_child != r.next_child;
+            }
+
         };
 
         class SourceTreeItem

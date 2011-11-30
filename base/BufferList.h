@@ -147,6 +147,8 @@ namespace ppbox
                 boost::uint64_t size, 
                 boost::system::error_code & ec)
             {
+                ec.clear();
+                offset += position.size_beg;
                 if (offset < read_.offset || offset > write_.offset) {
                     // close source for open from new offset
                     boost::system::error_code ec1;
@@ -154,12 +156,16 @@ namespace ppbox
                     close_all_request(ec1);
                 }
                 boost::uint64_t write_offset = write_.offset;
-                seek_to(position.size_beg + offset);
+                seek_to(offset);
                 SegmentPosition & read = read_;
                 read = position;
                 root_source_->size_seek(write_.offset, write_, ec);
                 if (!ec) {
-                    seek_end_ = size;
+                    if (size == (boost::uint64_t)-1) {
+                        seek_end_ = size;
+                    } else {
+                        seek_end_ = position.size_beg + size;
+                    }
                 }
                 if (write_.offset != write_offset) {
                     write_tmp_ = write_;
@@ -176,7 +182,7 @@ namespace ppbox
                 boost::uint64_t offset, 
                 boost::system::error_code & ec)
             {
-                return seek(position, position.size_beg + offset, (boost::uint64_t)-1, ec);
+                return seek(position, offset, (boost::uint64_t)-1, ec);
             }
 
             void pause(
@@ -915,11 +921,14 @@ namespace ppbox
                 Hole & hole, 
                 boost::system::error_code & ec)
             {
+                ec.clear();
                 boost::uint64_t next_offset = read_write_hole(hole.next_beg, hole);
 
-                pos.source->next_segment(pos);
-                if (!pos.source) {
-                    return ec = source_error::no_more_segment;
+                if (next_offset >= pos.size_end) {
+                    pos.source->next_segment(pos);
+                    if (!pos.source) {
+                        return ec = source_error::no_more_segment;
+                    }
                 }
 
                 if (pos.buffer != NULL) {
@@ -929,11 +938,11 @@ namespace ppbox
                 }
 
                 if (pos.offset >= seek_end_) {
-                    return ec = boost::asio::error::eof;
+                    return ec = source_error::at_end_point;
                 }
                 if (pos.offset >= seek_end_tmp_) {
                     seek_end_tmp_ = (boost::uint64_t)-1;
-                    return ec = boost::asio::error::eof;
+                    return ec = source_error::at_end_point;
                 }
 
                 // W     e^b    e----b      e---
@@ -1151,8 +1160,8 @@ namespace ppbox
                 if (!source_closed_) {
                     LOG_S(framework::logger::Logger::kLevelAlarm, 
                         "[close_segment] write_.segment: " << write_.segment << 
-                        " write_.offset: " << write_.offset << 
-                        " write_hole_.this_end: " << write_hole_.this_end);
+                        " write_.offset: " << write_.offset - write_.size_beg<< 
+                        " write_hole_.this_end: " << write_hole_.this_end - write_.size_beg);
                     write_.source->on_seg_end(write_.segment);
                     source_closed_ = true;
                 }

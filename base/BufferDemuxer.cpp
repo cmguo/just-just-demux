@@ -132,7 +132,7 @@ namespace ppbox
                 }
             } else {
                 if (write_demuxer_.demuxer) {
-                    if (write_demuxer_.stream->segment().segment != buffer_->write_segment().segment) {
+                    if (write_demuxer_.stream->segment() != buffer_->write_segment()) {
                         create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
                     }
                     time = write_demuxer_.segment.time_beg + write_demuxer_.demuxer->get_end_time(ec);
@@ -159,13 +159,13 @@ namespace ppbox
             root_source_->time_seek(time, position, ec);
             if (!ec) {
                 create_demuxer(position, read_demuxer_, ec);
-                time -= position.time_beg;
-                boost::uint64_t offset = read_demuxer_.demuxer->seek(time, ec);
+                boost::uint32_t seg_time = time - position.time_beg;
+                boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);
                 if (!ec) {
                     seek_time_ = 0;
                     read_demuxer_.stream->seek(offset);
-                    time = read_demuxer_.demuxer->get_cur_time(ec);
                 } else {
+                    seek_time_ = time;
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
                     if (head_length && seek_time_) {
                         read_demuxer_.stream->seek(0, head_length);
@@ -174,10 +174,7 @@ namespace ppbox
                     }
                 }
                 create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
-                time += read_demuxer_.segment.time_beg;
             }
-            if (ec)
-                seek_time_ = time;
             root_source_->on_error(ec);
             on_error(ec);
             return ec;
@@ -200,7 +197,7 @@ namespace ppbox
             while (read_demuxer_.demuxer->get_sample(sample, ec)) {
                 if (ec == ppbox::demux::error::file_stream_error
                     || ec == error::no_more_sample) {
-                    if (buffer_->read_segment().segment != buffer_->write_segment().segment) {
+                    if (buffer_->read_segment() != buffer_->write_segment()) {
                         std::cout << "drop_all" << std::endl;
                         read_demuxer_.stream->drop_all();
                         //SegmentPosition position = read_demuxer_.stream->segment();
@@ -390,6 +387,18 @@ namespace ppbox
             boost::system::error_code const & ec)
         {
             extern_error_ = ec;
+        }
+
+        void BufferDemuxer::on_error(
+            boost::system::error_code & ec)
+        {
+            if (ec == source_error::at_end_point) {
+                ec.clear();
+                if (seek_time_ && seek(seek_time_, ec)) {
+                    ec = boost::asio::error::would_block;
+                }
+            }
+            DemuxerStatistic::on_error(ec);
         }
 
         boost::system::error_code BufferDemuxer::get_sample_buffered(
