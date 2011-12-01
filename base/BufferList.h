@@ -161,11 +161,8 @@ namespace ppbox
                 read = position;
                 root_source_->size_seek(write_.offset, write_, ec);
                 if (!ec) {
-                    if (size == (boost::uint64_t)-1) {
-                        seek_end_ = size;
-                    } else {
-                        seek_end_ = position.size_beg + size;
-                    }
+                    seek_end_ = 
+                        size == (boost::uint64_t)-1 ? size : position.size_beg + size;
                 }
                 if (write_.offset != write_offset) {
                     write_tmp_ = write_;
@@ -749,8 +746,10 @@ namespace ppbox
                         write_.total_state = SegmentPosition::by_guess;
                         write_.size_end = write_.offset;
                         write_hole_.this_end = write_.offset;
-                        if (read_.segment == write_.segment)
+                        if (read_.segment == write_.segment) {
                             read_.size_end = write_.size_end;
+                            read_.total_state = SegmentPosition::by_guess;
+                        }
                         LOG_S(framework::logger::Logger::kLevelInfor, 
                             "[handle_error] guess segment size " << write_.size_end - write_.size_beg);
                         return true;

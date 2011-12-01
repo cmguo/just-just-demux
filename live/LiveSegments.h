@@ -68,6 +68,7 @@ namespace ppbox
                 boost::uint16_t live_port)
                 : HttpSource(io_svc, DemuxerType::flv)
                 , live_port_(live_port)
+                , num_del_(0)
                 , live_demuxer_(NULL)
             {
             }
@@ -191,6 +192,9 @@ namespace ppbox
             boost::uint64_t segment_size(
                 size_t segment)
             {
+                if (segment < segments_.size() + num_del_) {
+                    return segments_[segment - num_del_];
+                }
                 return boost::uint64_t(-1);
             }
 
@@ -210,15 +214,27 @@ namespace ppbox
                     segment.time_beg = segment.time_beg;
                     segment.time_end = boost::uint64_t(-1);
                 } else {
+                    ++segment.segment;
+                    segments_.push_back(segment.size_end - segment.size_beg);
                     segment.size_beg = segment.size_end;
-                    segment.size_end = boost::uint64_t(-1);
+                    segment.size_end = 
+                        segment_size(segment.segment) == boost::uint64_t(-1) ? 
+                        boost::uint64_t(-1) : segment_size(segment.segment) + segment.size_beg;
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);
+                }
+                size_t read_seg = buffer_->read_segment().segment;
+                size_t del_seg = read_seg - num_del_;
+                for (size_t seg = 0; seg < del_seg; seg++) {
+                    num_del_++;
+                    segments_.pop_front();
                 }
             }
 
         private:
             boost::uint16_t live_port_;
+            boost::uint32_t num_del_;
+            std::deque<boost::uint64_t> segments_;
             framework::network::NetName proxy_addr_;
 
             std::string key_;

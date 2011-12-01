@@ -158,8 +158,14 @@ namespace ppbox
             framework::timer::Ticker * ticker_;
             boost::uint32_t seek_time_;
 
+            boost::uint64_t segment_time_;
+            boost::uint64_t segment_ustime_;
+
             DemuxerInfo read_demuxer_;
             DemuxerInfo write_demuxer_;
+
+            std::vector<boost::uint32_t> media_time_scales_;
+            std::vector<boost::uint32_t> dts_offset_;
 
             open_response_type resp_;
         };

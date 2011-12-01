@@ -25,6 +25,8 @@ namespace ppbox
             , io_svc_(io_svc)
             , seek_time_(0)
             , root_source_(source)
+            , segment_time_(0)
+            , segment_ustime_(0)
         {
             ticker_ = new framework::timer::Ticker(1000);
         }
@@ -105,9 +107,6 @@ namespace ppbox
                 }
             } else {
                 if (read_demuxer_.demuxer) {
-                    /*if (buffer_->read_segment().segment != read_demuxer_.stream->segment()) {
-                        create_demuxer((SourceBase *)const_cast<SourceBase *>(buffer_->read_segment().source), buffer_->read_segment(), read_demuxer_, ec)
-                    }*/
                     time = read_demuxer_.segment.time_beg + read_demuxer_.demuxer->get_cur_time(ec);
                 } else { // 可能已经播放结束了
                     ec.clear();
@@ -164,6 +163,14 @@ namespace ppbox
                 if (!ec) {
                     seek_time_ = 0;
                     read_demuxer_.stream->seek(offset);
+                    segment_time_ = read_demuxer_.segment.time_beg;
+                    if (segment_time_ != boost::uint64_t(-1)) {
+                        segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
+                    }
+                    for (size_t i = 0; i < media_time_scales_.size(); i++) {
+                        dts_offset_[i] = 
+                            segment_time_ * media_time_scales_[i] / 1000;
+                    }
                 } else {
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
                     if (head_length && seek_time_) {
@@ -208,10 +215,13 @@ namespace ppbox
                     if (buffer_->read_segment() != buffer_->write_segment()) {
                         std::cout << "drop_all" << std::endl;
                         read_demuxer_.stream->drop_all();
-                        //SegmentPosition position = read_demuxer_.stream->segment();
-                        //read_demuxer_.segment.source->next_segment(position);
                         if (buffer_->read_segment().source) {
                             create_demuxer(buffer_->read_segment(), read_demuxer_, ec);
+                            segment_time_ = read_demuxer_.segment.time_beg;
+                            if (segment_time_ != boost::uint64_t(-1)) {
+                                segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
+                            }
+                            segment_ustime_ = read_demuxer_.segment.time_beg * 1000;
                             boost::uint32_t seek_time = 0;
                             read_demuxer_.demuxer->seek(seek_time, ec);
                             if (!ec || ec == error::not_support) {
@@ -219,6 +229,10 @@ namespace ppbox
                             }
                             if (ec == error::file_stream_error) {
                                 ec = read_demuxer_.stream->error();
+                            }
+                            for (size_t i = 0; i < media_time_scales_.size(); i++) {
+                                dts_offset_[i] = 
+                                    segment_time_ * media_time_scales_[i] / 1000;
                             }
                         } else {
                             if (ec == error::file_stream_error) {
@@ -235,8 +249,11 @@ namespace ppbox
                 }
             }
             if (!ec) {
-                sample.time += read_demuxer_.segment.time_beg;
-                sample.ustime += read_demuxer_.segment.time_beg * 1000;
+                sample.time += segment_time_;
+                sample.ustime += segment_ustime_;
+                if (sample.itrack < dts_offset_.size()) {
+                    sample.dts += dts_offset_[sample.itrack];
+                }
                 play_on(sample.time);
                 sample.data.clear();
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
@@ -336,6 +353,13 @@ namespace ppbox
                 }
             }
             open_end();
+            size_t stream_count = read_demuxer_.demuxer->get_media_count(ec);
+            for(size_t i = 0; i < stream_count; i++) {
+                MediaInfo info;
+                read_demuxer_.demuxer->get_media_info(i, info, ec);
+                media_time_scales_.push_back(info.time_scale);
+                dts_offset_.push_back(info.time_scale);
+            }
             response(ec);
         }
 
