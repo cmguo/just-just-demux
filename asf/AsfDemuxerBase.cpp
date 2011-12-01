@@ -185,6 +185,8 @@ namespace ppbox
             if (!is_open(ec)) {
                 return ec;
             }
+            // 因为一个帧可能存在于多个payload，所有如果get_sample失败，必须回退文件指针到帧的第一个payload上，但是解析不会重复
+            boost::uint64_t offset = archive_.tellg();
             archive_.seekg(object_parse_.offset, std::ios_base::beg);
             //assert(archive_);
             /*
@@ -210,7 +212,7 @@ namespace ppbox
                 //    }
                 //}
                 if (ec) {
-                    archive_.seekg(object_parse_.offset, std::ios_base::beg);
+                    archive_.seekg(offset, std::ios_base::beg);
                     return ec;
                 }
                 // Object not continue
@@ -233,17 +235,18 @@ namespace ppbox
                     AsfStream & stream = streams_[object_parse_.payload.StreamNum];
                     stream.next_id = object_parse_.payload.MediaObjNum;
                     sample.itrack = stream.index;
-		    sample.idesc = 0;
+                    sample.idesc = 0;
                     sample.flags = 0;
                     if (object_parse_.payload.KeyFrameBit)
                         sample.flags |= Sample::sync;
                     if (is_discontinuity_)
                         sample.flags |= Sample::discontinuity;
-                    sample.time = object_parse_.payload.PresTime - stream.time_offset_ms;
-                    sample.ustime = (boost::uint64_t)object_parse_.payload.PresTime * 1000 - stream.time_offset_us;
-                    sample.dts = object_parse_.payload.PresTime - stream.time_offset_ms;
-                    sample.cts_delta = boost::uint64_t(-1);
-		    sample.duration = 0;
+                    boost::uint64_t timestamp = object_parse_.timestamp.transfer(object_parse_.payload.PresTime);
+                    sample.time = (boost::uint32_t)timestamp - stream.time_offset_ms;
+                    sample.ustime = (timestamp - stream.time_offset_ms) * 1000;
+                    sample.dts = timestamp - stream.time_offset_ms;
+                    sample.cts_delta = boost::uint32_t(-1);
+                    sample.duration = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
                     sample.blocks.clear();
                     for (size_t i = 0; i < object_payloads_.size(); ++i) {

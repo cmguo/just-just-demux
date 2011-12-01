@@ -7,6 +7,8 @@
 #include "ppbox/demux/asf/AsfObjectType.h"
 #include "ppbox/demux/asf/AsfStream.h"
 
+#include <framework/system/LimitNumber.h>
+
 namespace ppbox
 {
     namespace demux
@@ -25,11 +27,7 @@ namespace ppbox
                 , open_step_(size_t(-1))
                 , object_parse_(file_prop_)
                 , buffer_parse_(file_prop_)
-                , skip_type_(0)
-                , fisrt_sample_dts_(boost::uint64_t(-1))
-                , last_valid_sample_dts_(0)
-                , last_valid_sample_itrack_(0)
-                , first_next_sample_dts_(boost::uint64_t(-1))
+                , timestamp_offset_ms_(boost::uint32_t(-1))
             {
             }
 
@@ -103,10 +101,11 @@ namespace ppbox
 
                 ASF_Packet packet;
                 ASF_PayloadHeader payload;
-                boost::uint32_t offset_packet;
-                boost::uint32_t offset;
+                boost::uint64_t offset_packet;
+                boost::uint64_t offset;
                 boost::uint32_t num_packet;
                 boost::uint32_t num_payload;
+                framework::system::LimitNumber<32> timestamp;
             };
 
             boost::system::error_code next_packet(
@@ -131,17 +130,12 @@ namespace ppbox
             boost::uint32_t next_object_offset_; // not offset in file, just offset of this object
             bool is_discontinuity_;
 
-            // for calc buffer time
+            // for calc end time
             boost::uint32_t fixed_packet_length_;
             ParseStatus buffer_parse_;
 
             // for calc sample timestamp
-            boost::uint32_t skip_type_;
-            boost::uint64_t fisrt_sample_dts_;
-            boost::uint64_t last_valid_sample_dts_;
-            boost::uint32_t last_valid_sample_itrack_;
-            boost::uint64_t first_next_sample_dts_;
-
+            boost::uint32_t timestamp_offset_ms_;
         };
 
     }

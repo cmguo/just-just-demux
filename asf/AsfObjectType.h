@@ -118,18 +118,25 @@ namespace ppbox
 
         struct PropertiesFlag
         {
-            boost::uint32_t BroadcastFlag : 1;
-            boost::uint32_t SeekableFlag : 1;
-            boost::uint32_t Reserved : 30;
+            union {
+                struct {
+#ifdef   BOOST_LITTLE_ENDIAN 
+                    boost::uint32_t BroadcastFlag : 1;
+                    boost::uint32_t SeekableFlag : 1;
+                    boost::uint32_t Reserved : 30;
+#else 
+                    boost::uint32_t Reserved : 30;
+                    boost::uint32_t SeekableFlag : 1;
+                    boost::uint32_t BroadcastFlag : 1;
+#endif
+                };
+                boost::uint32_t flag;
+            };
 
             template <typename Archive>
             void serialize(Archive & ar)
             {
-                boost::uint32_t temp;
-                ar & temp;
-                BroadcastFlag = temp & 0x1;
-                SeekableFlag = (temp & 0x2) >> 1;
-                Reserved = (temp & 0xfffffffc) >> 2;
+                ar & flag;
             }
         };
 
@@ -166,18 +173,25 @@ namespace ppbox
 
         struct StreamProperFlag
         {
-            boost::uint16_t StreamNumber : 7;
-            boost::uint16_t Reserved : 8;
-            boost::uint16_t EncryptedContentFlag : 1;
+            union {
+                struct {
+#ifdef   BOOST_LITTLE_ENDIAN
+                    boost::uint16_t StreamNumber : 7;
+                    boost::uint16_t Reserved : 8;
+                    boost::uint16_t EncryptedContentFlag : 1;
+#else 
+                    boost::uint16_t EncryptedContentFlag : 1;
+                    boost::uint16_t Reserved : 8;
+                    boost::uint16_t StreamNumber : 7;
+#endif
+                };
+                boost::uint16_t flag;
+            };
 
             template <typename Archive>
             void serialize(Archive & ar)
             {
-                boost::uint16_t temp;
-                ar & temp;
-                StreamNumber = temp & 0x7f;
-                Reserved = (temp & 0x7f80) >> 7;
-                EncryptedContentFlag = (temp & 0x8000) >> 15;
+                ar & flag;
             }
         };
 
@@ -311,23 +325,28 @@ namespace ppbox
 
         struct ErrorCorrrectionData
         {
-            struct {
-                boost::uint8_t ErrorCorrectionDataLength : 4;
-                boost::uint8_t OpaqueDataPresent : 1;
-                boost::uint8_t ErrorCorrectionLengthType : 2;
-                boost::uint8_t ErrorCorrectionPresent : 1;
+            union {
+                struct {
+#ifdef   BOOST_LITTLE_ENDIAN
+                    boost::uint8_t ErrorCorrectionDataLength : 4;
+                    boost::uint8_t OpaqueDataPresent : 1;
+                    boost::uint8_t ErrorCorrectionLengthType : 2;
+                    boost::uint8_t ErrorCorrectionPresent : 1;
+#else 
+                    boost::uint8_t ErrorCorrectionPresent : 1;
+                    boost::uint8_t ErrorCorrectionLengthType : 2;
+                    boost::uint8_t OpaqueDataPresent : 1;
+                    boost::uint8_t ErrorCorrectionDataLength : 4;
+#endif
+                };
+                boost::uint8_t flag;
             };
             std::vector<boost::uint8_t> Data;
 
             template <typename Archive>
             void serialize(Archive & ar)
             {
-                boost::uint8_t temp;
-                ar & temp;
-                ErrorCorrectionDataLength = temp & 0xf;
-                OpaqueDataPresent = (temp & 0x10) >> 4;
-                ErrorCorrectionLengthType = (temp & 0x60) >> 5;
-                ErrorCorrectionPresent = (temp & 0x80) >> 7;
+                ar & flag;
                 assert(!ar || (ErrorCorrectionPresent && ErrorCorrectionLengthType == 0));
                 if (ar && (ErrorCorrectionPresent == 0 || ErrorCorrectionLengthType != 0)) {
                     ar.fail();
@@ -338,18 +357,40 @@ namespace ppbox
 
         struct PayLoadParsingInformation
         {
-            struct {
-                boost::uint8_t MultiplePayloadsPresent : 1;
-                boost::uint8_t SequenceType : 2;
-                boost::uint8_t PaddingLengthType : 2;
-                boost::uint8_t PacketLengthType : 2;
-                boost::uint8_t ErrorCorrectionPresent : 1;
+            union {
+                struct {
+#ifdef   BOOST_LITTLE_ENDIAN
+                    boost::uint8_t MultiplePayloadsPresent : 1;
+                    boost::uint8_t SequenceType : 2;
+                    boost::uint8_t PaddingLengthType : 2;
+                    boost::uint8_t PacketLengthType : 2;
+                    boost::uint8_t ErrorCorrectionPresent : 1;
+#else 
+                    boost::uint8_t ErrorCorrectionPresent : 1;
+                    boost::uint8_t PacketLengthType : 2;
+                    boost::uint8_t PaddingLengthType : 2;
+                    boost::uint8_t SequenceType : 2;
+                    boost::uint8_t MultiplePayloadsPresent : 1;
+#endif
+                };
+                boost::uint8_t flag1;
             };
-            struct {
-                boost::uint8_t ReplicatedDataLengthType : 2;
-                boost::uint8_t OffsetIntoMOLType : 2;
-                boost::uint8_t MediaObjNumType : 2;
-                boost::uint8_t StreamNumLengthType : 2;
+
+            union {
+                struct {
+#ifdef   BOOST_LITTLE_ENDIAN
+                    boost::uint8_t ReplicatedDataLengthType : 2;
+                    boost::uint8_t OffsetIntoMOLType : 2;
+                    boost::uint8_t MediaObjNumType : 2;
+                    boost::uint8_t StreamNumLengthType : 2;
+#else 
+                    boost::uint8_t StreamNumLengthType : 2;
+                    boost::uint8_t MediaObjNumType : 2;
+                    boost::uint8_t OffsetIntoMOLType : 2;
+                    boost::uint8_t ReplicatedDataLengthType : 2;
+#endif
+                };
+                boost::uint8_t flag2;
             };
             boost::uint32_t PacketLenth;
             boost::uint32_t Sequence;
@@ -360,22 +401,12 @@ namespace ppbox
             template <typename Archive>
             void serialize(Archive & ar)
             {
-                boost::uint8_t temp;
-                ar & temp;
-                MultiplePayloadsPresent = temp & 0x01;
-                SequenceType = (temp & 0x06) >> 1;
-                PaddingLengthType = (temp & 0x18) >> 3;
-                PacketLengthType = (temp & 0x60) >> 5;
-                ErrorCorrectionPresent = (temp & 0x80) >> 7;
+                ar & flag1;
                 assert(!ar || MultiplePayloadsPresent || PacketLengthType);
                 if (ar && !MultiplePayloadsPresent && PacketLengthType == 0) {
                     ar.fail();
                 }
-                ar & temp;
-                ReplicatedDataLengthType = temp & 0x03;
-                OffsetIntoMOLType = (temp & 0xc) >> 2;
-                MediaObjNumType = (temp & 0x30) >> 4;
-                StreamNumLengthType = (temp & 0xc0) >> 6;
+                ar & flag2;
                 serialize_length(ar, PacketLenth, PacketLengthType);
                 serialize_length(ar, Sequence, SequenceType);
                 serialize_length(ar, PaddingLength, PaddingLengthType);
@@ -407,8 +438,19 @@ namespace ppbox
             //boost::uint32_t MaximumDataPacketSize;
             ErrorCorrrectionData ErrorCorrorectionInfo;
             PayLoadParsingInformation PayLoadParseInfo;
-            boost::uint8_t PayloadNum : 6;
-            boost::uint8_t PayloadLengthType : 2;
+
+            union {
+                struct {
+#ifdef   BOOST_LITTLE_ENDIAN
+                    boost::uint8_t PayloadNum : 6;
+                    boost::uint8_t PayloadLengthType : 2;
+#else 
+                    boost::uint8_t PayloadLengthType : 2;
+                    boost::uint8_t PayloadNum : 6;
+#endif
+                };
+                boost::uint8_t flag;
+            };
             boost::uint32_t PayloadEnd;
 
             ASF_Packet(
@@ -425,10 +467,7 @@ namespace ppbox
                     & PayLoadParseInfo;
 
                 if (PayLoadParseInfo.MultiplePayloadsPresent) {
-                    boost::uint8_t temp = 0;
-                    ar & temp;
-                    PayloadNum = temp & 0x3f;
-                    PayloadLengthType = (temp & 0xc0) >> 6;
+                    ar & flag;
                     PayloadEnd = start_offset + MaximumDataPacketSize - PayLoadParseInfo.PaddingLength;
                     assert(!ar || PayLoadParseInfo.PacketLenth == 0);
                     if (ar && PayLoadParseInfo.PacketLenth != 0) {
