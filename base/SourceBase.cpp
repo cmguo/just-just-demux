@@ -54,7 +54,6 @@ namespace ppbox
                 segment.time_beg = segment.time_end;
                 segment.time_end = segment.time_beg + segment_time(segment.segment);
             }
-            segment.demuxer_type = demuxer_type_;
             segment.total_state = SegmentPosition::is_valid;
         }
 
@@ -83,7 +82,7 @@ namespace ppbox
             while (position.segment < segment_count() && time2 >= source_time_before(position.segment)) {
                 ++position.segment;
             }
-            if (position.segment >= segment_count()) {
+            if (position.segment > segment_count()) {
                 ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
@@ -95,7 +94,6 @@ namespace ppbox
                 position.size_end = position.size_beg + item->insert_size_;
                 position.time_end = position.time_beg + item->insert_time_;
             }
-            position.demuxer_type = demuxer_type_;
             position.total_state = SegmentPosition::is_valid;
             return ec;
         }
@@ -126,7 +124,7 @@ namespace ppbox
             while (position.segment < segment_count() && size2 >= source_size_before(position.segment)) {
                 ++position.segment;
             }
-            if (position.segment >= segment_count()) {
+            if (position.segment > segment_count()) {
                 ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
@@ -138,7 +136,6 @@ namespace ppbox
                 position.size_end = position.size_beg + item->insert_size_;
                 position.time_end = position.size_beg + item->insert_time_;
             }
-            position.demuxer_type = demuxer_type_;
             position.total_state = SegmentPosition::is_valid;
             return ec;
         }
@@ -182,7 +179,7 @@ namespace ppbox
                 segment = segment_count();
             }
             for (int i = 0; i < segment; i++) {
-                total += segment_time(segment);
+                total += segment_time(i);
             }
             return total;
         }

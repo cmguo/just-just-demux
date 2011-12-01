@@ -165,7 +165,6 @@ namespace ppbox
                     seek_time_ = 0;
                     read_demuxer_.stream->seek(offset);
                 } else {
-                    seek_time_ = time;
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
                     if (head_length && seek_time_) {
                         read_demuxer_.stream->seek(0, head_length);
@@ -174,6 +173,15 @@ namespace ppbox
                     }
                 }
                 create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
+            }
+            if (&time != &seek_time_) {
+                DemuxerStatistic::seek(ec, time);
+            }
+            if (ec) {
+                seek_time_ = time;
+                if (ec == error::file_stream_error) {
+                    ec = boost::asio::error::would_block;
+                }
             }
             root_source_->on_error(ec);
             on_error(ec);
@@ -213,11 +221,15 @@ namespace ppbox
                                 ec = read_demuxer_.stream->error();
                             }
                         } else {
-                            ec = read_demuxer_.stream->error();
+                            if (ec == error::file_stream_error) {
+                                ec = read_demuxer_.stream->error();
+                            }
                             break;
                         }
                     } else {
-                        ec = read_demuxer_.stream->error();
+                        if (ec == error::file_stream_error) {
+                            ec = read_demuxer_.stream->error();
+                        }
                         break;
                     }
                 }
@@ -340,7 +352,6 @@ namespace ppbox
             DemuxerInfo & demuxer, 
             boost::system::error_code & ec)
         {
-            ec.clear();
             if (read_demuxer_.stream && segment == read_demuxer_.stream->segment()) {
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
@@ -352,7 +363,7 @@ namespace ppbox
             } else {
                 demuxer.segment = segment;
                 demuxer.stream.reset(new BytesStream(*buffer_, *segment.source, segment));
-                demuxer.demuxer.reset(ppbox::demux::create_demuxer(demuxer.segment.demuxer_type, *demuxer.stream));
+                demuxer.demuxer.reset(ppbox::demux::create_demuxer(segment.source->demuxer_type(), *demuxer.stream));
                 demuxer.demuxer->open(ec);
             }
         }

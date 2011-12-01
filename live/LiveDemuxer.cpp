@@ -121,7 +121,6 @@ namespace ppbox
                         //seg_end(buffer_->segment());
                     }
 
-                    open_end();
                     DemuxerStatistic::on_error(ec);
                 }
 
@@ -206,7 +205,6 @@ namespace ppbox
             }
 
             if (ec != boost::asio::error::would_block) {
-                open_end();
                 DemuxerStatistic::on_error(ec);
             }
 
@@ -317,24 +315,6 @@ namespace ppbox
             return 0;
         }
 
-        boost::uint32_t LiveDemuxer::get_end_time(
-            error_code & ec, 
-            error_code & ec_buf)
-        {
-            tick_on();
-            if ((ec = extern_error_)) {
-                return 0;
-            } else {
-                return BufferDemuxer::get_end_time(ec, ec_buf);
-            }
-        }
-
-        boost::uint32_t LiveDemuxer::get_cur_time(
-            error_code & ec)
-        {
-            return BufferDemuxer::get_cur_time(ec);
-        }
-
         error_code LiveDemuxer::seek(
             boost::uint32_t & time, 
             error_code & ec)
@@ -343,29 +323,6 @@ namespace ppbox
             if (0 == time) {
                 ec.clear();
             }
-            return ec;
-        }
-
-        error_code LiveDemuxer::get_sample(
-            Sample & sample, 
-            error_code & ec)
-        {
-            tick_on();
-            if ((ec = extern_error_)) {
-            } else {
-                BufferDemuxer::get_sample(sample, ec);
-
-                if (ec == boost::asio::error::would_block) {
-                    block_on();
-                } else {
-                    play_on(sample.time);
-                }
-            }
-            //while (ec && ec != boost::asio::error::would_block) {
-            //    demuxer_->close(ec);
-            //    buffer_->clear();
-            //    demuxer_->open(ec);
-            //}
             return ec;
         }
 

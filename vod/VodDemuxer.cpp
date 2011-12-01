@@ -431,7 +431,6 @@ namespace ppbox
             }
 
             if (ec != boost::asio::error::would_block) {
-                open_end();
                 DemuxerStatistic::on_error(ec);
             }
 

@@ -22,7 +22,6 @@ namespace ppbox
         {
             SegmentPosition()
                 : segment(0)
-                , demuxer_type(DemuxerType::none)
                 , total_state(not_init)
                 , size_beg(0)
                 , size_end((boost::uint64_t)-1)
@@ -56,7 +55,6 @@ namespace ppbox
             };
 
             size_t segment;
-            DemuxerType::Enum demuxer_type;
             TotalStateEnum total_state;
             boost::uint64_t size_beg; // 全局的偏移
             boost::uint64_t size_end; // 全局的偏移
@@ -179,6 +177,11 @@ namespace ppbox
                 size_t segment)
             {
                 return 0;
+            }
+
+            DemuxerType::Enum const demuxer_type() const
+            {
+                return demuxer_type_;
             }
 
         private:

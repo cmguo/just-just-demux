@@ -81,21 +81,6 @@ namespace ppbox
             boost::uint32_t get_duration(
                 boost::system::error_code & ec);
 
-            boost::system::error_code seek(
-                boost::uint32_t & time, 
-                boost::system::error_code & ec);
-
-            boost::uint32_t get_end_time(
-                boost::system::error_code & ec, 
-                boost::system::error_code & ec_buf);
-
-            boost::uint32_t get_cur_time(
-                boost::system::error_code & ec);
-
-            boost::system::error_code get_sample(
-                Sample & sample, 
-                boost::system::error_code & ec);
-
             boost::system::error_code set_http_proxy(
                 framework::network::NetName const & addr, 
                 boost::system::error_code & ec);
