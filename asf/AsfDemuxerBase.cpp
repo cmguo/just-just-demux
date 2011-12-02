@@ -39,6 +39,8 @@ namespace ppbox
                 return false;
             }
 
+            assert(archive_);
+
             if (open_step_ == 0) {
                 archive_.seekg(0, std::ios_base::beg);
                 assert(archive_);
@@ -164,7 +166,7 @@ namespace ppbox
             }
 
             if (!ec) {
-                open_step_ = 2;
+                assert(open_step_ == 2);
                 return true;
             } else {
                 return false;

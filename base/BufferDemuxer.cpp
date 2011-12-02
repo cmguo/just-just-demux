@@ -289,9 +289,9 @@ namespace ppbox
         }
 
         void BufferDemuxer::update_write_demuxer(
-            SegmentPosition & segment, 
-            boost::system::error_code & ec)
+            SegmentPosition & segment)
         {
+            boost::system::error_code ec;
             create_demuxer(segment, write_demuxer_, ec);
         }
 
