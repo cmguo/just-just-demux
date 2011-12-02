@@ -21,7 +21,7 @@ namespace ppbox
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size,
             SourceBase * source)
-            : buffer_(new BufferList(buffer_size, prepare_size, (SourceBase *)source))
+            : buffer_(new BufferList(buffer_size, prepare_size, (SourceBase *)source, this))
             , io_svc_(io_svc)
             , seek_time_(0)
             , root_source_(source)
@@ -131,9 +131,9 @@ namespace ppbox
                 }
             } else {
                 if (write_demuxer_.demuxer) {
-                    if (write_demuxer_.stream->segment() != buffer_->write_segment()) {
+                    /*if (write_demuxer_.stream->segment() != buffer_->write_segment()) {
                         create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
-                    }
+                    }*/
                     time = write_demuxer_.segment.time_beg + write_demuxer_.demuxer->get_end_time(ec);
                     if (ec == error::file_stream_error) {
                         ec = write_demuxer_.stream->error();
@@ -164,9 +164,10 @@ namespace ppbox
                     seek_time_ = 0;
                     read_demuxer_.stream->seek(offset);
                     segment_time_ = read_demuxer_.segment.time_beg;
-                    if (segment_time_ != boost::uint64_t(-1)) {
+                    if (segment_time_ == boost::uint64_t(-1)) {
                         segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
                     }
+                    segment_ustime_ = segment_time_ * 1000;
                     for (size_t i = 0; i < media_time_scales_.size(); i++) {
                         dts_offset_[i] = 
                             segment_time_ * media_time_scales_[i] / 1000;
@@ -213,40 +214,29 @@ namespace ppbox
                 if (ec == ppbox::demux::error::file_stream_error
                     || ec == error::no_more_sample) {
                     if (buffer_->read_segment() != buffer_->write_segment()) {
+                        boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
                         std::cout << "drop_all" << std::endl;
                         read_demuxer_.stream->drop_all();
                         if (buffer_->read_segment().source) {
                             create_demuxer(buffer_->read_segment(), read_demuxer_, ec);
                             segment_time_ = read_demuxer_.segment.time_beg;
-                            if (segment_time_ != boost::uint64_t(-1)) {
-                                segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
+                            if (segment_time_ == boost::uint64_t(-1)) {
+                                //segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
+                                segment_time_ = cur_time;
                             }
-                            segment_ustime_ = read_demuxer_.segment.time_beg * 1000;
-                            boost::uint32_t seek_time = 0;
-                            read_demuxer_.demuxer->seek(seek_time, ec);
-                            if (!ec || ec == error::not_support) {
-                                read_demuxer_.demuxer->get_sample(sample, ec);
-                            }
-                            if (ec == error::file_stream_error) {
-                                ec = read_demuxer_.stream->error();
-                            }
+                            segment_ustime_ = segment_time_ * 1000;
                             for (size_t i = 0; i < media_time_scales_.size(); i++) {
                                 dts_offset_[i] = 
                                     segment_time_ * media_time_scales_[i] / 1000;
                             }
-                        } else {
-                            if (ec == error::file_stream_error) {
-                                ec = read_demuxer_.stream->error();
-                            }
-                            break;
+                            continue;
                         }
-                    } else {
-                        if (ec == error::file_stream_error) {
-                            ec = read_demuxer_.stream->error();
-                        }
-                        break;
                     }
                 }
+                if (ec == error::file_stream_error) {
+                    ec = read_demuxer_.stream->error();
+                }
+                break;
             }
             if (!ec) {
                 sample.time += segment_time_;
@@ -296,6 +286,13 @@ namespace ppbox
             boost::uint32_t d = read_demuxer_.demuxer->get_duration(ec);
             on_error(ec);
             return d;
+        }
+
+        void BufferDemuxer::update_write_demuxer(
+            SegmentPosition & segment, 
+            boost::system::error_code & ec)
+        {
+            create_demuxer(segment, write_demuxer_, ec);
         }
 
         boost::system::error_code BufferDemuxer::cancel(

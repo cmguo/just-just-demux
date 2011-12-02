@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_SOURCE_BUFFER_LIST_H_
 
 #include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/BufferDemuxer.h"
 #include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/SourceError.h"
 
@@ -101,8 +102,10 @@ namespace ppbox
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size, 
                 SourceBase * source,
+                BufferDemuxer * demuxer,
                 size_t total_req = 1)
                 : root_source_(source)
+                , demuxer_(demuxer)
                 , num_try_(size_t(-1))
                 , max_try_(size_t(-1))
                 , buffer_(NULL)
@@ -928,6 +931,7 @@ namespace ppbox
                     if (!pos.source) {
                         return ec = source_error::no_more_segment;
                     }
+                    demuxer_->update_write_demuxer(pos, ec);
                 }
 
                 if (pos.buffer != NULL) {
@@ -1511,6 +1515,7 @@ namespace ppbox
 
         private:
             SourceBase * root_source_;
+            BufferDemuxer * demuxer_;
             size_t num_try_;
             size_t max_try_;    // 尝试重连最大次数，决定不断点续传的标志
             char * buffer_;

@@ -66,7 +66,7 @@ namespace ppbox
             LiveSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t live_port)
-                : HttpSource(io_svc, DemuxerType::flv)
+                : HttpSource(io_svc, DemuxerType::asf)
                 , live_port_(live_port)
                 , num_del_(0)
                 , live_demuxer_(NULL)
@@ -214,8 +214,10 @@ namespace ppbox
                     segment.time_beg = segment.time_beg;
                     segment.time_end = boost::uint64_t(-1);
                 } else {
+                    if (segment.segment - num_del_ >= segments_.size()) {
+                        segments_.push_back(segment.size_end - segment.size_beg);
+                    }
                     ++segment.segment;
-                    segments_.push_back(segment.size_end - segment.size_beg);
                     segment.size_beg = segment.size_end;
                     segment.size_end = 
                         segment_size(segment.segment) == boost::uint64_t(-1) ? 
