@@ -117,7 +117,6 @@ namespace ppbox
         public:
             bool ready;
             boost::uint32_t next_id;
-            boost::uint32_t index_to_map;
             boost::uint64_t time_offset_us;
             boost::uint32_t time_offset_ms;
         };

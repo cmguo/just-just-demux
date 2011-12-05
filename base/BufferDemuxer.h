@@ -94,7 +94,7 @@ namespace ppbox
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf);
 
-            void update_write_demuxer(
+            void segment_write_end(
                 SegmentPosition & segment);
 
             void on_extern_error(

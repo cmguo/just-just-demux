@@ -931,7 +931,7 @@ namespace ppbox
                     if (!pos.source) {
                         return ec = source_error::no_more_segment;
                     }
-                    demuxer_->update_write_demuxer(pos);
+                    demuxer_->segment_write_end(pos);
                 }
 
                 if (pos.buffer != NULL) {

@@ -222,6 +222,9 @@ namespace ppbox
                     segment.size_end = 
                         segment_size(segment.segment) == boost::uint64_t(-1) ? 
                         boost::uint64_t(-1) : segment_size(segment.segment) + segment.size_beg;
+                    if (segment.size_end == (boost::uint64_t)-1) {
+                        segment.total_state = SegmentPosition::not_init;
+                    }
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);
                 }

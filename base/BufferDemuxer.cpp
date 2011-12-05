@@ -131,9 +131,6 @@ namespace ppbox
                 }
             } else {
                 if (write_demuxer_.demuxer) {
-                    /*if (write_demuxer_.stream->segment() != buffer_->write_segment()) {
-                        create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
-                    }*/
                     time = write_demuxer_.segment.time_beg + write_demuxer_.demuxer->get_end_time(ec);
                     if (ec == error::file_stream_error) {
                         ec = write_demuxer_.stream->error();
@@ -157,6 +154,7 @@ namespace ppbox
             SegmentPosition position;
             root_source_->time_seek(time, position, ec);
             if (!ec) {
+                boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
                 create_demuxer(position, read_demuxer_, ec);
                 boost::uint32_t seg_time = time - position.time_beg;
                 boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);
@@ -165,7 +163,7 @@ namespace ppbox
                     read_demuxer_.stream->seek(offset);
                     segment_time_ = read_demuxer_.segment.time_beg;
                     if (segment_time_ == boost::uint64_t(-1)) {
-                        segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
+                        segment_time_ = cur_time;
                     }
                     segment_ustime_ = segment_time_ * 1000;
                     for (size_t i = 0; i < media_time_scales_.size(); i++) {
@@ -221,7 +219,6 @@ namespace ppbox
                             create_demuxer(buffer_->read_segment(), read_demuxer_, ec);
                             segment_time_ = read_demuxer_.segment.time_beg;
                             if (segment_time_ == boost::uint64_t(-1)) {
-                                //segment_time_ = read_demuxer_.demuxer->get_cur_time(ec);
                                 segment_time_ = cur_time;
                             }
                             segment_ustime_ = segment_time_ * 1000;
@@ -288,7 +285,7 @@ namespace ppbox
             return d;
         }
 
-        void BufferDemuxer::update_write_demuxer(
+        void BufferDemuxer::segment_write_end(
             SegmentPosition & segment)
         {
             boost::system::error_code ec;

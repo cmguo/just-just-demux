@@ -154,9 +154,7 @@ namespace ppbox
                     }
                 }
 
-                if (!archive_) {
-                    archive_.clear();
-                    ec = file_stream_error;
+                if (ec) {
                     return false;
                 }
 

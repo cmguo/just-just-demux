@@ -157,6 +157,7 @@ namespace ppbox
                 boost::uint16_t live_port)
                 : HttpSource(io_svc, DemuxerType::flv)
                 , live_port_(live_port)
+                , num_del_(0)
                 , server_time_(0)
                 , file_time_(0)
                 , index_(0)
@@ -252,6 +253,21 @@ namespace ppbox
                 key_ = key;
 
                 //std::string tmp = pptv::base64_encode("channel={831db0b0-08a2-4e4d-9dc1-739cbab9afe3}&name=live2 test&sid=e9301e073cf94732a380b765c8b9573d@0a5adf8f23494bbf970e3ce02b1b73a2@9cd54184428347f7bd663efa39fc4891&datarate=51200@68900@71200&interval=5", key);
+                //std::string tmp = "e9301e073cf94732a380b765c8b9573d-5";
+
+                if (url.find('-') != std::string::npos) {
+                    // "[StreamID]-[Interval]
+                    url_ = url;
+                    std::vector<std::string> strs;
+                    slice<std::string>(url, std::inserter(strs, strs.end()), "-");
+                    if (strs.size() == 2) {
+                        name_ = "Stream:" + strs[0];
+                        rid_.push_back(strs[0]);
+                        stream_id_ = rid_[0];
+                        parse2(strs[1], interval_);
+                    }
+                    return;
+                }
 
                 url_ = pptv::base64_decode(url, key);
                 if (!url_.empty()) {
@@ -261,11 +277,11 @@ namespace ppbox
                     std::string sid, datarate;
                     map_find(url_, "sid", sid, "&");
                     slice<std::string>(sid, std::inserter(rid_, rid_.end()), "@");
+                    if (!rid_.empty())
+                        stream_id_ = rid_[0];
                     map_find(url_, "datarate", datarate, "&");
                     slice<boost::uint32_t>(datarate, std::inserter(rate_, rate_.end()), "@");
                 }
-
-                stream_id_ = rid_[0];
             }
 
             framework::string::Url get_jump_url()
@@ -367,15 +383,31 @@ namespace ppbox
                     segment.time_beg = segment.time_beg;
                     segment.time_end = boost::uint64_t(-1);
                 } else {
+                    if (segment.segment - num_del_ >= segments_.size()) {
+                        segments_.push_back(segment.size_end - segment.size_beg);
+                    }
+                    ++segment.segment;
                     segment.size_beg = segment.size_end;
-                    segment.size_end = boost::uint64_t(-1);
+                    segment.size_end = 
+                        segment_size(segment.segment) == boost::uint64_t(-1) ? 
+                        boost::uint64_t(-1) : segment_size(segment.segment) + segment.size_beg;
+                    if (segment.size_end == (boost::uint64_t)-1) {
+                        segment.total_state = SegmentPosition::not_init;
+                    }
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);
+                }
+                size_t read_seg = buffer_->read_segment().segment;
+                size_t del_seg = read_seg - num_del_;
+                for (size_t seg = 0; seg < del_seg; seg++) {
+                    num_del_++;
+                    segments_.pop_front();
                 }
             }
 
         private:
             boost::uint16_t live_port_;
+            boost::uint32_t num_del_;
             framework::network::NetName proxy_addr_;
 
         private:
@@ -393,6 +425,8 @@ namespace ppbox
             int index_;
             std::vector<std::string> rid_;
             std::vector<boost::uint32_t> rate_;
+
+            std::deque<boost::uint64_t> segments_;
 
             boost::uint16_t interval_;
 
