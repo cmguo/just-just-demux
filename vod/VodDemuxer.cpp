@@ -237,7 +237,6 @@ namespace ppbox
                         LOG_S(Logger::kLevelDebug, "drag failure (" << open_logs_[2].total_elapse << " milliseconds)");
                     }
 
-                    open_end();
                     DemuxerStatistic::on_error(ec);
                 }
 

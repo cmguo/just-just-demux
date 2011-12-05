@@ -134,6 +134,8 @@ namespace ppbox
                 Archive & ar)
             {
                 ar & Type;
+                if (!ar)
+                    return;
                 switch (Type) {
                     case AMFDataType::AMF_DATA_TYPE_NUMBER:
                         ar & Double;

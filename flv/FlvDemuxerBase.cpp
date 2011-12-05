@@ -61,14 +61,14 @@ namespace ppbox
                         stream_map_.push_back((size_t)TagType::FLV_TAG_TYPE_VIDEO);
                     }
                     open_step_ = 1;
-                    parse_offset_ = std::ios::off_type(flv_header_.DataOffset) + 4;
+                    parse_offset_ = std::ios::off_type(flv_header_.DataOffset) + 4; // + 4 PreTagSize
                 } else {
                     ec = archive_.failed() ? error::bad_file_format : error::file_stream_error;
                 }
             }
 
             if (open_step_ == 1) {
-                archive_.seekg(parse_offset_, std::ios_base::beg); // + 4 PreTagSize
+                archive_.seekg(parse_offset_, std::ios_base::beg);
                 while (!get_tag(flv_tag_, ec)) {
                     if (flv_tag_.Type == TagType::FLV_TAG_TYPE_META) {
                         parse_metadata(flv_tag_);

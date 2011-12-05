@@ -31,6 +31,7 @@ namespace ppbox
             : DemuxerBase(buf)
             , bitrate_(0)
             , is_((std::basic_streambuf<char, std::char_traits<char> > *)(& buf))
+            , head_size_(24)
             , open_step_((boost::uint32_t)-1)
             , file_(NULL)
             , sample_list_(NULL)

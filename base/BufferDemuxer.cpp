@@ -335,9 +335,10 @@ namespace ppbox
                         }
                     }
                 } else if (ec == ppbox::demux::error::file_stream_error) {
-                    if (read_demuxer_.demuxer->head_size() && buffer_->read_back() < read_demuxer_.demuxer->head_size()) {
+                    boost::uint64_t head_length = read_demuxer_.segment.source->segment_head_size(read_demuxer_.segment.segment);
+                    if (head_length && buffer_->read_back() < head_length) {
                         buffer_->async_prepare(
-                            read_demuxer_.demuxer->head_size() - buffer_->read_back(), 
+                            head_length - buffer_->read_back(), 
                             boost::bind(&BufferDemuxer::handle_async, this, _1));
                     } else {
                         buffer_->async_prepare_at_least(0, 
@@ -347,12 +348,14 @@ namespace ppbox
                 }
             }
             open_end();
-            size_t stream_count = read_demuxer_.demuxer->get_media_count(ec);
-            for(size_t i = 0; i < stream_count; i++) {
-                MediaInfo info;
-                read_demuxer_.demuxer->get_media_info(i, info, ec);
-                media_time_scales_.push_back(info.time_scale);
-                dts_offset_.push_back(info.time_scale);
+            if (!ec) {
+                size_t stream_count = read_demuxer_.demuxer->get_media_count(ec);
+                for(size_t i = 0; i < stream_count; i++) {
+                    MediaInfo info;
+                    read_demuxer_.demuxer->get_media_info(i, info, ec);
+                    media_time_scales_.push_back(info.time_scale);
+                    dts_offset_.push_back(info.time_scale);
+                }
             }
             response(ec);
         }

@@ -101,6 +101,7 @@ namespace ppbox
 
         private:
             std::istream is_;
+            boost::uint32_t head_size_;
             boost::uint32_t open_step_;
             AP4_File * file_;
             std::vector<Track *> tracks_;

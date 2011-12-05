@@ -139,7 +139,6 @@ namespace ppbox
         public:
             DemuxerBase(
                 std::basic_streambuf<boost::uint8_t> & buf)
-                : head_size_(24)
             {
             }
 
@@ -178,19 +177,6 @@ namespace ppbox
             virtual boost::uint64_t seek(
                 boost::uint32_t & time, 
                 boost::system::error_code & ec) = 0;
-
-            virtual void release(void)
-            {
-            }
-
-        public:
-            size_t head_size() const
-            {
-                return head_size_;
-            }
-
-        protected:
-            boost::uint32_t head_size_;
         };
 
     } // namespace demux
