@@ -72,31 +72,33 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec)
             {
-                stream_->more(0);
-                stream_->drop();
-                while (FlvDemuxerBase::get_sample(sample, ec)) {
+                stream_->more(0);
+                stream_->drop();
+                while (FlvDemuxerBase::get_sample(sample, ec)) {
                     if (ec == ppbox::demux::error::file_stream_error) {
-                        if (buffer_.read_segment() != buffer_.write_segment()) {    // 当前分段已经下载完成
-                            std::cout << "drop_all" << std::endl;
-                            stream_->drop_all();
-                            FlvDemuxerBase::open(ec); 
-                        } else {
-                            ec = stream_->error();
-                            break;
-                        }
+                        if (buffer_.read_segment() != buffer_.write_segment()) {    // 当前分段已经下载完成
+                            std::cout << "segment finish: " << buffer_.read_segment() << std::endl;
+                            stream_->drop_all();
+                            FlvDemuxerBase::open(ec); 
+                            continue;
+                        } else {
+                            ec = stream_->error();
+                            assert(ec);
+                        }
                     }
+                    break;
                 }
                 if (!ec) {
-                    sample.data.clear();
-                    for(std::vector<FileBlock>::iterator iter = sample.blocks.begin();
-                        iter != sample.blocks.end();
-                        iter++) {
-                            buffer_.peek((*iter).offset, (*iter).size, sample.data, ec);
-                            if (ec) {
-                                break;
-                            }
-                    }
-                }
+                    sample.data.clear();
+                    for(std::vector<FileBlock>::iterator iter = sample.blocks.begin();
+                        iter != sample.blocks.end();
+                        iter++) {
+                            buffer_.peek((*iter).offset, (*iter).size, sample.data, ec);
+                            if (ec) {
+                                break;
+                            }
+                    }
+                }
                 return ec;
             }
 
@@ -121,6 +123,7 @@ namespace ppbox
                 boost::uint64_t offset = FlvDemuxerBase::seek_to(time, ec);
                 if (!ec) {
                     buffer_.seek(segment_, offset, ec);
+                    stream_->update_new();
                 }
                 return ec;
             }

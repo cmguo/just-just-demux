@@ -6,6 +6,8 @@
 #include "ppbox/demux/flv/FlvFormat.h"
 #include "ppbox/demux/flv/FlvDataType.h"
 
+#include <util/serialization/NumberBits24.h>
+
 namespace ppbox
 {
     namespace demux
@@ -17,74 +19,125 @@ namespace ppbox
             boost::uint8_t Signature2;
             boost::uint8_t Signature3;
             boost::uint8_t Version;
-            boost::uint8_t TypeFlagsReserved : 5;
-            boost::uint8_t TypeFlagsAudio : 1;
-            boost::uint8_t TypeFlagsReserved2 : 1;
-            boost::uint8_t TypeFlagsVideo : 1;
+            union {
+                struct {
+#ifdef   BOOST_BIG_ENDIAN
+                    boost::uint8_t TypeFlagsReserved : 5;
+                    boost::uint8_t TypeFlagsAudio : 1;
+                    boost::uint8_t TypeFlagsReserved2 : 1;
+                    boost::uint8_t TypeFlagsVideo : 1;
+#else 
+                    boost::uint8_t TypeFlagsVideo : 1;
+                    boost::uint8_t TypeFlagsReserved2 : 1;
+                    boost::uint8_t TypeFlagsAudio : 1;
+                    boost::uint8_t TypeFlagsReserved : 5;
+#endif
+                };
+                boost::uint8_t flag;
+            };
             boost::uint32_t DataOffset;
+            boost::uint32_t PreTagSize;
+
+            FlvHeader()
+                : Signature1('F')
+                , Signature2('L')
+                , Signature3('V')
+                , Version(1)
+                , flag(5) // TypeFlagsReserved = 0, TypeFlagsAudio = 1, TypeFlagsReserved2 = 0, TypeFlagsVideo = 0
+                , DataOffset(9)
+                , PreTagSize(0)
+            {
+            }
 
             template <typename Archive>
             void serialize(
                 Archive & ar)
             {
-                boost::uint8_t temp;
                 ar & Signature1;
                 ar & Signature2;
                 ar & Signature3;
+                if (!(Signature1 == 'F' && Signature2 == 'L' && Signature3 == 'V')) {
+                    ar.fail();
+                }
                 ar & Version;
-                ar & temp;
+                ar & flag;
                 ar & DataOffset;
-                TypeFlagsReserved = (temp & 0xF8) >> 3;
-                TypeFlagsAudio = (temp & 0x04) >> 2;
-                TypeFlagsReserved2 = (temp & 0x02) >> 1;
-                TypeFlagsVideo = (temp & 0x01);
+                ar & PreTagSize;
             }
         };
 
-        struct FlvAudioTag
+        struct FlvAudioTagHeader
         {
-            boost::uint8_t SoundFormat : 4;
-            boost::uint8_t SoundRate : 2;
-            boost::uint8_t SoundSize : 1;
-            boost::uint8_t SoundType : 1;
+            union {
+                struct {
+#ifdef   BOOST_BIG_ENDIAN
+                    boost::uint8_t SoundFormat : 4;
+                    boost::uint8_t SoundRate : 2;
+                    boost::uint8_t SoundSize : 1;
+                    boost::uint8_t SoundType : 1;
+#else 
+                    boost::uint8_t SoundType : 1;
+                    boost::uint8_t SoundSize : 1;
+                    boost::uint8_t SoundRate : 2;
+                    boost::uint8_t SoundFormat : 4;
+#endif
+                };
+                boost::uint8_t flag;
+            };
             boost::uint8_t AACPacketType;
 
+            FlvAudioTagHeader()
+                : flag(0) // SoundFormat = 0, SoundRate = 0, SoundSize = 0, SoundType = 0
+                , AACPacketType(0)
+            {
+            }
+
             template <typename Archive>
             void serialize(
                 Archive & ar)
             {
-                boost::uint8_t temp;
-                ar & temp;
-                SoundFormat = (temp & 0xF0) >> 4;
-                SoundRate = (temp & 0x0C) >> 2;
-                SoundSize = (temp & 0x02) >> 1;
-                SoundType = temp & 0x01;
+                ar & flag;
                 if (SoundFormat == SoundCodec::FLV_CODECID_AAC)
                     ar & AACPacketType;
+                else
+                    AACPacketType = 1;
             }
         };
 
-        struct FlvVideoTag
+        struct FlvVideoTagHeader
         {
-            boost::uint8_t FrameType : 4;
-            boost::uint8_t CodecID : 4;
+            union {
+                struct {
+#ifdef   BOOST_BIG_ENDIAN
+                    boost::uint8_t FrameType : 4;
+                    boost::uint8_t CodecID : 4;
+#else 
+                    boost::uint8_t CodecID : 4;
+                    boost::uint8_t FrameType : 4;
+#endif
+                };
+                boost::uint8_t flag;
+            };
             boost::uint8_t AVCPacketType;
-            boost::uint32_t CompositionTime;
+            framework::system::UInt24 CompositionTime;
+
+            FlvVideoTagHeader()
+                : flag(0) // FrameType = 0, CodecID = 0
+                , AVCPacketType(0)
+                , CompositionTime(0)
+            {
+            }
 
             template <typename Archive>
             void serialize(
                 Archive & ar)
             {
-                boost::uint8_t temp;
-                ar & temp;
-                FrameType = (temp & 0xF0) >> 4;
-                CodecID  = (temp & 0x0F);
+                ar & flag;
                 if (CodecID == VideoCodec::FLV_CODECID_H264) {
                     ar & AVCPacketType;
-                    boost::uint8_t temp2[3];
-                    ar & framework::container::make_array(temp2);
-                    CompositionTime = BigEndianUint24ToHostUint32(temp2);
+                    ar & CompositionTime;
                 } else {
+                    AVCPacketType = 1;
                     CompositionTime = 0;
                 }
             }
@@ -104,75 +157,112 @@ namespace ppbox
             }
         };
 
-        struct FlvTag
+        struct FlvTagHeader
         {
-            FlvTag()
+            union {
+                struct {
+#ifdef   BOOST_BIG_ENDIAN
+                    boost::uint8_t  Reserved : 2;
+                    boost::uint8_t  Filter : 1;
+                    boost::uint8_t  Type : 5;
+#else 
+                    boost::uint8_t  Type : 5;
+                    boost::uint8_t  Filter : 1;
+                    boost::uint8_t  Reserved : 2;
+#endif
+                };
+                boost::uint8_t flag;
+            };
+            framework::system::UInt24 DataSize;
+            framework::system::UInt24 Timestamp;
+            boost::uint8_t TimestampExtended;
+            framework::system::UInt24 StreamID;
+
+            FlvTagHeader()
+                : flag(0) // Reserved = 0, Filter = 0, Type = 0
+                , TimestampExtended(0)
             {
             }
 
-            boost::uint32_t PreTagSize;
-            boost::uint8_t  Reserved : 2;
-            boost::uint8_t  Filter : 1;
-            boost::uint8_t  Type : 5;
-            boost::uint32_t DataSize;
-            boost::uint32_t Timestamp;
-            boost::uint32_t StreamID;
-            FlvAudioTag AudioTag;
-            FlvVideoTag VideoTag;
-            FlvDataTag DataTag;
-            boost::uint64_t data_offset;
-            boost::uint32_t cts_delta;
-            boost::uint8_t is_sync;
-
-            boost::uint8_t input[3];
             template <typename Archive>
             void serialize(
                 Archive & ar)
             {
-                ar & PreTagSize;
-                boost::uint8_t temp1 = 0, temp2 = 0, temp3 = 0;
-                ar & temp1;
-                Reserved = (temp1 & 0xC0) >> 6;
-                Filter   = (temp1 & 0x20) >> 5;
-                Type  = temp1 & 0x1F;
-                ar & temp1 & temp2 & temp3;
-                input[0] = temp1; input[1] = temp2; input[2] = temp3;
-                DataSize = BigEndianUint24ToHostUint32(input);
-                //ar & framework::container::make_array(input);
+                ar & flag;
+                ar & DataSize;
                 if (ar && DataSize == 0) {
                     ar.fail();
                 }
-                ar & temp1 & temp2 & temp3;
-                input[0] = temp1; input[1] = temp2; input[2] = temp3;
-                Timestamp = BigEndianUint24ToHostUint32(input);
-                ar & temp1;
-                boost::uint32_t TimestampExtended = temp1 << 24;
-                Timestamp += TimestampExtended;
-                //ar & framework::container::make_array(input);
-                ar & temp1 & temp2 & temp3;
-                input[0] = temp1; input[1] = temp2; input[2] = temp3;
-                StreamID = BigEndianUint24ToHostUint32(input);
+                TimestampExtended = Timestamp >> 24;
+                ar & Timestamp;
+                ar & TimestampExtended;
+                Timestamp = Timestamp | (TimestampExtended << 24);
+                ar & StreamID;
+            }
+        };
+
+        struct FlvTag
+            : FlvTagHeader
+        {
+            FlvAudioTagHeader AudioHeader;
+            FlvVideoTagHeader VideoHeader;
+            FlvDataTag DataTag;
+            boost::uint32_t PreTagSize;
+
+            boost::uint64_t data_offset;
+            bool is_sample;
+            bool is_sync;
+            boost::uint32_t cts_delta;
+
+            FlvTag()
+                : PreTagSize(0)
+                , data_offset(0)
+                , is_sample(false)
+                , is_sync(false)
+                , cts_delta(0)
+            {
+            }
+
+            template <typename Archive>
+            void serialize(
+                Archive & ar)
+            {
+                boost::uint64_t off = ar.tellg();
+
+                FlvTagHeader::serialize(ar);
+
                 data_offset = ar.tellg();
                 if (Type == TagType::FLV_TAG_TYPE_AUDIO) {
-                    ar & AudioTag;
-                    cts_delta = 0;
+                    ar & AudioHeader;
+                    is_sample = AudioHeader.AACPacketType == 1;
                     is_sync = true;
+                    cts_delta = 0;
                 } else if (Type == TagType::FLV_TAG_TYPE_VIDEO) {
-                    ar & VideoTag;
-                    cts_delta = VideoTag.CompositionTime;
-                    is_sync = VideoTag.FrameType == FrameType::FLV_FRAME_KEY;
+                    ar & VideoHeader;
+                    is_sample = VideoHeader.AVCPacketType == 1;
+                    is_sync = VideoHeader.FrameType == FrameType::FLV_FRAME_KEY;
+                    cts_delta = VideoHeader.CompositionTime;
                 } else if (Type == TagType::FLV_TAG_TYPE_META) {
                     ar & DataTag;
+                    is_sample = false;
+                    is_sync = false;
                     cts_delta = 0;
-                    is_sync = true;
+                } else {
+                    is_sample = false;
+                    is_sync = false;
+                    cts_delta = 0;
                 }
-                if (DataSize + data_offset < ar.tellg()) {
+                if (ar && (DataSize + data_offset < (boost::uint64_t)ar.tellg())) {
                     ar.fail();
                 } else {
                     DataSize = DataSize + data_offset - ar.tellg();
                     data_offset = ar.tellg();
                 }
                 ar.seekg(DataSize, std::ios_base::cur);
+                ar & PreTagSize;
+                if (ar && (off + PreTagSize + 4 != (boost::uint64_t)ar.tellg())) {
+                    ar.fail();
+                }
             }
         };
 

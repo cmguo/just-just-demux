@@ -6,6 +6,8 @@
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/flv/FlvStream.h"
 
+#include <framework/system/LimitNumber.h>
+
 namespace ppbox
 {
     namespace demux
@@ -22,7 +24,6 @@ namespace ppbox
                 , header_offset_(0)
                 , parse_offset_(0)
                 , timestamp_offset_ms_(0)
-                , reopen_(false)
             {
                 streams_.resize(2);
             }
@@ -66,8 +67,11 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            boost::system::error_code parse_stream(
-                boost::system::error_code & ec);
+            //boost::system::error_code parse_stream(
+            //    boost::system::error_code & ec);
+
+            void parse_metadata(
+                FlvTag const & metadata_tag);
 
             boost::system::error_code get_tag(
                 FlvTag & flv_tag,
@@ -83,10 +87,12 @@ namespace ppbox
             FlvTag flv_tag_;
 
             boost::uint32_t open_step_;
-            boost::uint32_t header_offset_;
-            boost::uint32_t parse_offset_;
-            boost::uint32_t timestamp_offset_ms_;	
-            bool reopen_;
+            boost::uint64_t header_offset_;
+
+            boost::uint64_t parse_offset_;
+            boost::uint32_t timestamp_offset_ms_;
+            framework::system::LimitNumber<32> timestamp_;
+
         };
 
     } // namespace demux

@@ -4,24 +4,7 @@
 #define _PPBOX_DEMUX_FLV_FLV_FORMAT_H_
 
 #include <util/archive/BigEndianBinaryIArchive.h>
-
-#include <string>
-
-#define FLV_AUDIO_SAMPLESSIZE_OFFSET 1
-#define FLV_AUDIO_SAMPLERATE_OFFSET  2
-#define FLV_AUDIO_CODECID_OFFSET     4
-
-#define FLV_VIDEO_FRAMETYPE_OFFSET   4
-
-#define FLV_AUDIO_CHANNEL_MASK    0x01
-#define FLV_AUDIO_SAMPLESIZE_MASK 0x02
-#define FLV_AUDIO_SAMPLERATE_MASK 0x0c
-#define FLV_AUDIO_CODECID_MASK    0xf0
-
-#define FLV_VIDEO_CODECID_MASK    0x0f
-#define FLV_VIDEO_FRAMETYPE_MASK  0xf0
-
-#define AMF_END_OF_OBJECT         0x09
+#include <util/archive/BigEndianBinaryOArchive.h>
 
 namespace ppbox
 {
@@ -127,36 +110,7 @@ namespace ppbox
         };
 
         typedef util::archive::BigEndianBinaryIArchive<boost::uint8_t> FLVArchive;
-
-        /*return 1 : little-endian, return 0:big-endian*/
-        static bool endian(void)
-        {
-            union
-            {
-                boost::uint32_t a;
-                boost::uint8_t  b;
-            } c;
-            c.a = 1;
-            return (c.b == 1);
-        }
-
-        static boost::uint32_t BigEndianUint24ToHostUint32(
-            boost::uint8_t in[3])
-        {
-            boost::uint32_t value = 0;
-            boost::uint8_t *p = (boost::uint8_t*)&value;
-            if (endian()) {
-                *p = in[2];
-                *(p+1) = in[1];
-                *(p+2) = in[0];
-            } else {
-                *p = 0;
-                *(p+1) = in[0];
-                *(p+2) = in[1];
-                *(p+3) = in[2];
-            }
-            return value;
-        }
+        typedef util::archive::BigEndianBinaryOArchive<char> FLVOArchive;
 
         struct FlvMetadata
         {
