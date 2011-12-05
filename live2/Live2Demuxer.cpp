@@ -102,7 +102,6 @@ namespace ppbox
                         LOG_S(Logger::kLevelDebug, "data failure (" << open_logs_[1].total_elapse << " milliseconds)");
                     }
 
-                    open_end();
                     DemuxerStatistic::on_error(ec);
                 }
 
