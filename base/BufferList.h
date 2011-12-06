@@ -124,8 +124,6 @@ namespace ppbox
                 , sended_req_(0)
             {
                 buffer_ = (char *)memory_.alloc_block(buffer_size_);
-                //TODO:
-                //segments_->reserve(seg_num);
                 read_.buffer = buffer_beg();
                 read_.offset = 0;
                 read_.segment = 0;
@@ -635,11 +633,25 @@ namespace ppbox
 
             read_buffer_t read_buffer() const
             {
-                boost::uint64_t beg = read_.offset;
-                boost::uint64_t end = write_.offset;
-                if (end > read_.size_end)
-                    end = read_.size_end;
-                return read_buffer(beg, end);
+                return segment_read_buffer(read_);
+            }
+
+            read_buffer_t segment_read_buffer(
+                SegmentPosition const & segment) const
+            {
+                boost::uint64_t beg = segment.size_beg;
+                boost::uint64_t end = segment.size_end;
+                if (beg < read_.offset) {
+                    beg = read_.offset;
+                }
+                if (end > write_.offset) {
+                    end = write_.offset;
+                }
+                if (beg < end) {
+                    return read_buffer(beg, end);
+                } else {
+                    return read_buffer_t();
+                }
             }
 
             write_buffer_t write_buffer()
@@ -662,33 +674,6 @@ namespace ppbox
                     end = beg + max_size;
                 return write_buffer(beg, end);
             }
-
-            read_buffer_t segment_read_buffer(
-                size_t segment) const
-            {
-                boost::uint64_t beg = 0;
-                boost::uint64_t end = 0;
-                if (segment == read_.segment) {
-                    return read_buffer();
-                } else if (segment == write_.segment) {
-                    beg = write_.size_beg;
-                    end = write_.offset;
-                }
-                return read_buffer(beg, end);
-            }
-
-            /*read_buffer_t segment_read_buffer(
-                size_t segment) const
-            {
-                boost::uint64_t beg = segment_read_front(segment);
-                boost::uint64_t end = segment_read_back(segment);
-                boost::system::error_code ec;
-                PositionEx position_beg(segment, beg);
-                PositionEx position_end(segment, end);
-                offset_of_segment(position_beg, ec);
-                offset_of_segment(position_end, ec);
-                return read_buffer(position_beg.offset, position_end.offset);
-            }*/
 
             void add_request(
                 boost::system::error_code & ec)
