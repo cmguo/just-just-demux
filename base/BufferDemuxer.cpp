@@ -161,7 +161,7 @@ namespace ppbox
                 boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);
                 if (!ec) {
                     seek_time_ = 0;
-                    read_demuxer_.stream->seek(offset);
+                    read_demuxer_.stream->seek(position, offset);
                     segment_time_ = buffer_->read_segment().time_beg;
                     if (segment_time_ == boost::uint64_t(-1)) {
                         segment_time_ = cur_time;
@@ -174,9 +174,9 @@ namespace ppbox
                 } else {
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
                     if (head_length && seek_time_) {
-                        read_demuxer_.stream->seek(0, head_length);
+                        read_demuxer_.stream->seek(position, 0, head_length);
                     } else {
-                        read_demuxer_.stream->seek(0);
+                        read_demuxer_.stream->seek(position, 0);
                     }
                 }
                 create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
@@ -329,11 +329,7 @@ namespace ppbox
                 read_demuxer_.stream->update_new(buffer_->read_segment());
                 if (read_demuxer_.demuxer->is_open(ec)) {
                     read_demuxer_.stream->drop();
-                    if (seek_time_) {
-                        boost::uint64_t offset = read_demuxer_.demuxer->seek(seek_time_, ec);
-                        if (!ec) {
-                            read_demuxer_.stream->seek(offset);
-                        }
+                    if (seek_time_ && seek(seek_time_, ec)) {
                     }
                 } else if (ec == ppbox::demux::error::file_stream_error) {
                     boost::uint64_t head_length = buffer_->read_segment().source->segment_head_size(buffer_->read_segment().segment);
