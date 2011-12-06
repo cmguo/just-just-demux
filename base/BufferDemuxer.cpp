@@ -370,13 +370,16 @@ namespace ppbox
             DemuxerInfo & demuxer, 
             boost::system::error_code & ec)
         {
-            if (read_demuxer_.stream && segment == buffer_->read_segment()) {
+            if (read_demuxer_.stream && segment == read_demuxer_.segment) {
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
-            } else if (write_demuxer_.stream && segment == buffer_->write_segment()) {
+                demuxer.segment = read_demuxer_.segment;
+            } else if (write_demuxer_.stream && segment == write_demuxer_.segment) {
                 demuxer.stream = write_demuxer_.stream;
                 demuxer.demuxer = write_demuxer_.demuxer;
+                demuxer.segment = write_demuxer_.segment;
             } else {
+                demuxer.segment = segment;
                 demuxer.stream.reset(new BytesStream(*buffer_, *segment.source));
                 demuxer.demuxer.reset(ppbox::demux::create_demuxer(segment.source->demuxer_type(), *demuxer.stream));
                 demuxer.demuxer->open(ec);
