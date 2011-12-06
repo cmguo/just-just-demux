@@ -61,7 +61,7 @@ namespace ppbox
                     }
                     std::ostringstream oss;
                     head.get_content(oss);
-                    LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
+                    LOG_STR(framework::logger::Logger::kLevelDebug2, oss.str().c_str());
                     http_.bind_host(addr_, ec);
                     http_.open(request_, ec);
                     //LOG_STR(framework::logger::logger::kLevelDebug1, http_.response().head().heAD)
@@ -87,7 +87,7 @@ namespace ppbox
                     }
                     std::ostringstream oss;
                     head.get_content(oss);
-                    LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
+                    LOG_STR(framework::logger::Logger::kLevelDebug2, oss.str().c_str());
                     http_.bind_host(addr_, ec);
                     http_.async_open(request_, resp);
                 } else {
@@ -103,7 +103,7 @@ namespace ppbox
                     util::protocol::HttpResponseHead head = http_.response().head();
                     std::ostringstream oss;
                     head.get_content(oss);
-                    LOG_STR(framework::logger::Logger::kLevelDebug1, oss.str().c_str());
+                    LOG_STR(framework::logger::Logger::kLevelDebug2, oss.str().c_str());
                     flag_ = false;
                 }
                 return result;

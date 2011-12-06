@@ -214,7 +214,7 @@ namespace ppbox
                     || ec == error::no_more_sample) {
                     if (buffer_->read_segment() != buffer_->write_segment()) {
                         boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
-                        std::cout << "drop_all" << std::endl;
+                        std::cout << "finish segment " << read_demuxer_.segment.segment << std::endl;
                         read_demuxer_.stream->drop_all();
                         if (buffer_->read_segment().source) {
                             create_demuxer(buffer_->read_segment(), read_demuxer_, ec);

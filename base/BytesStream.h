@@ -182,7 +182,6 @@ namespace ppbox
 
             void update()
             {
-                //buffers_ = buffer_.read_buffer();
                 buffers_ = buffer_.segment_read_buffer(segment_);
                 size_ = util::buffers::buffer_size(buffers_);
             }

@@ -1004,7 +1004,7 @@ namespace ppbox
                         }
                         data_end_ = data_end_tmp;
                     }
-                    LOG_S(framework::logger::Logger::kLevelAlarm, 
+                    LOG_S(framework::logger::Logger::kLevelDebug2, 
                         "[open_request] segment: " << write_tmp_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
                     ++sended_req_;
                     write_.source->segment_open(write_tmp_.segment, write_tmp_.offset - write_tmp_.size_beg, 
@@ -1031,7 +1031,7 @@ namespace ppbox
                 if (sended_req_) {
                     write_.source->segment_close(write_.segment, ec);
                     --sended_req_;
-                    LOG_S(framework::logger::Logger::kLevelAlarm, 
+                    LOG_S(framework::logger::Logger::kLevelDebug2, 
                         "[close_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
                 } else {
                     return ec;
@@ -1049,8 +1049,8 @@ namespace ppbox
                 for (size_t i = 0; i < sended_req_; ++i) {
                     write_.source->segment_close(write_tmp_.segment, ec);
                     --sended_req_;
-                    LOG_S(framework::logger::Logger::kLevelAlarm, 
-                        "[close_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
+                    LOG_S(framework::logger::Logger::kLevelDebug2, 
+                        "[close_all_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
                     boost::uint64_t data_end_tmp = data_end_;
                     if (data_end_ < write_hole_tmp_.this_end 
                         && write_hole_tmp_.this_end <= write_tmp_.size_end 
@@ -1094,7 +1094,7 @@ namespace ppbox
                 if (ec && !write_.source->continuable(ec)) {
                     if (!ec)
                         ec = boost::asio::error::would_block;
-                    LOG_S(framework::logger::Logger::kLevelAlarm, 
+                    LOG_S(framework::logger::Logger::kLevelDebug, 
                         "[open_segment] source().open_segment: " << ec.message() << 
                         " --- failed " << num_try_ << " times");
                     return ec;
@@ -1156,7 +1156,7 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 if (!source_closed_) {
-                    LOG_S(framework::logger::Logger::kLevelAlarm, 
+                    LOG_S(framework::logger::Logger::kLevelDebug, 
                         "[close_segment] write_.segment: " << write_.segment << 
                         " write_.offset: " << write_.offset - write_.size_beg<< 
                         " write_hole_.this_end: " << write_hole_.this_end - write_.size_beg);
