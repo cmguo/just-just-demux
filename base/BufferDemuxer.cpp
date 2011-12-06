@@ -123,7 +123,8 @@ namespace ppbox
         {
             judge_message();
             tick_on();
-            write_demuxer_.stream->more(0);
+            StreamPointer write_point = write_demuxer_.stream;
+            write_point->more(0);
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -219,12 +220,12 @@ namespace ppbox
                             create_demuxer(buffer_->read_segment(), read_demuxer_, ec);
                             segment_time_ = read_demuxer_.segment.time_beg;
                             if (segment_time_ == boost::uint64_t(-1)) {
-                                segment_time_ = cur_time;
+                                segment_time_ += cur_time;
                             }
-                            segment_ustime_ = segment_time_ * 1000;
+                            segment_ustime_ += (boost::uint64_t)cur_time * 1000;
                             for (size_t i = 0; i < media_time_scales_.size(); i++) {
                                 dts_offset_[i] = 
-                                    segment_time_ * media_time_scales_[i] / 1000;
+                                    (boost::uint64_t)segment_time_ * media_time_scales_[i] / 1000;
                             }
                             continue;
                         }
@@ -285,7 +286,7 @@ namespace ppbox
             return d;
         }
 
-        void BufferDemuxer::segment_write_end(
+        void BufferDemuxer::segment_write_beg(
             SegmentPosition & segment)
         {
             boost::system::error_code ec;

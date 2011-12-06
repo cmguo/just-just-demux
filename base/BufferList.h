@@ -753,6 +753,10 @@ namespace ppbox
                             read_.size_end = write_.size_end;
                             read_.total_state = SegmentPosition::by_guess;
                         }
+                        if (write_tmp_.segment == write_.segment) {
+                            write_tmp_.size_end = write_.size_end;
+                            write_tmp_.total_state = SegmentPosition::by_guess;
+                        }
                         LOG_S(framework::logger::Logger::kLevelInfor, 
                             "[handle_error] guess segment size " << write_.size_end - write_.size_beg);
                         return true;
@@ -931,7 +935,6 @@ namespace ppbox
                     if (!pos.source) {
                         return ec = source_error::no_more_segment;
                     }
-                    demuxer_->segment_write_end(pos);
                 }
 
                 if (pos.buffer != NULL) {
@@ -981,8 +984,14 @@ namespace ppbox
                         write_.size_end = write_.size_beg + file_length;
                         if (write_hole_.this_end >= write_.size_end)
                             write_hole_.this_end = write_.size_end;
-                        if (read_.segment == write_.segment)
+                        if (read_.segment == write_.segment) {
                             read_.size_end = write_.size_end;
+                            read_.total_state = SegmentPosition::is_valid;
+                        }
+                        if (write_tmp_.segment == write_.segment) {
+                            write_tmp_.size_end = write_.size_end;
+                            write_tmp_.total_state = SegmentPosition::is_valid;
+                        }
                     }
                 }
             }
@@ -1119,6 +1128,7 @@ namespace ppbox
                     " write_hole_.this_end: " << write_hole_.this_end - write_.size_beg);
 
                 write_.source->on_seg_beg(write_.segment);
+                demuxer_->segment_write_beg(write_);
                 source_closed_ = false;
 
                 return ec;

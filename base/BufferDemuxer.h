@@ -94,7 +94,7 @@ namespace ppbox
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf);
 
-            void segment_write_end(
+            void segment_write_beg(
                 SegmentPosition & segment);
 
             void on_extern_error(
@@ -168,7 +168,7 @@ namespace ppbox
             DemuxerInfo write_demuxer_;
 
             std::vector<boost::uint32_t> media_time_scales_;
-            std::vector<boost::uint32_t> dts_offset_;
+            std::vector<boost::uint64_t> dts_offset_;
 
             open_response_type resp_;
         };

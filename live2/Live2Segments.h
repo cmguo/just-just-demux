@@ -364,6 +364,9 @@ namespace ppbox
             boost::uint64_t segment_size(
                 size_t segment)
             {
+                if (segment < segments_.size() + num_del_) {
+                    return segments_[segment - num_del_];
+                }
                 return boost::uint64_t(-1);
             }
 
@@ -393,13 +396,13 @@ namespace ppbox
                         boost::uint64_t(-1) : segment_size(segment.segment) + segment.size_beg;
                     if (segment.size_end == (boost::uint64_t)-1) {
                         segment.total_state = SegmentPosition::not_init;
+                    } else {
+                        segment.total_state = SegmentPosition::is_valid;
                     }
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);
                 }
-                size_t read_seg = buffer_->read_segment().segment;
-                size_t del_seg = read_seg - num_del_;
-                for (size_t seg = 0; seg < del_seg; seg++) {
+                while (num_del_ < buffer_->read_segment().segment) {
                     num_del_++;
                     segments_.pop_front();
                 }
