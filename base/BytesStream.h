@@ -31,8 +31,7 @@ namespace ppbox
         public:
             BytesStream(
                 BufferList & buffer,
-                SourceBase & source,
-                SegmentPosition const & segment)
+                SourceBase & source)
                 : buffer_(buffer)
                 , source_(source)
                 , size_(0)
@@ -40,11 +39,9 @@ namespace ppbox
                 , pos_(0)
                 , end_(0)
                 , buf_(*this)
-                , segment_(segment)
                 , ec_(boost::asio::error::would_block)
             {
                 setg(NULL, NULL, NULL);
-                update_new();
             }
 
         public:
@@ -53,12 +50,21 @@ namespace ppbox
                 return ec_;
             }
 
-            void more(
+            void read_more(
                 boost::uint32_t amount = 0)
             {
                 prepare(amount);
 
-                update_new();
+                update_new(buffer_.read_segment());
+            }
+
+            void write_more(
+                boost::uint32_t amount = 0)
+            {
+                
+                prepare(amount);
+
+                update_new(buffer_.write_segment());
             }
 
             void drop()
@@ -70,7 +76,7 @@ namespace ppbox
                 buffer_.drop(off, ec_);
                 assert(!ec_);
 
-                update();
+                update(buffer_.read_segment());
 
                 iter_ = buffers_.begin();
                 assert(gptr() == egptr() 
@@ -88,7 +94,7 @@ namespace ppbox
                 Checker ck(*this);
                 buffer_.drop_all(ec_);
                 assert(!ec_);
-                update();
+                update(buffer_.read_segment());
 
                 iter_ = buffers_.begin();
                 if (iter_ != buffers_.end()) {
@@ -100,7 +106,7 @@ namespace ppbox
                 end_ = size_;
             }
 
-            void update_new()
+            void update_new(SegmentPosition const & segment)
             {
                 Checker ck(*this);
 
@@ -108,7 +114,7 @@ namespace ppbox
                 std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
                 boost::uint32_t size = size_;
 
-                update();
+                update(segment);
 
                 assert(size_ >= size);
                 end_ += (size_ - size);
@@ -131,8 +137,9 @@ namespace ppbox
             void seek(
                 boost::uint64_t offset)
             {
-                buffer_.seek(segment_, offset, ec_);
-                update();
+                SegmentPosition segment = buffer_.read_segment();
+                buffer_.seek(segment, offset, ec_);
+                update(segment);
                 pos_ = offset;
                 end_ = offset + size_;
                 if (size_ > 0) {
@@ -147,8 +154,9 @@ namespace ppbox
                 boost::uint64_t offset,
                 boost::uint64_t head_length)
             {
-                buffer_.seek(segment_, offset, head_length, ec_);
-                update();
+                SegmentPosition segment = buffer_.read_segment();
+                buffer_.seek(segment, offset, head_length, ec_);
+                update(segment);
                 pos_ = offset;
                 end_ = offset + size_;
                 if (size_ > 0) {
@@ -165,11 +173,6 @@ namespace ppbox
                 return source_;
             }
 
-            SegmentPosition const & segment() const
-            {
-                return segment_;
-            }
-
         private:
             void prepare(
                 boost::uint32_t amount)
@@ -180,9 +183,9 @@ namespace ppbox
                 buffer_.prepare_at_least(amount, ec_);
             }
 
-            void update()
+            void update(SegmentPosition const & segment)
             {
-                buffers_ = buffer_.segment_read_buffer(segment_);
+                buffers_ = buffer_.segment_read_buffer(segment);
                 size_ = util::buffers::buffer_size(buffers_);
             }
 
@@ -234,7 +237,7 @@ namespace ppbox
                     return traits_type::eof();
                 }
                 //TODO:?
-                more(1);
+                read_more(1);
                 if (pos < end_) {
                     if (gptr() == egptr()) {
                         pos_ += boost::asio::buffer_size(*iter_);
@@ -286,7 +289,7 @@ namespace ppbox
                 if (position > end_) {
                     if (!ec_) {
                         //TODO:?
-                        more(position - end_);
+                        read_more(position - end_);
                     }
                     if (position > end_) {
                         return pos_type(-1);
@@ -324,7 +327,6 @@ namespace ppbox
         private:
             BufferList & buffer_;
             SourceBase & source_;
-            SegmentPosition segment_;
             read_buffer_t buffers_; // 有效数据
             boost::uint32_t size_;  // buffers_数据的大小
             const_iterator iter_;   // 当前的内存段

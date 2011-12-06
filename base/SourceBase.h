@@ -72,7 +72,6 @@ namespace ppbox
         {
             StreamPointer stream;
             DemuxerPointer demuxer;
-            SegmentPosition segment;
         };
 
         class SourceBase

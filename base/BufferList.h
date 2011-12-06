@@ -602,12 +602,12 @@ namespace ppbox
                 }
             }
 
-            PositionEx const & read_segment() const
+            SegmentPosition const & read_segment() const
             {
                 return read_;
             }
 
-            PositionEx const & write_segment() const
+            SegmentPosition const & write_segment() const
             {
                 return write_;
             }

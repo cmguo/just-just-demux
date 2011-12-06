@@ -130,10 +130,10 @@ namespace ppbox
         }
 
         error_code FlvDemuxerBase::get_tag(
-            FlvTag & flv_tag_,
+            FlvTag & flv_tag,
             error_code & ec)
         {
-            if (archive_ >> flv_tag_) {
+            if (archive_ >> flv_tag) {
                 ec.clear();
                 return ec;
             } else if (archive_.failed()) {
