@@ -150,11 +150,13 @@ namespace ppbox
             {
                 ec.clear();
                 offset += position.size_beg;
+                bool is_close = false;
                 if (offset < read_.offset || offset > write_.offset) {
                     // close source for open from new offset
                     boost::system::error_code ec1;
                     close_segment(ec1);
                     close_all_request(ec1);
+                    is_close = true;
                 }
                 boost::uint64_t write_offset = write_.offset;
                 seek_to(offset);
@@ -164,6 +166,9 @@ namespace ppbox
                 if (!ec) {
                     seek_end_ = 
                         size == (boost::uint64_t)-1 ? size : position.size_beg + size;
+                }
+                if (is_close) {
+                    update_hole(write_, write_hole_);
                 }
                 if (write_.offset != write_offset) {
                     write_tmp_ = write_;
@@ -930,6 +935,15 @@ namespace ppbox
                     return ec = source_error::at_end_point;
                 }
 
+                update_hole(pos, hole);
+
+                return ec;
+            }
+
+            void update_hole(
+                PositionEx & pos,
+                Hole & hole)
+            {
                 // W     e^b    e----b      e---
                 // 如果当这个分段不能完全填充当前空洞，会切分出一个小空洞，需要插入
                 boost::uint64_t end = pos.size_end;
@@ -946,8 +960,6 @@ namespace ppbox
                     hole.this_end = end;
                     hole.next_beg = end;
                 }
-
-                return ec;
             }
 
             void update_segments(
