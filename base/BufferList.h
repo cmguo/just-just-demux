@@ -528,12 +528,6 @@ namespace ppbox
                     read_.total_state = SegmentPosition::by_guess;
                     LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
                 }
-                if (read_.size_end == (boost::uint64_t)-1) {
-                    size_t seg = read_.segment ;
-                    read_.source->next_segment(read_);
-                    if (read_.segment == seg + 1)
-                        return ec;
-                }
                 read_seek_to(read_.size_end, ec);
                 if (!ec) {
                     read_.source->next_segment(read_);
@@ -1109,8 +1103,9 @@ namespace ppbox
 
                 LOG_S(framework::logger::Logger::kLevelAlarm, 
                     "[open_segment] write_.segment: " << write_.segment << 
-                    " write_.offset: " << write_.offset - write_.size_beg << 
-                    " write_hole_.this_end: " << write_hole_.this_end - write_.size_beg);
+                    " write_.offset: " << write_.offset << 
+                    " begin: " << write_.offset - write_.size_beg << 
+                    " end: " << write_hole_.this_end - write_.size_beg);
 
                 write_.source->on_seg_beg(write_.segment);
                 demuxer_->segment_write_beg(write_);
@@ -1158,8 +1153,8 @@ namespace ppbox
                 if (!source_closed_) {
                     LOG_S(framework::logger::Logger::kLevelDebug, 
                         "[close_segment] write_.segment: " << write_.segment << 
-                        " write_.offset: " << write_.offset - write_.size_beg<< 
-                        " write_hole_.this_end: " << write_hole_.this_end - write_.size_beg);
+                        " write_.offset: " << write_.offset << 
+                        " end: " << write_hole_.this_end - write_.size_beg);
                     write_.source->on_seg_end(write_.segment);
                     source_closed_ = true;
                 }

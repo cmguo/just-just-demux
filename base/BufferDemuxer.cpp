@@ -29,6 +29,7 @@ namespace ppbox
             , segment_ustime_(0)
         {
             ticker_ = new framework::timer::Ticker(1000);
+            events_.reset(new EventQueue);
         }
 
         BufferDemuxer::~BufferDemuxer()
@@ -175,7 +176,7 @@ namespace ppbox
                     }
                 } else {
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
-                    if (head_length && seek_time_) {
+                    if (head_length && time) {
                         read_demuxer_.stream->seek(position, 0, head_length);
                     } else {
                         read_demuxer_.stream->seek(position, 0);
@@ -376,16 +377,15 @@ namespace ppbox
             DemuxerInfo & demuxer, 
             boost::system::error_code & ec)
         {
+            ec.clear();
             if (read_demuxer_.stream && segment == read_demuxer_.segment) {
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
                 demuxer.segment = read_demuxer_.segment;
-                // TODO: ec = ?;
             } else if (write_demuxer_.stream && segment == write_demuxer_.segment) {
                 demuxer.stream = write_demuxer_.stream;
                 demuxer.demuxer = write_demuxer_.demuxer;
                 demuxer.segment = write_demuxer_.segment;
-                // TODO: ec = ?;
             } else {
                 demuxer.segment = segment;
                 BytesStream * stream = new BytesStream(*buffer_, *segment.source);
