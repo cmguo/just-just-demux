@@ -43,8 +43,6 @@ namespace ppbox
             }
         }
 
-        bool BufferDemuxer::has_message_ = false;
-
         struct SyncResponse
         {
             SyncResponse(
@@ -99,7 +97,9 @@ namespace ppbox
         boost::uint32_t BufferDemuxer::get_cur_time(
             boost::system::error_code & ec)
         {
-            judge_message();
+            if (!events_->events.empty()) { // 双保险
+                handle_events();
+            }
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -121,7 +121,9 @@ namespace ppbox
             boost::system::error_code & ec, 
             boost::system::error_code & ec_buf)
         {
-            judge_message();
+            if (!events_->events.empty()) { // 双保险
+                handle_events();
+            }
             tick_on();
             StreamPointer write_point = write_demuxer_.stream;
             write_point->write_more(0);
@@ -179,7 +181,8 @@ namespace ppbox
                         read_demuxer_.stream->seek(position, 0);
                     }
                 }
-                create_demuxer(buffer_->write_segment(), write_demuxer_, ec);
+                boost::system::error_code ec1;
+                create_demuxer(buffer_->write_segment(), write_demuxer_, ec1);
             }
             if (&time != &seek_time_) {
                 DemuxerStatistic::seek(ec, time);
@@ -199,7 +202,9 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            judge_message();
+            if (!events_->events.empty()) { // 双保险
+                handle_events();
+            }
             tick_on();
             read_demuxer_.stream->read_more(0);
             if (seek_time_ && seek(seek_time_, ec)) {
@@ -230,9 +235,10 @@ namespace ppbox
                             continue;
                         }
                     }
-                }
-                if (ec == error::file_stream_error) {
-                    ec = read_demuxer_.stream->error();
+                    if (ec == error::file_stream_error) {
+                        ec = read_demuxer_.stream->error();
+                        // TODO: 什么情况下no_more_sample?
+                    }
                 }
                 break;
             }
@@ -374,27 +380,42 @@ namespace ppbox
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
                 demuxer.segment = read_demuxer_.segment;
+                // TODO: ec = ?;
             } else if (write_demuxer_.stream && segment == write_demuxer_.segment) {
                 demuxer.stream = write_demuxer_.stream;
                 demuxer.demuxer = write_demuxer_.demuxer;
                 demuxer.segment = write_demuxer_.segment;
+                // TODO: ec = ?;
             } else {
                 demuxer.segment = segment;
-                demuxer.stream.reset(new BytesStream(*buffer_, *segment.source));
+                BytesStream * stream = new BytesStream(*buffer_, *segment.source);
+                stream->update_new(segment);
+                demuxer.stream.reset(stream);
                 demuxer.demuxer.reset(ppbox::demux::create_demuxer(segment.source->demuxer_type(), *demuxer.stream));
                 demuxer.demuxer->open(ec);
             }
         }
 
-        void BufferDemuxer::judge_message()
+        BufferDemuxer::post_event_func BufferDemuxer::get_poster()
         {
-            if (has_message_) {
-                boost::system::error_code ec;
-                handle_message(ec);
-                if (!ec) {
-                    has_message_ = false;
-                }
+            return boost::bind(BufferDemuxer::post_event, events_, _1);
+        }
+
+        void BufferDemuxer::post_event(
+            boost::shared_ptr<EventQueue> const & events, 
+            event_func const & event)
+        {
+            boost::mutex::scoped_lock lock(events->mutex);
+            events->events.push_back(event);
+        }
+
+        void BufferDemuxer::handle_events()
+        {
+            boost::mutex::scoped_lock lock(events_->mutex);
+            for (size_t i = 0; i < events_->events.size(); ++i) {
+                events_->events[i]();
             }
+            events_->events.clear();
         }
 
         void BufferDemuxer::tick_on()

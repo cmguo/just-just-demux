@@ -39,9 +39,10 @@ namespace ppbox
                 , pos_(0)
                 , end_(0)
                 , buf_(*this)
-                , ec_(boost::asio::error::would_block)
+                , ec_(boost::asio::error::would_block) // 这里作用是：异步open不希望async_prepare和prepare混在一起调用
             {
                 setg(NULL, NULL, NULL);
+                // TODO: 有可能已经有数据了
             }
 
         public:
@@ -107,7 +108,8 @@ namespace ppbox
                 end_ = size_;
             }
 
-            void update_new(SegmentPosition const & segment)
+            void update_new(
+                SegmentPosition const & segment)
             {
                 Checker ck(*this);
 

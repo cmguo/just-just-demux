@@ -118,34 +118,34 @@ namespace ppbox
                     ec.clear();
                     break;
                 }
-            case StepType::drag_normal:
-                {
-                    ec = pending_error_;
-                    if (drag_info_->is_ready) {
-                        pending_error_ = drag_info_->ec;
-                        open_logs_end(drag_->http_stat(), 2, drag_info_->ec);
-                        LOG_S(Logger::kLevelDebug, "drag used (" << open_logs_[2].total_elapse << " milliseconds)");
-                        if (!pending_error_) {
-                            LOG_S(Logger::kLevelEvent, "drag: success");
-                            process_drag(*drag_info_, pending_error_);
-                        } else {
-                            LOG_S(Logger::kLevelAlarm, "drag: failure");
-                            LOG_S(Logger::kLevelDebug, "drag ec: " << drag_info_->ec.message());
-                        }
-                        if (!pending_error_) {
-                            // 检查延迟的seek操作,seek的错误码不算pending_error
-                            check_pending_seek(ec);
-                            LOG_S(Logger::kLevelDebug, "check_pending_seek ec: " << ec.message());
-                        } else {
-                            ec = pending_error_;
-                        }
-                        open_step_ = StepType::finish;
-                        is_ready_ = true;
-                    }
-                    if (!need_check_seek)
-                        ec.clear();
-                    break;
-                }
+            //case StepType::drag_normal:
+            //    {
+            //        ec = pending_error_;
+            //        if (drag_info_->is_ready) {
+            //            pending_error_ = drag_info_->ec;
+            //            open_logs_end(drag_->http_stat(), 2, drag_info_->ec);
+            //            LOG_S(Logger::kLevelDebug, "drag used (" << open_logs_[2].total_elapse << " milliseconds)");
+            //            if (!pending_error_) {
+            //                LOG_S(Logger::kLevelEvent, "drag: success");
+            //                process_drag(*drag_info_, pending_error_);
+            //            } else {
+            //                LOG_S(Logger::kLevelAlarm, "drag: failure");
+            //                LOG_S(Logger::kLevelDebug, "drag ec: " << drag_info_->ec.message());
+            //            }
+            //            if (!pending_error_) {
+            //                // 检查延迟的seek操作,seek的错误码不算pending_error
+            //                check_pending_seek(ec);
+            //                LOG_S(Logger::kLevelDebug, "check_pending_seek ec: " << ec.message());
+            //            } else {
+            //                ec = pending_error_;
+            //            }
+            //            open_step_ = StepType::finish;
+            //            is_ready_ = true;
+            //        }
+            //        if (!need_check_seek)
+            //            ec.clear();
+            //        break;
+            //    }
             case StepType::not_open:
                 ec = error::not_open;
                 break;
@@ -381,7 +381,7 @@ namespace ppbox
                     drag_->async_get(
                         segments_->get_drag_url(), 
                         segments_->get_server_host(), 
-                        boost::bind(&VodDemuxer::handle_drag, drag_info_, _1, _2));
+                        boost::bind(&VodDemuxer::handle_drag, this, drag_info_, get_poster(), _1, _2));
                     break;
                 }
             case StepType::drag_abnormal:
@@ -493,37 +493,17 @@ namespace ppbox
                     drag_info = drag_info_old;
                 }
             }
-
-            drag_info.is_ready = true;
-
-            has_message_ = true;
-        }
-
-        void VodDemuxer::handle_message(
-            boost::system::error_code & ec)
-        {
-            if (drag_info_->is_ready) {
-                ec = drag_info_->ec;
-                open_logs_end(drag_->http_stat(), 2, drag_info_->ec);
-                LOG_S(Logger::kLevelDebug, "drag used (" << open_logs_[2].total_elapse << " milliseconds)");
-                if (!ec) {
-                    LOG_S(Logger::kLevelEvent, "drag: success");
-                    process_drag(*drag_info_, ec);
-                } else {
-                    LOG_S(Logger::kLevelAlarm, "drag: failure");
-                    LOG_S(Logger::kLevelDebug, "drag ec: " << drag_info_->ec.message());
-                }
-                open_step_ = StepType::finish;
-                is_ready_ = true;
-            }
         }
 
         void VodDemuxer::handle_drag(
             boost::shared_ptr<VodDragInfoNew> const & drag_info, 
+            post_event_func const & post_event, 
             error_code const & ecc, 
             boost::asio::streambuf & buf)
         {
             parse_drag(*drag_info, buf, ecc);
+            // 这里的this可能早已经析构了，不过没关系，这时候process_drag肯定不会被调用
+            post_event(boost::bind(&VodDemuxer::process_drag, this, boost::ref(*drag_info), ecc));
         }
 
         error_code VodDemuxer::cancel(

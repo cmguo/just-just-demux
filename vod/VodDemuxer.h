@@ -95,19 +95,20 @@ namespace ppbox
                 size_t segment);
 
         private:
+            static void parse_drag(
+                VodDragInfoNew & drag_info, 
+                boost::asio::streambuf & buf, 
+                boost::system::error_code const & ec);
+
+            static void parse_jump(
+                VodJumpInfoNoDrag & jump_info, 
+                boost::asio::streambuf & buf, 
+                boost::system::error_code & ec);
+
+        private:
              boost::system::error_code get_jump(
                  framework::string::Url const & url, 
                  VodJumpInfo & jump_info, 
-                 boost::system::error_code & ec);
-
-             static void parse_drag(
-                 VodDragInfoNew & drag_info, 
-                 boost::asio::streambuf & buf, 
-                 boost::system::error_code const & ec);
-
-             static void parse_jump(
-                 VodJumpInfoNoDrag & jump_info, 
-                 boost::asio::streambuf & buf, 
                  boost::system::error_code & ec);
 
              void process_drag(
@@ -134,8 +135,9 @@ namespace ppbox
              void response(
                  boost::system::error_code const & ec);
 
-             static void handle_drag(
+             void handle_drag(
                  boost::shared_ptr<VodDragInfoNew> const & drag_info, 
+                 post_event_func const & post_event, 
                  boost::system::error_code const & ec, 
                  boost::asio::streambuf & buf);
 
@@ -146,9 +148,6 @@ namespace ppbox
 
              bool is_open(
                  bool need_check_seek, 
-                 boost::system::error_code & ec);
-
-             void handle_message(
                  boost::system::error_code & ec);
 
         private:
