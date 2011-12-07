@@ -150,13 +150,11 @@ namespace ppbox
             {
                 ec.clear();
                 offset += position.size_beg;
-                bool is_close = false;
                 if (offset < read_.offset || offset > write_.offset) {
                     // close source for open from new offset
                     boost::system::error_code ec1;
                     close_segment(ec1);
                     close_all_request(ec1);
-                    is_close = true;
                 }
                 boost::uint64_t write_offset = write_.offset;
                 seek_to(offset);
@@ -167,7 +165,7 @@ namespace ppbox
                     seek_end_ = 
                         size == (boost::uint64_t)-1 ? size : position.size_beg + size;
                 }
-                if (is_close) {
+                if (source_closed_) {
                     update_hole(write_, write_hole_);
                 }
                 if (write_.offset != write_offset) {
@@ -175,6 +173,10 @@ namespace ppbox
                     write_tmp_.buffer = NULL;
                     write_hole_tmp_ = write_hole_;
                 }
+                // 又有数据下载了
+                if (!ec && (source_error_ == source_error::no_more_segment
+                    || source_error_ == source_error::at_end_point))
+                    source_error_.clear();
                 return ec;
             }
 
@@ -754,6 +756,9 @@ namespace ppbox
                     }
                 }
                 write_.source->on_error(ec);
+                if (ec) {
+                    demuxer_->on_error(ec);
+                }
                 if (ec)
                     source_error_ = ec;
                 return !ec;

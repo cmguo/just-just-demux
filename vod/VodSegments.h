@@ -234,8 +234,6 @@ namespace ppbox
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
                     HttpSource::buffer_->increase_req();
-                } else if (ec == source_error::at_end_point) {
-                    vod_demuxer_->on_error(ec);
                 }
             }
 

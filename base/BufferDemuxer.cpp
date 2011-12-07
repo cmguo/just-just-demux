@@ -443,10 +443,11 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (ec == source_error::at_end_point) {
-                ec.clear();
-                if (seek_time_ && seek(seek_time_, ec)) {
-                    ec = boost::asio::error::would_block;
+                if (seek_time_) {
+                    boost::system::error_code ec1;
+                    seek(seek_time_, ec1);
                 }
+                ec.clear();
             }
             DemuxerStatistic::on_error(ec);
         }
