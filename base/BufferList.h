@@ -914,6 +914,14 @@ namespace ppbox
                 ec.clear();
                 boost::uint64_t next_offset = read_write_hole(hole.next_beg, hole);
 
+                if (next_offset >= seek_end_) {
+                    return ec = source_error::at_end_point;
+                }
+                if (next_offset >= seek_end_tmp_) {
+                    seek_end_tmp_ = (boost::uint64_t)-1;
+                    return ec = source_error::at_end_point;
+                }
+
                 if (next_offset >= pos.size_end) {
                     pos.source->next_segment(pos);
                     if (!pos.source) {
@@ -925,14 +933,6 @@ namespace ppbox
                     move_front_to(pos, next_offset);
                 } else {
                     pos.offset = next_offset;
-                }
-
-                if (pos.offset >= seek_end_) {
-                    return ec = source_error::at_end_point;
-                }
-                if (pos.offset >= seek_end_tmp_) {
-                    seek_end_tmp_ = (boost::uint64_t)-1;
-                    return ec = source_error::at_end_point;
                 }
 
                 update_hole(pos, hole);
