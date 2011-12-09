@@ -155,7 +155,7 @@ namespace ppbox
             Live2Segments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t live_port)
-                : HttpSource(io_svc, DemuxerType::flv)
+                : HttpSource(io_svc)
                 , live_port_(live_port)
                 , num_del_(0)
                 , server_time_(0)
@@ -167,7 +167,7 @@ namespace ppbox
             }
 
         public:
-            error_code get_request(
+            virtual error_code get_request(
                 size_t segment, 
                 boost::uint64_t & beg, 
                 boost::uint64_t & end, 
@@ -201,13 +201,18 @@ namespace ppbox
                 return ec;
             }
 
-            void on_seg_beg(
+            virtual DemuxerType::Enum demuxer_type() const
+            {
+                return DemuxerType::flv;
+            }
+
+            virtual void on_seg_beg(
                 size_t segment)
             {
                 live_demuxer_->seg_beg(segment);
             }
 
-            void on_seg_close(
+            virtual void on_seg_close(
                 size_t segment)
             {
                 live_demuxer_->seg_end(segment);
@@ -216,7 +221,7 @@ namespace ppbox
                     "[on_seg_close] segment: " << segment << ", file_time_: " << file_time_);
             }
 
-            void on_error(
+            virtual void on_error(
                 boost::system::error_code & ec)
             {
                 LOG_S(framework::logger::Logger::kLevelDebug, 

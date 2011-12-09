@@ -54,7 +54,7 @@ namespace ppbox
             VodSegments(
                 boost::asio::io_service & io_svc, 
                 boost::uint16_t vod_port)
-                : HttpSource(io_svc, DemuxerType::mp4)
+                : HttpSource(io_svc)
                 , vod_port_(vod_port)
                 , first_seg_(true)
                 , bwtype_(0)
@@ -65,7 +65,7 @@ namespace ppbox
             }
 
         public:
-            error_code get_request(
+            virtual error_code get_request(
                 size_t segment, 
                 boost::uint64_t & beg, 
                 boost::uint64_t & end, 
@@ -133,13 +133,18 @@ namespace ppbox
                 return ec;
             }
 
-            void on_seg_beg(
+            virtual DemuxerType::Enum demuxer_type() const
+            {
+                return DemuxerType::mp4;
+            }
+
+            virtual void on_seg_beg(
                 size_t segment)
             {
                 vod_demuxer_->seg_beg(segment);
             }
 
-            void on_seg_end(
+            virtual void on_seg_end(
                 size_t segment)
             {
                 vod_demuxer_->seg_end(segment);

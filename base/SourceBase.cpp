@@ -11,10 +11,8 @@ namespace ppbox
     {
 
         SourceBase::SourceBase(
-            boost::asio::io_service & io_svc,
-            DemuxerType::Enum demuxer_type)
-            : demuxer_type_(demuxer_type)
-            , insert_segment_(0)
+            boost::asio::io_service & io_svc)
+            : insert_segment_(0)
             , insert_size_(0)
             , insert_delta_(0)
             , insert_time_(0)

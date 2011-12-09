@@ -75,6 +75,9 @@ namespace ppbox
             SegmentPosition segment;
         };
 
+        class BufferList;
+        class BufferDemuxer;
+
         class SourceBase
             : public SourceTreeItem
         {
@@ -95,8 +98,7 @@ namespace ppbox
 
         public:
             SourceBase(
-                boost::asio::io_service & io_svc,
-                DemuxerType::Enum demuxer_type);
+                boost::asio::io_service & io_svc);
 
             virtual ~SourceBase();
 
@@ -149,6 +151,8 @@ namespace ppbox
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec) = 0;
 
+            virtual DemuxerType::Enum demuxer_type() const = 0;
+
         public:
             virtual void on_error(
                 boost::system::error_code & ec) {}
@@ -177,11 +181,6 @@ namespace ppbox
                 size_t segment)
             {
                 return 0;
-            }
-
-            DemuxerType::Enum const demuxer_type() const
-            {
-                return demuxer_type_;
             }
 
         private:
@@ -226,8 +225,20 @@ namespace ppbox
             virtual boost::uint64_t total_time_before(
                 SourceBase * child);
 
+        protected:
+            BufferList * buffer()
+            {
+                return buffer_;
+            }
+
+            BufferDemuxer * demuxer()
+            {
+                return demuxer_;
+            }
+
         private:
-            DemuxerType::Enum demuxer_type_; 
+            BufferList * buffer_;
+            BufferDemuxer * demuxer_;
             size_t insert_segment_; // 插入在父节点的分段
             boost::uint64_t insert_size_; // 插入在分段上的偏移位置，相对于分段起始位置
             boost::uint64_t insert_delta_; // 需要重复下载的数据量

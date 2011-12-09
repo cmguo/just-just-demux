@@ -28,9 +28,8 @@ namespace ppbox
 
         public:
             FileSource(
-                boost::asio::io_service & io_svc,
-                DemuxerType::Enum demuxer_type)
-                :SourceBase(io_svc, demuxer_type)
+                boost::asio::io_service & io_svc)
+                : SourceBase(io_svc)
                 , is_open_(false)
             {
             }
@@ -170,23 +169,11 @@ namespace ppbox
                 return false;
             }
 
-        public:
+        private:
             virtual boost::system::error_code get_file_name(
                 size_t segment, 
                 boost::filesystem::path & file, 
-                boost::system::error_code & ec)
-            {
-                return boost::system::error_code();
-            }
-
-            virtual void set_buffer_list(
-                BufferList * buffer)
-            {
-                buffer_ = buffer;
-            }
-
-        protected:
-            BufferList * buffer_;
+                boost::system::error_code & ec) = 0
 
         private:
             std::ifstream file_;

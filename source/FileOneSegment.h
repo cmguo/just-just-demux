@@ -14,9 +14,8 @@ namespace ppbox
         {
         public:
             FileOneSegment(
-                boost::asio::io_service & io_svc, 
-                DemuxerType::Enum demuxer_type)
-                : FileSource(io_svc, demuxer_type)
+                boost::asio::io_service & io_svc)
+                : FileSource(io_svc)
             {
             }
 
