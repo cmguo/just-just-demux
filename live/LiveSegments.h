@@ -85,7 +85,7 @@ namespace ppbox
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
 
-                HttpSource::buffer_->set_max_try(1);
+                buffer()->set_max_try(1);
                 set_time_out(0, ec);
                 if (!proxy_addr_.host().empty()) {
                     addr = proxy_addr_;
@@ -123,7 +123,7 @@ namespace ppbox
                     ec.clear();
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
-                    HttpSource::buffer_->increase_req();
+                    buffer()->increase_req();
                 }
             }
 
@@ -173,11 +173,6 @@ namespace ppbox
                 live_demuxer_ = live_demuxer;
             }
 
-            SegmentPosition const & segment() const
-            {
-                return HttpSource::buffer_->write_segment();
-            }
-
             std::string const & get_name() const
             {
                 return name_;
@@ -186,6 +181,11 @@ namespace ppbox
             std::string const & get_uuid() const
             {
                 return channel_;
+            }
+
+            DemuxerType::Enum demuxer_type()
+            {
+                return DemuxerType::asf;
             }
 
         private:
@@ -235,7 +235,7 @@ namespace ppbox
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);
                 }
-                while (num_del_ < buffer_->read_segment().segment) {
+                while (num_del_ < buffer()->read_segment().segment) {
                     num_del_++;
                     segments_.pop_front();
                 }

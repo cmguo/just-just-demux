@@ -231,7 +231,7 @@ namespace ppbox
                     update();
                     ec.clear();
                 } else if (ec == http_error::not_found) {
-                    HttpSource::buffer_->pause(5 * 1000);
+                    buffer()->pause(5 * 1000);
                     ec.clear();
                     //ec = boost::asio::error::would_block;
                 }
@@ -340,11 +340,6 @@ namespace ppbox
                 live_demuxer_ = live_demuxer;
             }
 
-            SegmentPosition const & segment() const
-            {
-                return HttpSource::buffer_->write_segment();
-            }
-
             std::string const & get_name() const
             {
                 return name_;
@@ -358,6 +353,11 @@ namespace ppbox
             boost::uint16_t interval() const
             {
                 return interval_;
+            }
+
+            DemuxerType::Enum demuxer_type()
+            {
+                return DemuxerType::flv;
             }
 
         private:
@@ -407,7 +407,7 @@ namespace ppbox
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);
                 }
-                while (num_del_ < buffer_->read_segment().segment) {
+                while (num_del_ < buffer()->read_segment().segment) {
                     num_del_++;
                     segments_.pop_front();
                 }

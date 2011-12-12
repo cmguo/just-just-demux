@@ -15,8 +15,6 @@ namespace ppbox
     namespace demux
     {
 
-        class SourceTreeItem;
-
         struct SegmentPosition
             : SourceTreePosition
         {
@@ -183,6 +181,66 @@ namespace ppbox
                 return 0;
             }
 
+            // 自己和所有子节点的size总和
+            virtual boost::uint64_t tree_size();
+
+        public:
+            boost::system::error_code time_insert(
+                boost::uint32_t time, 
+                SourceBase * source, 
+                SegmentPosition & position, 
+                boost::system::error_code & ec);
+
+            void update_insert(
+                boost::uint64_t offset, 
+                boost::uint64_t delta);
+
+            boost::uint64_t next_end(
+                SourceBase * source);
+
+        public:
+            void set_buffer_list(
+                BufferList * buffer)
+            {
+                buffer_ = buffer;
+            }
+
+        public:
+            boost::uint64_t insert_size() const
+            {
+                return insert_size_;
+            }
+
+            size_t insert_segment() const
+            {
+                return insert_segment_;
+            }
+
+            size_t insert_time() const
+            {
+                return insert_time_;
+            }
+
+            SourceBase * parent()
+            {
+                return (SourceBase *)parent_;
+            }
+
+            SourceBase * next_sibling()
+            {
+                return (SourceBase *)next_sibling_;
+            }
+
+            SourceBase * first_child()
+            {
+                return (SourceBase *)first_child_;
+            }
+
+            DemuxerInfo & insert_demuxer()
+            {
+                return insert_demuxer_;
+            }
+
         private:
             virtual size_t segment_count() const = 0;
 
@@ -204,9 +262,6 @@ namespace ppbox
 
             virtual boost::uint64_t source_time_before(
                 size_t segment);
-
-            // 自己和所有子节点的size总和
-            virtual boost::uint64_t tree_size();
 
             virtual boost::uint64_t tree_size_before(
                 SourceBase * child);
@@ -237,6 +292,7 @@ namespace ppbox
             }
 
         private:
+            DemuxerInfo insert_demuxer_;
             BufferList * buffer_;
             BufferDemuxer * demuxer_;
             size_t insert_segment_; // 插入在父节点的分段

@@ -94,7 +94,10 @@ namespace ppbox
             boost::uint32_t get_cur_time(
                 boost::system::error_code & ec);
 
-            void release(void);
+            boost::uint64_t get_offset(
+                boost::uint32_t time, 
+                boost::uint32_t & delta, 
+                boost::system::error_code & ec);
 
         private:
             boost::uint32_t bitrate_;

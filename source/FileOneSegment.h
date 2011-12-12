@@ -54,41 +54,31 @@ namespace ppbox
             }
 
         public:
-            boost::system::error_code get_segment(
-                size_t index,
-                Segment & segment,
-                boost::system::error_code & ec)
+            DemuxerType::Enum demuxer_type()
             {
-                segment = segment_;
-                return ec;
+                return demuxer_type_;
             }
 
-            Segment & operator [](
-                size_t segment)
-            {
-                return segment_;
-            }
-
-            Segment const & operator [](
-                size_t segment) const
-            {
-                return segment_;
-            }
-
-            size_t total_segments() const
+        private:
+            size_t segment_count() const
             {
                 return 1;
             }
 
-            void set_demuxer_type(
-                DemuxerType::Enum demuxer_type)
+            boost::uint64_t segment_size(
+                size_t segment)
             {
-                segment_.demuxer_type = demuxer_type;
+                return boost::uint64_t(-1);
+            }
+
+            boost::uint64_t segment_time(
+                size_t segment)
+            {
+                return boost::uint64_t(-1);
             }
 
         private:
             boost::filesystem::path fpath;
-            Segment segment_;
         };
 
     } // namespace demux

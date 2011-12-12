@@ -117,7 +117,6 @@ namespace ppbox
                 , data_beg_(0)
                 , data_end_(0)
                 , seek_end_(boost::uint64_t(-1))
-                , seek_end_tmp_(boost::uint64_t(-1))
                 , amount_(0)
                 , expire_pause_time_(Time::now())
                 , total_req_(total_req)
@@ -145,30 +144,33 @@ namespace ppbox
             boost::system::error_code seek(
                 SegmentPosition & position,
                 boost::uint64_t offset, 
-                boost::uint64_t size, 
+                boost::uint64_t end, 
                 boost::system::error_code & ec)
             {
                 ec.clear();
                 offset += position.size_beg;
-                if (offset < read_.offset || offset > write_.offset) {
+                if (end != (boost::uint64_t)-1)
+                    end += position.size_beg;
+                assert(end > offset);
+                if (offset < read_.offset || offset > write_.offset 
+                    || end < write_hole_.this_end) {
                     // close source for open from new offset
                     boost::system::error_code ec1;
                     close_segment(ec1);
                     close_all_request(ec1);
                 }
-                boost::uint64_t write_offset = write_.offset;
                 seek_to(offset);
                 SegmentPosition & read = read_;
                 read = position;
                 root_source_->size_seek(write_.offset, write_, ec);
                 if (!ec) {
-                    seek_end_ = 
-                        size == (boost::uint64_t)-1 ? size : position.size_beg + size;
+                    if (offset > seek_end_)
+                        seek_end_ = (boost::uint64_t)-1;
+                    if (end < seek_end_)
+                        seek_end_ = end;
                 }
                 if (source_closed_) {
                     update_hole(write_, write_hole_);
-                }
-                if (write_.offset != write_offset) {
                     write_tmp_ = write_;
                     write_tmp_.buffer = NULL;
                     write_hole_tmp_ = write_hole_;
@@ -561,7 +563,6 @@ namespace ppbox
                 data_beg_ = 0;
                 data_end_ = 0;
                 seek_end_ = (boost::uint64_t)-1;
-                seek_end_tmp_ = (boost::uint64_t)-1;
                 amount_ = 0;
                 expire_pause_time_ = Time::now();
                 clear_error();
@@ -708,6 +709,97 @@ namespace ppbox
                 root_source_->next_segment(write_);
                 write_hole_.this_end = write_hole_.next_beg = write_.size_end;
                 read_ = write_;
+            }
+
+            void insert_source(
+                boost::uint64_t offset,
+                SourceBase * source, 
+                boost::uint64_t size,
+                boost::system::error_code & ec)
+            {
+                if (offset <= read_.offset) {
+                    data_beg_ = offset + size;
+                    read_.offset += size;
+                    read_.size_beg += size;
+                    read_.size_end += size;
+                    read_hole_.next_beg += size;
+                    write_.offset += size;
+                    write_.size_beg += size;
+                    write_.size_end += size;
+                    write_hole_.next_beg += size;
+                    write_hole_.this_end += size;
+                    write_tmp_.offset += size;
+                    write_tmp_.size_beg += size;
+                    write_tmp_.size_end += size;
+                    write_hole_tmp_.next_beg += size;
+                    write_hole_tmp_.this_end += size;
+                } else if (offset <= write_.offset) {
+                    close_segment(ec);
+                    close_all_request(ec);
+                    if (offset < read_.size_end)
+                        read_.size_end = offset;
+                    if (read_.next_child == NULL 
+                        || offset < ((SourceBase *)read_.next_child)->insert_size()) {
+                            read_.next_child = source;
+                    }
+                    root_source_->size_seek(offset, write_, ec);
+                    write_tmp_ = write_;
+                    write_tmp_.buffer = NULL;
+                    write_hole_.next_beg = write_hole_.this_end = offset;
+                    write_hole_tmp_ = write_hole_;
+                    data_end_ = offset;
+                } else if (offset < write_hole_.this_end) {
+                    if (offset < read_.size_end)
+                        read_.size_end = offset;
+                    if (read_.next_child == NULL 
+                        || offset < ((SourceBase *)read_.next_child)->insert_size()) {
+                            read_.next_child = source;
+                    }
+                    if (offset < write_.size_end)
+                        write_.size_end = offset;
+                    if (write_.next_child == NULL 
+                        || offset < ((SourceBase *)write_.next_child)->insert_size()) {
+                            write_.next_child = source;
+                    }
+                    if (offset < write_tmp_.size_end)
+                        write_tmp_.size_end = offset;
+                    if (write_tmp_.next_child == NULL 
+                        || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
+                            write_tmp_.next_child = source;
+                    }
+                    if (sended_req_ > 1) {
+                        close_segment(ec);
+                        close_all_request(ec);
+                    }
+                    write_hole_.next_beg = write_hole_.this_end = offset;
+                    write_hole_tmp_ = write_hole_;
+                    data_end_ = write_.offset;
+                } else {
+                    if (offset < read_.size_end)
+                        read_.size_end = offset;
+                    if (read_.next_child == NULL 
+                        || offset < ((SourceBase *)read_.next_child)->insert_size()) {
+                            read_.next_child = source;
+                    }
+                    if (offset < write_.size_end)
+                        write_.size_end = offset;
+                    if (write_.next_child == NULL 
+                        || offset < ((SourceBase *)write_.next_child)->insert_size()) {
+                            write_.next_child = source;
+                    }
+                    if (offset < write_tmp_.size_end)
+                        write_tmp_.size_end = offset;
+                    if (write_tmp_.next_child == NULL 
+                        || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
+                            write_tmp_.next_child = source;
+                    }
+                    if (offset < write_hole_tmp_.this_end) {
+                        close_segment(ec);
+                        close_all_request(ec);
+                    }
+                    if (offset < data_end_)
+                        data_end_ = offset;
+                }
             }
 
         private:
@@ -922,10 +1014,6 @@ namespace ppbox
                 if (next_offset >= seek_end_) {
                     return ec = source_error::at_end_point;
                 }
-                if (next_offset >= seek_end_tmp_) {
-                    seek_end_tmp_ = (boost::uint64_t)-1;
-                    return ec = source_error::at_end_point;
-                }
 
                 if (next_offset >= pos.size_end) {
                     pos.source->next_segment(pos);
@@ -953,9 +1041,6 @@ namespace ppbox
                 // 如果当这个分段不能完全填充当前空洞，会切分出一个小空洞，需要插入
                 boost::uint64_t end = pos.size_end;
                 boost::uint64_t seek_end = seek_end_;
-                if (seek_end > seek_end_tmp_) {
-                    seek_end = seek_end_tmp_;
-                }
                 if (end > seek_end_) {   // 一般这种可能性是先下头部数据的需求
                     end = seek_end_;
                 }
@@ -1227,6 +1312,10 @@ namespace ppbox
                         hole.this_end = hole.next_beg = boost::uint64_t(-1);
                     }
                     assert(hole.next_beg >= hole.this_end);
+                    if (hole.this_end != boost::uint64_t(-1))
+                        hole.this_end += offset;
+                    if (hole.next_beg != boost::uint64_t(-1))
+                        hole.next_beg += offset;
                     return offset;
                 }
             }
@@ -1245,6 +1334,10 @@ namespace ppbox
                         // 如果这个空洞太小，而且下一个空洞紧接在后面，那么合并两个空洞
                         read_write_hole(hole.next_beg, hole);
                     }
+                    if (hole.this_end != boost::uint64_t(-1))
+                        hole.this_end -= offset;
+                    if (hole.next_beg != boost::uint64_t(-1))
+                        hole.next_beg -= offset;
                     // 可以正常插入
                     write(offset, sizeof(hole), &hole);
                     return offset;
@@ -1274,6 +1367,10 @@ namespace ppbox
                         hole.next_beg = 0;
                     }
                     assert(hole.next_beg <= hole.this_end);
+                    if (hole.this_end != 0)
+                        hole.this_end = offset - hole.this_end;
+                    if (hole.next_beg != 0)
+                        hole.next_beg = offset - hole.next_beg;
                     return offset;
                 }
             }
@@ -1294,6 +1391,10 @@ namespace ppbox
                     }
                     // 可以正常插入
                     back_write(offset - sizeof(hole), sizeof(hole), &hole);
+                    if (hole.this_end != 0)
+                        hole.this_end = offset - hole.this_end;
+                    if (hole.next_beg != 0)
+                        hole.next_beg = offset - hole.next_beg;
                     return offset;
                 } else {
                     // 没有下一个空洞
@@ -1535,7 +1636,6 @@ namespace ppbox
             boost::uint64_t data_beg_;
             boost::uint64_t data_end_;
             boost::uint64_t seek_end_;  // 一般在seek操作时，如果获取头部数据，值为当前分段之前的分段总长+当前分段的head_size_；否则为-1
-            boost::uint64_t seek_end_tmp_;  // 插入下载中插入段头部的位置
             PositionEx read_;
             Hole read_hole_;
             PositionEx write_;

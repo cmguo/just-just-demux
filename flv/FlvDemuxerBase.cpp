@@ -327,5 +327,14 @@ namespace ppbox
                 return 0;
             }
         }
+
+        boost::uint64_t FlvDemuxerBase::get_offset(
+            boost::uint32_t time, 
+            boost::uint32_t & delta, 
+            boost::system::error_code & ec)
+        {
+            ec = error::not_support;
+            return 0;
+        }
     }
 }

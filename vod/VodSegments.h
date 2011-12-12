@@ -77,8 +77,8 @@ namespace ppbox
                 ec = error_code();
                 if (segment < segments_.size()) {
                     if (vod_port_ 
-                        && HttpSource::buffer_->num_try() > 3) {
-                            HttpSource::buffer_->set_total_req(1);
+                        && buffer()->num_try() > 3) {
+                            buffer()->set_total_req(1);
                             first_seg_ = true;
                             vod_port_ = 0;
                     }
@@ -198,7 +198,7 @@ namespace ppbox
             {
                 segments_.push_back(segment);
                 boost::system::error_code ec;
-                HttpSource::buffer_->add_request(ec);
+                buffer()->add_request(ec);
             }
 
             std::vector<VodSegmentNew> const & segments_info() const
@@ -218,11 +218,6 @@ namespace ppbox
                 max_dl_speed_ = speed;
             }
 
-            SegmentPosition const & segment() const
-            {
-                return HttpSource::buffer_->write_segment();
-            }
-
             void set_vod_demuxer(
                 VodDemuxer * vod_demuxer)
             {
@@ -235,11 +230,16 @@ namespace ppbox
                 if (ec == util::protocol::http_error::keepalive_error) {
                     ec.clear();
                     set_http_connection(util::protocol::http_field::Connection::close);
-                    HttpSource::buffer_->set_total_req(1);
+                    buffer()->set_total_req(1);
                 } else if (ec == boost::asio::error::connection_refused) {
                     ec.clear();
-                    HttpSource::buffer_->increase_req();
+                    buffer()->increase_req();
                 }
+            }
+
+            DemuxerType::Enum demuxer_type()
+            {
+                return DemuxerType::mp4;
             }
 
         private:

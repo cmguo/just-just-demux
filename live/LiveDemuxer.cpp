@@ -193,7 +193,7 @@ namespace ppbox
                 {
                     LOG_S(Logger::kLevelEvent, "data: success");
 
-                    seg_end(segments_->segment().segment);
+                    seg_end(buffer_->write_segment().segment);
                     LOG_S(Logger::kLevelDebug, "open asf head succeed (" << open_logs_[1].total_elapse << " milliseconds)");
 
                     open_step_ = StepType::finish;

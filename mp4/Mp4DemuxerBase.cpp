@@ -475,21 +475,15 @@ namespace ppbox
             }
         }
 
-        void Mp4DemuxerBase::release(void)
+        boost::uint64_t Mp4DemuxerBase::get_offset(
+            boost::uint32_t time, 
+            boost::uint32_t & delta, 
+            boost::system::error_code & ec)
         {
-            open_step_ = (boost::uint32_t)-1;
-            if (sample_list_) {
-                delete sample_list_;
-                sample_list_ = NULL;
+            if (!is_open(ec)) {
+                return 0;
             }
-            for (size_t i = 0; i < tracks_.size(); ++i) {
-                delete tracks_[i];
-            }
-            tracks_.clear();
-            if (file_) {
-                delete file_;
-                file_ = NULL;
-            }
+            return 0;
         }
 
     } // namespace demux

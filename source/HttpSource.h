@@ -170,7 +170,7 @@ namespace ppbox
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec)
             {
-                buffer_->set_time_out(time_out);
+                buffer()->set_time_out(time_out);
                 return http_.set_time_out(time_out, ec);
             }
 
@@ -197,12 +197,6 @@ namespace ppbox
                 return http_.stat();
             }
 
-            virtual void set_buffer_list(
-                BufferList * buffer)
-            {
-                buffer_ = buffer;
-            }
-
         public:
             virtual boost::system::error_code get_request(
                 size_t segment, 
@@ -211,9 +205,6 @@ namespace ppbox
                 framework::network::NetName & addr, 
                 util::protocol::HttpRequest & request, 
                 boost::system::error_code & ec) = 0;
-
-        protected:
-            BufferList * buffer_;
 
         private:
             bool flag_;

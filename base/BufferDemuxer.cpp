@@ -221,9 +221,11 @@ namespace ppbox
                     if (buffer_->read_segment() != buffer_->write_segment()) {
                         std::cout << "finish segment " << buffer_->read_segment().segment << std::endl;
                         boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
+                        SourceBase * source = read_demuxer_.segment.source;
                         read_demuxer_.stream->drop_all();
                         if (buffer_->read_segment().source) {
-                            create_demuxer(buffer_->read_segment(), read_demuxer_, ec);
+                            change_source(source, 
+                                const_cast<SegmentPosition &>(buffer_->read_segment()), read_demuxer_, ec);
                             segment_time_ = buffer_->read_segment().time_beg;
                             if (segment_time_ == boost::uint64_t(-1)) {
                                 segment_time_ += cur_time;
@@ -297,7 +299,7 @@ namespace ppbox
             SegmentPosition & segment)
         {
             boost::system::error_code ec;
-            create_demuxer(segment, write_demuxer_, ec);
+            change_source(write_demuxer_.segment.source, segment, write_demuxer_, ec);
         }
 
         boost::system::error_code BufferDemuxer::cancel(
@@ -317,7 +319,28 @@ namespace ppbox
             SourceBase * source, 
             boost::system::error_code & ec)
         {
-            
+            SegmentPosition position;
+            root_source_->time_insert(time, source, position, ec);
+            if (!ec) {
+                if (position.segment >= buffer_->read_segment().segment
+                    && position.segment <= buffer_->write_segment().segment) {
+                        DemuxerInfo demuxer;
+                        create_demuxer(position, demuxer, ec);
+                        boost::uint32_t delta;
+                        boost::uint64_t offset = demuxer.demuxer->get_offset(time, delta, ec);
+                        if (!ec) {
+                            source->update_insert(offset, delta);
+                            buffer_->insert_source(offset, source, source->tree_size() + delta, ec);
+                        }
+                } else {
+                    buffer_->seek(
+                        const_cast<SegmentPosition &>(buffer_->read_segment()), 
+                        buffer_->read_offset(), 
+                        position.source->segment_head_size(position.segment) + position.size_beg 
+                            - buffer_->read_segment().size_beg, 
+                        ec);
+                }
+            }
             return ec;
         }
 
@@ -326,6 +349,34 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             return ec;
+        }
+
+        void BufferDemuxer::change_source(
+            SourceBase * old_source, 
+            SegmentPosition & new_segment, 
+            DemuxerInfo & demuxer,
+            boost::system::error_code & ec)
+        {
+            if (old_source != new_segment.source) {
+                if (old_source->parent() == new_segment.source) {  //×ÓÇÐ¸¸
+                    if (old_source->insert_demuxer().demuxer) {
+                        demuxer.demuxer = old_source->insert_demuxer().demuxer;
+                        demuxer.stream = old_source->insert_demuxer().stream;
+                        demuxer.stream->update_new(new_segment);
+                        demuxer.segment = new_segment;
+                        old_source->insert_demuxer().demuxer.reset(NULL);
+                        old_source->insert_demuxer().stream.reset(NULL);
+                    } else {
+                        create_demuxer(new_segment, demuxer, ec);
+                    }
+                } else {  //¸¸ÇÐ×Ó
+                    new_segment.source->insert_demuxer().demuxer = demuxer.demuxer;
+                    new_segment.source->insert_demuxer().stream = demuxer.stream;
+                    create_demuxer(new_segment, demuxer, ec);
+                }
+            } else {
+                create_demuxer(new_segment, demuxer, ec);
+            }
         }
 
         void BufferDemuxer::handle_async(
@@ -446,6 +497,27 @@ namespace ppbox
                 if (seek_time_) {
                     boost::system::error_code ec1;
                     seek(seek_time_, ec1);
+                }
+                SourceBase * source = (SourceBase *)write_demuxer_.segment.next_child;
+                if (source) {
+                    boost::system::error_code ec2;
+                    while (source->insert_segment() == write_demuxer_.segment.segment) {
+                        boost::uint32_t delta;
+                        boost::uint64_t offset = write_demuxer_.demuxer->get_offset(source->insert_time() + write_demuxer_.segment.time_beg, delta, ec2);
+                        if (!ec2) {
+                            source->update_insert(offset, delta);
+                            buffer_->insert_source(offset, source, source->tree_size() + delta, ec2);
+                        }
+                        source = source->next_sibling();
+                    }
+                    boost::uint64_t seek_end = source->next_end(source);
+                    if (seek_end != (boost::uint64_t)-1) {
+                        buffer_->seek(
+                            const_cast<SegmentPosition &>(buffer_->read_segment()), 
+                            buffer_->read_offset(), 
+                            seek_end - buffer_->read_segment().size_beg, 
+                            ec2);
+                    }
                 }
                 ec.clear();
             }

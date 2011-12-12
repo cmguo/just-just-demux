@@ -347,6 +347,15 @@ namespace ppbox
             return 0;
         }
 
+        boost::uint64_t AsfDemuxerBase::get_offset(
+            boost::uint32_t time, 
+            boost::uint32_t & delta, 
+            boost::system::error_code & ec)
+        {
+            ec = error::not_support;
+            return 0;
+        }
+
         error_code AsfDemuxerBase::next_packet(
             ParseStatus & parse_status,  
             error_code & ec)

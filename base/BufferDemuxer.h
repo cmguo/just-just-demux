@@ -148,13 +148,6 @@ namespace ppbox
             void handle_events();
 
         private:
-            typedef boost::intrusive_ptr<
-                BytesStream> StreamPointer;
-
-            typedef boost::intrusive_ptr<
-                DemuxerBase> DemuxerPointer;
-
-        private:
             void handle_async(
                 boost::system::error_code const & ecc);
 
@@ -164,6 +157,12 @@ namespace ppbox
             void create_demuxer(
                 SegmentPosition const & segment, 
                 DemuxerInfo & demuxer, 
+                boost::system::error_code & ec);
+
+            void change_source(
+                SourceBase * old_source, 
+                SegmentPosition & new_segment, 
+                DemuxerInfo & demuxer,
                 boost::system::error_code & ec);
 
             void update_stat();

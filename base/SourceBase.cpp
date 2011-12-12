@@ -2,6 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/BytesStream.h"
 
 #include <framework/system/LogicError.h>
 
@@ -138,6 +139,57 @@ namespace ppbox
             return ec;
         }
 
+        boost::system::error_code SourceBase::time_insert(
+            boost::uint32_t time, 
+            SourceBase * source, 
+            SegmentPosition & position, 
+            boost::system::error_code & ec)
+        {
+            time_seek(time, position, ec);
+            if (!ec) {
+                source->insert_segment_ = position.segment;
+                source->insert_time_ = time - position.time_beg;
+                position.source->insert_child(source, position.next_child);
+            }
+            return ec;
+        }
+
+        void SourceBase::update_insert(
+            boost::uint64_t offset, 
+            boost::uint64_t delta)
+        {
+            insert_size_ = offset;
+            insert_delta_ = delta;
+        }
+
+        boost::uint64_t SourceBase::next_end(
+            SourceBase * source)
+        {
+            SourceBase * child = (SourceBase *)source->first_child_;
+            while (!child) {
+                if (source->next_sibling_
+                    && ((SourceBase *)source->next_sibling_)->insert_segment_ == source->insert_segment_) {
+                        child = source->next_sibling()->first_child();
+                        continue;
+                } else if (source->next_sibling_) {
+                    child = source->next_sibling()->first_child();
+                }
+                break;
+            }
+            if (child) {
+                SourceBase * parent = (SourceBase *)child->parent_;
+                boost::uint64_t end = parent->segment_head_size(child->insert_segment_) 
+                    + parent->source_size_before(child->insert_segment_);
+                if (parent->parent_) {
+                    SourceBase * root = (SourceBase *)parent->parent_;
+                    end += root->segment_head_size(parent->insert_segment_) 
+                        + root->source_size_before(parent->insert_segment_);
+                }
+                return end;
+            }
+            return boost::uint64_t(-1);
+        }
+
         boost::uint64_t SourceBase::source_size()
         {
             boost::uint64_t total = 0;
@@ -187,7 +239,10 @@ namespace ppbox
             boost::uint64_t total = source_size();
             SourceBase * item = (SourceBase *)first_child_;
             while (item) {
-                total += item->tree_size();
+                if (item->insert_size_) {
+                    total += item->tree_size();
+                    total += item->insert_delta_;
+                }
                 item = (SourceBase *)item->next_sibling_;
             }
             return total;
@@ -212,8 +267,10 @@ namespace ppbox
                 total += source_size_before(child->insert_segment_) + child->insert_size_;
                 SourceBase * item = (SourceBase *)child->prev_sibling_;
                 while (item) {
-                    total += item->tree_size();
-                    total += item->insert_delta_;
+                    if (item->insert_size_) {
+                        total += item->tree_size();
+                        total += item->insert_delta_;
+                    }
                     item = (SourceBase *)item->prev_sibling_;
                 }
             } else {

@@ -66,6 +66,11 @@ namespace ppbox
                 boost::uint32_t & time, 
                 boost::system::error_code & ec);
 
+            boost::uint64_t get_offset(
+                boost::uint32_t time, 
+                boost::uint32_t & delta, 
+                boost::system::error_code & ec);
+
         private:
             //boost::system::error_code parse_stream(
             //    boost::system::error_code & ec);
