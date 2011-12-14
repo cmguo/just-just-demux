@@ -77,7 +77,7 @@ namespace ppbox
 
             struct PositionEx
                 : Position
-                , SegmentPosition
+                , SegmentPositionEx
             {
                 friend std::ostream & operator << (
                     std::ostream & os, 
@@ -142,7 +142,7 @@ namespace ppbox
             // 此时size为head_size_头部数据大小
             // TO BE FIXED
             boost::system::error_code seek(
-                SegmentPosition & position,
+                SegmentPositionEx & position,
                 boost::uint64_t offset, 
                 boost::uint64_t end, 
                 boost::system::error_code & ec)
@@ -160,7 +160,7 @@ namespace ppbox
                     close_all_request(ec1);
                 }
                 seek_to(offset);
-                SegmentPosition & read = read_;
+                SegmentPositionEx & read = read_;
                 read = position;
                 root_source_->size_seek(write_.offset, write_, ec);
                 if (!ec) {
@@ -185,7 +185,7 @@ namespace ppbox
             // seek到分段的具体位置offset
             // TO BE FIXED
             boost::system::error_code seek(
-                SegmentPosition & position, 
+                SegmentPositionEx & position, 
                 boost::uint64_t offset, 
                 boost::system::error_code & ec)
             {
@@ -530,11 +530,11 @@ namespace ppbox
             boost::system::error_code drop_all(
                 boost::system::error_code & ec)
             {
-                if (read_.total_state < SegmentPosition::is_valid) {
+                if (read_.total_state < SegmentPositionEx::is_valid) {
                     assert(read_.segment == write_.segment);
                     write_.size_end = write_.offset;
                     read_.size_end = write_.offset;
-                    read_.total_state = SegmentPosition::by_guess;
+                    read_.total_state = SegmentPositionEx::by_guess;
                     LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
                 }
                 read_seek_to(read_.size_end, ec);
@@ -581,7 +581,7 @@ namespace ppbox
             }
 
             boost::uint64_t segment_read_front(
-                SegmentPosition const & segment) const
+                SegmentPositionEx const & segment) const
             {
                 if (read_.offset <= segment.size_beg) {
                     return 0;
@@ -593,7 +593,7 @@ namespace ppbox
             }
 
             boost::uint64_t segment_read_back(
-                SegmentPosition const & segment) const
+                SegmentPositionEx const & segment) const
             {
                 if (write_.offset <= segment.size_beg) {
                     return 0;
@@ -604,12 +604,12 @@ namespace ppbox
                 }
             }
 
-            SegmentPosition const & read_segment() const
+            SegmentPositionEx const & read_segment() const
             {
                 return read_;
             }
 
-            SegmentPosition const & write_segment() const
+            SegmentPositionEx const & write_segment() const
             {
                 return write_;
             }
@@ -639,7 +639,7 @@ namespace ppbox
             }
 
             read_buffer_t segment_read_buffer(
-                SegmentPosition const & segment) const
+                SegmentPositionEx const & segment) const
             {
                 boost::uint64_t beg = segment.size_beg;
                 boost::uint64_t end = segment.size_end;
@@ -823,17 +823,17 @@ namespace ppbox
                 } else if (ec == boost::asio::error::eof) {
                     if (write_.offset >= write_hole_.this_end) {
                         return true;
-                    } else if (write_.total_state == SegmentPosition::not_exist) {
-                        write_.total_state = SegmentPosition::by_guess;
+                    } else if (write_.total_state == SegmentPositionEx::not_exist) {
+                        write_.total_state = SegmentPositionEx::by_guess;
                         write_.size_end = write_.offset;
                         write_hole_.this_end = write_.offset;
                         if (read_.segment == write_.segment) {
                             read_.size_end = write_.size_end;
-                            read_.total_state = SegmentPosition::by_guess;
+                            read_.total_state = SegmentPositionEx::by_guess;
                         }
                         if (write_tmp_.segment == write_.segment) {
                             write_tmp_.size_end = write_.size_end;
-                            write_tmp_.total_state = SegmentPosition::by_guess;
+                            write_tmp_.total_state = SegmentPositionEx::by_guess;
                         }
                         LOG_S(framework::logger::Logger::kLevelInfor, 
                             "[handle_error] guess segment size " << write_.size_end - write_.size_beg);
@@ -1055,23 +1055,23 @@ namespace ppbox
             void update_segments(
                 boost::system::error_code & ec)
             {
-                if (write_.total_state == SegmentPosition::not_init) {
+                if (write_.total_state == SegmentPositionEx::not_init) {
                     boost::uint64_t file_length = write_.source->total(ec);
                     if (ec) {
                         file_length = boost::uint64_t(-1);
-                        write_.total_state = SegmentPosition::not_exist;
+                        write_.total_state = SegmentPositionEx::not_exist;
                     } else {
-                        write_.total_state = SegmentPosition::is_valid;
+                        write_.total_state = SegmentPositionEx::is_valid;
                         write_.size_end = write_.size_beg + file_length;
                         if (write_hole_.this_end >= write_.size_end)
                             write_hole_.this_end = write_.size_end;
                         if (read_.segment == write_.segment) {
                             read_.size_end = write_.size_end;
-                            read_.total_state = SegmentPosition::is_valid;
+                            read_.total_state = SegmentPositionEx::is_valid;
                         }
                         if (write_tmp_.segment == write_.segment) {
                             write_tmp_.size_end = write_.size_end;
-                            write_tmp_.total_state = SegmentPosition::is_valid;
+                            write_tmp_.total_state = SegmentPositionEx::is_valid;
                         }
                     }
                 }

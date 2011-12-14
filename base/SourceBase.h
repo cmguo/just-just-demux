@@ -20,11 +20,6 @@ namespace ppbox
         {
             SegmentPosition()
                 : segment(0)
-                , total_state(not_init)
-                , size_beg(0)
-                , size_end((boost::uint64_t)-1)
-                , time_beg(0)
-                , time_end((boost::uint64_t)-1)
             {
             }
 
@@ -32,7 +27,7 @@ namespace ppbox
                 SegmentPosition const & l, 
                 SegmentPosition const & r)
             {
-                return (SourceTreePosition)l == (SourceTreePosition)r
+                return (SourceTreePosition const &)l == (SourceTreePosition const &)r
                     && l.segment == r.segment;
             }
 
@@ -40,8 +35,23 @@ namespace ppbox
                 SegmentPosition const & l, 
                 SegmentPosition const & r)
             {
-                return (SourceTreePosition)l != (SourceTreePosition)r
+                return (SourceTreePosition const &)l != (SourceTreePosition const &)r
                     || l.segment != r.segment;
+            }
+
+            size_t segment;
+        };
+
+        struct SegmentPositionEx
+            : SegmentPosition
+        {
+            SegmentPositionEx()
+                : total_state(not_init)
+                , size_beg(0)
+                , size_end((boost::uint64_t)-1)
+                , time_beg(0)
+                , time_end((boost::uint64_t)-1)
+            {
             }
 
             enum TotalStateEnum
@@ -52,7 +62,6 @@ namespace ppbox
                 by_guess, 
             };
 
-            size_t segment;
             TotalStateEnum total_state;
             boost::uint64_t size_beg; // 全局的偏移
             boost::uint64_t size_end; // 全局的偏移
@@ -163,16 +172,16 @@ namespace ppbox
 
         public:
             virtual void next_segment(
-                SegmentPosition & position);
+                SegmentPositionEx & position);
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // 微妙
-                SegmentPosition & position, 
+                SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code size_seek (
                 boost::uint64_t size,  
-                SegmentPosition & position, 
+                SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
             virtual boost::uint64_t segment_head_size(
@@ -184,11 +193,22 @@ namespace ppbox
             // 自己和所有子节点的size总和
             virtual boost::uint64_t tree_size();
 
+            virtual boost::uint64_t source_time_before(
+                size_t segment);
+
+            // 所有节点在child插入点之前的size总和
+            virtual boost::uint64_t total_size_before(
+                SourceBase * child);
+
+            // 所有节点在child插入点之前的time总和
+            virtual boost::uint64_t total_time_before(
+                SourceBase * child);
+
         public:
             boost::system::error_code time_insert(
                 boost::uint32_t time, 
                 SourceBase * source, 
-                SegmentPosition & position, 
+                SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
             void update_insert(
@@ -196,7 +216,7 @@ namespace ppbox
                 boost::uint64_t delta);
 
             boost::uint64_t next_end(
-                SourceBase * source);
+                SegmentPositionEx & segment);
 
         public:
             void set_buffer_list(
@@ -231,6 +251,11 @@ namespace ppbox
                 return (SourceBase *)next_sibling_;
             }
 
+            SourceBase * prev_sibling()
+            {
+                return (SourceBase *)prev_sibling_;
+            }
+
             SourceBase * first_child()
             {
                 return (SourceBase *)first_child_;
@@ -260,9 +285,6 @@ namespace ppbox
             // 自己所有分段的time总和
             virtual boost::uint64_t source_time();
 
-            virtual boost::uint64_t source_time_before(
-                size_t segment);
-
             virtual boost::uint64_t tree_size_before(
                 SourceBase * child);
 
@@ -270,14 +292,6 @@ namespace ppbox
             virtual boost::uint64_t tree_time();
 
             virtual boost::uint64_t tree_time_before(
-                SourceBase * child);
-
-            // 所有节点在child插入点之前的size总和
-            virtual boost::uint64_t total_size_before(
-                SourceBase * child);
-
-            // 所有节点在child插入点之前的time总和
-            virtual boost::uint64_t total_time_before(
                 SourceBase * child);
 
         protected:

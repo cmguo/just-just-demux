@@ -36,6 +36,9 @@ namespace ppbox
                 std::basic_streambuf<boost::uint8_t> & buf);
 
             ~Mp4DemuxerBase();
+            
+            Mp4DemuxerBase * clone(
+                std::basic_streambuf<boost::uint8_t> & buf);
 
         public:
             boost::system::error_code open(
@@ -100,14 +103,12 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            boost::uint32_t bitrate_;
-
-        private:
-            std::istream is_;
+            std::basic_istream<boost::uint8_t> is_;
             boost::uint32_t head_size_;
             boost::uint32_t open_step_;
             AP4_File * file_;
             std::vector<Track *> tracks_;
+            boost::uint32_t bitrate_;
 
             typedef framework::container::OrderedUnidirList<
                 SampleListItem, 

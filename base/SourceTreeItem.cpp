@@ -43,12 +43,42 @@ namespace ppbox
         void SourceTreeItem::next_source(
             SourceTreePosition & position) const
         {
+            assert(position.source == this);
+            position.source = NULL;
+            while (position.next_child) {
+                if (!position.next_child->skip_) {
+                    position.source = (SourceBase *)position.next_child;
+                    position.next_child = position.next_child->first_child_;
+                    break;
+                }
+                position.next_child = position.next_child->next_sibling_;
+            }
+            if (!position.source) {
+                position.source = (SourceBase *)parent_;
+                position.next_child = next_sibling_;
+            }
+        }
+
+        void SourceTreeItem::next_skip_source(
+            SourceTreePosition & position) const
+        {
             if (position.next_child) {
                 position.source = (SourceBase *)position.next_child;
                 position.next_child = position.next_child->first_child_;
+                if (position.source->skip_) {
+                    return;
+                } else {
+                    return position.source->next_skip_source(position);
+                }
             } else {
                 position.source = (SourceBase *)parent_;
                 position.next_child = next_sibling_;
+                if (position.source) {
+                    assert(!position.source->skip_);
+                    return position.source->next_skip_source(position);
+                } else {
+                    return;
+                }
             }
         }
 

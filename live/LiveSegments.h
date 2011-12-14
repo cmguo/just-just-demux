@@ -210,7 +210,7 @@ namespace ppbox
             }
 
             void next_segment(
-                SegmentPosition & segment)
+                SegmentPositionEx & segment)
             {
                 if (!segment.source) {
                     segment.source = this;
@@ -228,9 +228,9 @@ namespace ppbox
                         segment_size(segment.segment) == boost::uint64_t(-1) ? 
                         boost::uint64_t(-1) : segment_size(segment.segment) + segment.size_beg;
                     if (segment.size_end == (boost::uint64_t)-1) {
-                        segment.total_state = SegmentPosition::not_init;
+                        segment.total_state = SegmentPositionEx::not_init;
                     } else {
-                        segment.total_state = SegmentPosition::is_valid;
+                        segment.total_state = SegmentPositionEx::is_valid;
                     }
                     segment.time_beg = segment.time_end;
                     segment.time_end = boost::uint64_t(-1);

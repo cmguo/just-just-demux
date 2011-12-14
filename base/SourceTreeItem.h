@@ -42,6 +42,7 @@ namespace ppbox
                 , first_child_(NULL)
                 , prev_sibling_(NULL)
                 , next_sibling_(NULL)
+                , skip_(false)
             {
             }
 
@@ -55,6 +56,9 @@ namespace ppbox
 
             // 返回下一个Source
             void next_source(
+                SourceTreePosition & position) const;
+
+            void next_skip_source(
                 SourceTreePosition & position) const;
 
             void seek(
@@ -71,6 +75,7 @@ namespace ppbox
             SourceTreeItem * first_child_;    // 第一个子节点
             SourceTreeItem * prev_sibling_;    // 前一个兄弟节点
             SourceTreeItem * next_sibling_;   // 下一个兄弟节点
+            bool skip_;
         };
 
     } // namespace demux

@@ -107,7 +107,7 @@ namespace ppbox
                 boost::system::error_code & ec_buf);
 
             void segment_write_beg(
-                SegmentPosition & segment);
+                SegmentPositionEx & segment);
 
             void on_extern_error(
                 boost::system::error_code const & ec);
@@ -155,13 +155,18 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
             void create_demuxer(
-                SegmentPosition const & segment, 
+                SegmentPositionEx const & segment, 
                 DemuxerInfo & demuxer, 
                 boost::system::error_code & ec);
 
+            void reload_demuxer(
+                SegmentPositionEx const & segment, 
+                DemuxerInfo & demuxer, 
+                boost::uint32_t time,
+                boost::system::error_code & ec);
+
             void change_source(
-                SourceBase * old_source, 
-                SegmentPosition & new_segment, 
+                SegmentPositionEx & new_segment, 
                 DemuxerInfo & demuxer,
                 boost::system::error_code & ec);
 

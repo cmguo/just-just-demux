@@ -109,7 +109,7 @@ namespace ppbox
             }
 
             void update_new(
-                SegmentPosition const & segment)
+                SegmentPositionEx const & segment)
             {
                 Checker ck(*this);
 
@@ -138,7 +138,7 @@ namespace ppbox
             }
 
             void seek(
-                SegmentPosition & segment,
+                SegmentPositionEx & segment,
                 boost::uint64_t offset)
             {
                 buffer_.seek(segment, offset, ec_);
@@ -154,7 +154,7 @@ namespace ppbox
             }
 
             void seek(
-                SegmentPosition & segment,
+                SegmentPositionEx & segment,
                 boost::uint64_t offset,
                 boost::uint64_t head_length)
             {
@@ -170,12 +170,6 @@ namespace ppbox
                 }
             }
 
-        public:
-            SourceBase const & source() const
-            {
-                return source_;
-            }
-
         private:
             void prepare(
                 boost::uint32_t amount)
@@ -186,7 +180,7 @@ namespace ppbox
                 buffer_.prepare_at_least(amount, ec_);
             }
 
-            void update(SegmentPosition const & segment)
+            void update(SegmentPositionEx const & segment)
             {
                 buffers_ = buffer_.segment_read_buffer(segment);
                 size_ = util::buffers::buffer_size(buffers_);

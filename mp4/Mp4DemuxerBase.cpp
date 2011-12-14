@@ -29,11 +29,11 @@ namespace ppbox
         Mp4DemuxerBase::Mp4DemuxerBase(
             std::basic_streambuf<boost::uint8_t> & buf)
             : DemuxerBase(buf)
-            , bitrate_(0)
-            , is_((std::basic_streambuf<char, std::char_traits<char> > *)(& buf))
+            , is_(& buf)
             , head_size_(24)
             , open_step_((boost::uint32_t)-1)
             , file_(NULL)
+            , bitrate_(0)
             , sample_list_(NULL)
             , sample_put_back_(false)
             , min_offset_(0)
@@ -49,6 +49,13 @@ namespace ppbox
             }
             if (file_)
                 delete file_;
+        }
+
+        Mp4DemuxerBase * Mp4DemuxerBase::clone(
+            std::basic_streambuf<boost::uint8_t> & buf)
+        {
+            is_.rdbuf(&buf);
+            return this;
         }
 
         error_code Mp4DemuxerBase::open(
@@ -82,7 +89,7 @@ namespace ppbox
                     ec = error::file_stream_error;
                     return false;
                 }
-                char size1_char;
+                boost::uint8_t size1_char;
                 is_.read(&size1_char, 4);
                 boost::uint32_t size1 = BytesOrder::host_to_net_long(* (boost::uint32_t *)&size1_char);
                 is_.seekg(0, std::ios_base::end);
@@ -94,7 +101,7 @@ namespace ppbox
                     return false;
                 }
                 is_.seekg(size1, std::ios_base::beg);
-                char size2_char;
+                boost::uint8_t size2_char;
                 is_.read(&size2_char, 4);
                 boost::uint32_t size2 = BytesOrder::host_to_net_long(* (boost::uint32_t *)&size2_char);
                 is_.seekg(0, std::ios_base::end);
@@ -483,7 +490,51 @@ namespace ppbox
             if (!is_open(ec)) {
                 return 0;
             }
-            return 0;
+            if (time > get_duration(ec))
+            {
+                ec = framework::system::logic_error::out_of_range;
+                return 0;
+            }
+            AP4_UI32 seek_time = time + 1;
+            AP4_Position seek_offset = (AP4_Position)-1;
+            SampleListItem sample;
+            AP4_Ordinal next_index = 0;
+            {
+                AP4_UI32 seek_time1 = time;
+                size_t min_time_index  = 0;
+                sample_list_->clear();
+                for (size_t i = 0; i < tracks_.size(); ++i) {
+                    if (AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = time, next_index, sample))) {
+                        if (seek_time1 < seek_time) {
+                            seek_time = seek_time1;
+                            seek_offset = sample.GetOffset();
+                            min_time_index = i;
+                        }
+                    }
+                }
+                delta = seek_offset; // 记录offset最大值
+                for (size_t i = 0; i < tracks_.size(); ++i) {
+                    if (i == min_time_index || 
+                        AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = seek_time, next_index, sample))) {
+                            if (sample.GetOffset() < seek_offset) {
+                                seek_offset = sample.GetOffset();
+                            } else if (sample.GetOffset() > delta) {
+                                delta = sample.GetOffset();
+                            }
+                    }
+                }
+                sample_put_back_ = true;
+            }
+            if (seek_offset == 0) {
+                ec = framework::system::logic_error::out_of_range;
+            } else {
+                min_offset_ = seek_offset;
+                time = seek_time;
+                ec = error_code();
+                delta -= seek_offset;
+                seek_offset += delta;
+            }
+            return seek_offset;
         }
 
     } // namespace demux

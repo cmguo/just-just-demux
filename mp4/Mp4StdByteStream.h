@@ -15,7 +15,7 @@ namespace ppbox
         {
         public:
             Mp4StdByteStream(
-                std::istream * is)
+                std::basic_istream<boost::uint8_t> * is)
                 : is_(* is)
                 , nref_(1)
             {
@@ -26,7 +26,7 @@ namespace ppbox
                 AP4_Size bytes_to_read, 
                 AP4_Size & bytes_read)
             {
-                is_.read((char *) buffer, bytes_to_read);
+                is_.read((boost::uint8_t *) buffer, bytes_to_read);
                 bytes_read = is_.gcount();
                 return AP4_SUCCESS;
             }
@@ -83,7 +83,7 @@ namespace ppbox
             }
 
         private:
-            std::istream & is_;
+            std::basic_istream<boost::uint8_t> & is_;
             size_t nref_;
         };
 

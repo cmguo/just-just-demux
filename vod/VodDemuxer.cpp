@@ -504,6 +504,8 @@ namespace ppbox
             parse_drag(*drag_info, buf, ecc);
             // 这里的this可能早已经析构了，不过没关系，这时候process_drag肯定不会被调用
             post_event(boost::bind(&VodDemuxer::process_drag, this, boost::ref(*drag_info), ecc));
+            
+            //insert_source(100, 
         }
 
         error_code VodDemuxer::cancel(

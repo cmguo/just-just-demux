@@ -142,26 +142,36 @@ namespace ppbox
 
             AP4_Result Seek(
                 AP4_UI32 & time, 
-                AP4_Position & offset)
+                AP4_Ordinal & next_index, 
+                SampleListItem & sample)
             {
-                AP4_Result ret = track_->GetSampleIndexForTimeStampMs(time, next_index_);
+                AP4_Result ret = track_->GetSampleIndexForTimeStampMs(time, next_index);
                 if (AP4_SUCCEEDED(ret)) {
-                    next_index_ = track_->GetNearestSyncSampleIndex(next_index_);
-                    ret = track_->GetSample(next_index_, sample_);
+                    next_index = track_->GetNearestSyncSampleIndex(next_index);
+                    ret = track_->GetSample(next_index, sample);
                     assert(AP4_SUCCEEDED(ret));
-                    ++next_index_;
+                    ++next_index;
 #ifndef PPBOX_DEMUX_MP4_USE_CTS
-                    sample_.ustime = sample_.GetDts() * 1000000 / track_->GetMediaTimeScale();
+                    sample.ustime = sample.GetDts() * 1000000 / track_->GetMediaTimeScale();
 #else
-                    sample_.ustime = sample_.GetCts() * 1000000 / track_->GetMediaTimeScale();
+                    sample.ustime = sample.GetCts() * 1000000 / track_->GetMediaTimeScale();
 #endif // PPBOX_DEMUX_MP4_USE_CTS
-                    sample_.time = (boost::uint32_t)(sample_.ustime / 1000);
-                    time = sample_.time;
-                    offset = sample_.GetOffset();
+                    sample.time = (boost::uint32_t)(sample.ustime / 1000);
+                    time = sample.time;
                 } else {
                     time = track_->GetDurationMs();
-                    next_index_ = track_->GetSampleCount();
+                    next_index = track_->GetSampleCount();
                 }
+                return ret;
+            }
+
+            AP4_Result Seek(
+                AP4_UI32 & time, 
+                AP4_Position & offset)
+            {
+                AP4_Result ret = Seek(time, next_index_, sample_);
+                if (AP4_SUCCEEDED(ret))
+                    offset = sample_.GetOffset();
                 return ret;
             }
 
