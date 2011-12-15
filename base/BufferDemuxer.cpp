@@ -206,7 +206,7 @@ namespace ppbox
                 if (!ec) {
                     seek_time_ = 0;
                     if (is_prev) {
-                        reload_demuxer(position, read_demuxer_, near_src->insert_time(), true, ec);
+                        reload_demuxer(read_demuxer_.demuxer, position, read_demuxer_, near_src->insert_time(), true, ec);
                     }
                     read_demuxer_.stream->seek(position, offset);
                     segment_time_ = buffer_->read_segment().time_beg;
@@ -406,7 +406,7 @@ namespace ppbox
             if (old_source != new_segment.source) {
                 if (old_source->parent() == new_segment.source) {  //×ÓÇÐ¸¸
                     if (old_source->insert_demuxer().demuxer) {
-                        reload_demuxer(new_segment, old_source->insert_demuxer(), old_source->insert_time(), is_seek, ec);
+                        reload_demuxer(old_source->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_time(), is_seek, ec);
                     } else {
                         SourceBase * prev_sibling = old_source->prev_sibling();
                         bool flag = false;
@@ -414,7 +414,7 @@ namespace ppbox
                             if (prev_sibling->insert_demuxer().demuxer
                                 && prev_sibling->insert_segment() == old_source->insert_segment()) {
                                     flag = true;
-                                    reload_demuxer(new_segment, prev_sibling->insert_demuxer(), old_source->insert_time(), is_seek, ec);
+                                    reload_demuxer(prev_sibling->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_time(), is_seek, ec);
                                     break;
                             }
                             prev_sibling = prev_sibling->prev_sibling();
@@ -499,19 +499,20 @@ namespace ppbox
         }
 
         void BufferDemuxer::reload_demuxer(
+            DemuxerPointer & demuxer, 
             SegmentPositionEx const & segment, 
-            DemuxerInfo & demuxer, 
+            DemuxerInfo & demuxer_info, 
             boost::uint32_t time, 
             bool is_seek, 
             boost::system::error_code & ec)
         {
-            demuxer.segment = segment;
+            demuxer_info.segment = segment;
             BytesStream * stream = new BytesStream(*buffer_, *segment.source);
             stream->update_new(segment);
-            demuxer.stream.reset(stream);
-            demuxer.demuxer.reset(demuxer.demuxer->clone(* stream));
+            demuxer_info.stream.reset(stream);
+            demuxer_info.demuxer.reset(demuxer->clone(* stream));
             if (is_seek)
-                demuxer.demuxer->seek(time, ec);
+                demuxer_info.demuxer->seek(time, ec);
         }
 
         BufferDemuxer::post_event_func BufferDemuxer::get_poster()

@@ -160,8 +160,9 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             void reload_demuxer(
+                DemuxerPointer & demuxer, 
                 SegmentPositionEx const & segment, 
-                DemuxerInfo & demuxer, 
+                DemuxerInfo & demuxer_info, 
                 boost::uint32_t time, 
                 bool is_seek, 
                 boost::system::error_code & ec);
