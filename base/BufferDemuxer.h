@@ -162,12 +162,14 @@ namespace ppbox
             void reload_demuxer(
                 SegmentPositionEx const & segment, 
                 DemuxerInfo & demuxer, 
-                boost::uint32_t time,
+                boost::uint32_t time, 
+                bool is_seek, 
                 boost::system::error_code & ec);
 
             void change_source(
                 SegmentPositionEx & new_segment, 
                 DemuxerInfo & demuxer,
+                bool is_seek, 
                 boost::system::error_code & ec);
 
             void update_stat();

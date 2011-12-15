@@ -206,7 +206,7 @@ namespace ppbox
                 if (!ec) {
                     seek_time_ = 0;
                     if (is_prev) {
-                        reload_demuxer(position, read_demuxer_, near_src->insert_time(), ec);
+                        reload_demuxer(position, read_demuxer_, near_src->insert_time(), true, ec);
                     }
                     read_demuxer_.stream->seek(position, offset);
                     segment_time_ = buffer_->read_segment().time_beg;
@@ -270,7 +270,7 @@ namespace ppbox
                         read_demuxer_.stream->drop_all();
                         if (buffer_->read_segment().source) {
                             change_source(const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
-                                read_demuxer_, ec);
+                                read_demuxer_, true, ec);
                             segment_time_ = buffer_->read_segment().time_beg;
                             if (segment_time_ == boost::uint64_t(-1)) {
                                 segment_time_ += cur_time;
@@ -344,7 +344,7 @@ namespace ppbox
             SegmentPositionEx & segment)
         {
             boost::system::error_code ec;
-            change_source(segment, write_demuxer_, ec);
+            change_source(segment, write_demuxer_, false, ec);
         }
 
         boost::system::error_code BufferDemuxer::cancel(
@@ -399,13 +399,14 @@ namespace ppbox
         void BufferDemuxer::change_source(
             SegmentPositionEx & new_segment, 
             DemuxerInfo & demuxer,
+            bool is_seek, 
             boost::system::error_code & ec)
         {
             SourceBase * old_source = demuxer.segment.source;
             if (old_source != new_segment.source) {
                 if (old_source->parent() == new_segment.source) {  //×ÓÇÐ¸¸
                     if (old_source->insert_demuxer().demuxer) {
-                        reload_demuxer(new_segment, old_source->insert_demuxer(), old_source->insert_time(), ec);
+                        reload_demuxer(new_segment, old_source->insert_demuxer(), old_source->insert_time(), is_seek, ec);
                     } else {
                         SourceBase * prev_sibling = old_source->prev_sibling();
                         bool flag = false;
@@ -413,7 +414,7 @@ namespace ppbox
                             if (prev_sibling->insert_demuxer().demuxer
                                 && prev_sibling->insert_segment() == old_source->insert_segment()) {
                                     flag = true;
-                                    reload_demuxer(new_segment, prev_sibling->insert_demuxer(), old_source->insert_time(), ec);
+                                    reload_demuxer(new_segment, prev_sibling->insert_demuxer(), old_source->insert_time(), is_seek, ec);
                                     break;
                             }
                             prev_sibling = prev_sibling->prev_sibling();
@@ -501,6 +502,7 @@ namespace ppbox
             SegmentPositionEx const & segment, 
             DemuxerInfo & demuxer, 
             boost::uint32_t time, 
+            bool is_seek, 
             boost::system::error_code & ec)
         {
             demuxer.segment = segment;
@@ -508,7 +510,8 @@ namespace ppbox
             stream->update_new(segment);
             demuxer.stream.reset(stream);
             demuxer.demuxer.reset(demuxer.demuxer->clone(* stream));
-            demuxer.demuxer->seek(time, ec);
+            if (is_seek)
+                demuxer.demuxer->seek(time, ec);
         }
 
         BufferDemuxer::post_event_func BufferDemuxer::get_poster()

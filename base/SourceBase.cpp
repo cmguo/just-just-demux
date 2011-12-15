@@ -45,7 +45,7 @@ namespace ppbox
                 next_source(segment);
                 if (segment.source) {
                     segment.segment = insert_segment_ - 1;
-                    segment.size_end -= insert_size_;
+                    segment.size_end -= insert_size_ - insert_delta_;
                     ((SourceBase *)segment.source)->next_segment(segment);
                 }
             } else {
