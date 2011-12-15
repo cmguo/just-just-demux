@@ -40,6 +40,29 @@ namespace ppbox
         {
         }
 
+        Mp4DemuxerBase::Mp4DemuxerBase(
+            Mp4DemuxerBase * from, 
+            std::basic_streambuf<boost::uint8_t> & buf, 
+            boost::uint32_t head_size_, 
+            boost::uint32_t open_step_, 
+            AP4_File * file_, 
+            std::vector<Track *> tracks_, 
+            boost::uint32_t bitrate_, 
+            SampleList * sample_list_, 
+            bool sample_put_back_, 
+            boost::uint64_t min_offset_)
+            : DemuxerBase(buf)
+            , is_(& buf)
+            , head_size_(from->head_size_)
+            , open_step_(from->open_step_)
+            , file_(from->file_)
+            , bitrate_(from->bitrate_)
+            , sample_list_(from->sample_list_)
+            , sample_put_back_(from->sample_put_back_)
+            , min_offset_(from->min_offset_)
+        {
+        }
+
         Mp4DemuxerBase::~Mp4DemuxerBase()
         {
             if (sample_list_)
@@ -54,8 +77,9 @@ namespace ppbox
         Mp4DemuxerBase * Mp4DemuxerBase::clone(
             std::basic_streambuf<boost::uint8_t> & buf)
         {
-            is_.rdbuf(&buf);
-            return this;
+            Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf, head_size_, open_step_, file_, tracks_, 
+                bitrate_, sample_list_, sample_put_back_, min_offset_);
+            return demuxer;
         }
 
         error_code Mp4DemuxerBase::open(
@@ -502,7 +526,6 @@ namespace ppbox
             {
                 AP4_UI32 seek_time1 = time;
                 size_t min_time_index  = 0;
-                sample_list_->clear();
                 for (size_t i = 0; i < tracks_.size(); ++i) {
                     if (AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = time, next_index, sample))) {
                         if (seek_time1 < seek_time) {

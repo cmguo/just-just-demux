@@ -1040,7 +1040,6 @@ namespace ppbox
                 // W     e^b    e----b      e---
                 // 如果当这个分段不能完全填充当前空洞，会切分出一个小空洞，需要插入
                 boost::uint64_t end = pos.size_end;
-                boost::uint64_t seek_end = seek_end_;
                 if (end > seek_end_) {   // 一般这种可能性是先下头部数据的需求
                     end = seek_end_;
                 }
@@ -1103,11 +1102,11 @@ namespace ppbox
                     LOG_S(framework::logger::Logger::kLevelDebug2, 
                         "[open_request] segment: " << write_tmp_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
                     ++sended_req_;
-                    write_.source->segment_open(write_tmp_.segment, write_tmp_.offset - write_tmp_.size_beg, 
+                    write_tmp_.source->segment_open(write_tmp_.segment, write_tmp_.offset - write_tmp_.size_beg, 
                         write_hole_tmp_.this_end == boost::uint64_t(-1) || write_hole_tmp_.this_end == write_tmp_.size_end ? 
                         boost::uint64_t(-1) : write_hole_tmp_.this_end - write_tmp_.size_beg, ec);
                     if (ec) {
-                        if (write_.source->continuable(ec)) {
+                        if (write_tmp_.source->continuable(ec)) {
                             if (sended_req_) // 如果已经发过一个请求
                                 ec.clear();
                         } else {
