@@ -55,12 +55,7 @@ namespace ppbox
 
             Mp4DemuxerBase(
                 Mp4DemuxerBase * from, 
-                std::basic_streambuf<boost::uint8_t> & buf, 
-                boost::uint32_t head_size_, 
-                boost::uint32_t open_step_, 
-                AP4_File * file_, 
-                boost::uint32_t bitrate_, 
-                boost::uint64_t min_offset_);
+                std::basic_streambuf<boost::uint8_t> & buf);
 
             ~Mp4DemuxerBase();
             
@@ -139,6 +134,7 @@ namespace ppbox
             SampleList * sample_list_;
             bool sample_put_back_;
             boost::uint64_t min_offset_;
+            const_pointer copy_from_;
         };
 
     } // namespace demux

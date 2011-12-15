@@ -42,29 +42,25 @@ namespace ppbox
 
         Mp4DemuxerBase::Mp4DemuxerBase(
             Mp4DemuxerBase * from, 
-            std::basic_streambuf<boost::uint8_t> & buf, 
-            boost::uint32_t head_size_, 
-            boost::uint32_t open_step_, 
-            AP4_File * file_, 
-            boost::uint32_t bitrate_, 
-            boost::uint64_t min_offset_)
+            std::basic_streambuf<boost::uint8_t> & buf)
             : DemuxerBase(buf)
             , is_(& buf)
             , head_size_(from->head_size_)
             , open_step_(from->open_step_)
             , file_(from->file_)
+            , tracks_(from->tracks_)
             , bitrate_(from->bitrate_)
-            , sample_list_(new SampleList)
-            , sample_put_back_(false)
+            , sample_list_(from->sample_list_)
+            , sample_put_back_(from->sample_put_back_)
             , min_offset_(from->min_offset_)
         {
-            for (size_t i = 0; i < from->tracks_.size(); ++i) {
-                tracks_.push_back(from->tracks_[i]);
-            }
+            copy_from_.reset(from);
         }
 
         Mp4DemuxerBase::~Mp4DemuxerBase()
         {
+            if (copy_from_)
+                return;
             if (sample_list_)
                 delete sample_list_;
             for (size_t i = 0; i < tracks_.size(); ++i) {
@@ -77,8 +73,7 @@ namespace ppbox
         Mp4DemuxerBase * Mp4DemuxerBase::clone(
             std::basic_streambuf<boost::uint8_t> & buf)
         {
-            Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf, head_size_, open_step_, file_, 
-                bitrate_, min_offset_);
+            Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf);
             return demuxer;
         }
 
@@ -444,7 +439,7 @@ namespace ppbox
         error_code Mp4DemuxerBase::rewind(
             error_code & ec)
         {
-            if (!is_open(ec)) {
+            if (!file_) {
                 ec = not_open;
             } else {
                 sample_list_->clear();
