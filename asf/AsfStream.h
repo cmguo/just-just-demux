@@ -3,6 +3,7 @@
 #ifndef _PPBOX_DEMUX_ASF_ASF_STREAM_H_
 #define _PPBOX_DEMUX_ASF_ASF_STREAM_H_
 
+#include <ppbox/avformat/asf/AsfObjectType.h>
 #include <util/archive/ArchiveBuffer.h>
 
 namespace ppbox
@@ -11,7 +12,7 @@ namespace ppbox
     {
 
         class AsfStream
-            : public ASF_Stream_Properties_Object_Data
+            : public ppbox::avformat::ASF_Stream_Properties_Object_Data
             , public MediaInfo
         {
         public:
@@ -25,8 +26,8 @@ namespace ppbox
             }
 
             AsfStream(
-                ASF_Stream_Properties_Object_Data const & property)
-                : ASF_Stream_Properties_Object_Data(property)
+                ppbox::avformat::ASF_Stream_Properties_Object_Data const & property)
+                : ppbox::avformat::ASF_Stream_Properties_Object_Data(property)
                 , ready(false)
                 , next_id(0)
             {
@@ -60,9 +61,9 @@ namespace ppbox
         private:
             void parse()
             {
-                ASFUUID ASF_Audio_Media = {
+                ppbox::avformat::ASFUUID ASF_Audio_Media = {
                     0xF8699E40,0x5B4D,0x11CF,{0xA8,0xFD,0x00,0x80,0x5F,0x5C,0x44,0x2B}};
-                ASFUUID ASF_Video_Media = {
+                ppbox::avformat::ASFUUID ASF_Video_Media = {
                     0xBC19EFC0,0x5B4D,0x11CF,{0xA8,0xFD,0x00,0x80,0x5F,0x5C,0x44,0x2B}};
 
                 if (TypeSpecificDataLength > 0) {

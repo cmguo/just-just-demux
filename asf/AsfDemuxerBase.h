@@ -4,10 +4,12 @@
 #define _PPBOX_DEMUX_ASF_ASF_DEMUXER_BASE_H_
 
 #include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/asf/AsfObjectType.h"
 #include "ppbox/demux/asf/AsfStream.h"
 
+#include <ppbox/avformat/asf/AsfObjectType.h>
 #include <framework/system/LimitNumber.h>
+
+using namespace ppbox::avformat;
 
 namespace ppbox
 {

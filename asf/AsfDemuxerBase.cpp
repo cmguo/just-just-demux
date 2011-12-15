@@ -1,10 +1,13 @@
 // AsfDemuxerBase.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/asf/AsfGuid.h"
-#include "ppbox/demux/asf/AsfObjectType.h"
 #include "ppbox/demux/asf/AsfDemuxerBase.h"
 using namespace ppbox::demux::error;
+
+#include <ppbox/avformat/asf/AsfGuid.h>
+#include <ppbox/avformat/codec/AvcConfig.h>
+#include <ppbox/avformat/codec/H264Nalu.h>
+using namespace ppbox::avformat;
 
 #include <framework/logger/LoggerStreamRecord.h>
 using namespace framework::logger;
@@ -282,6 +285,26 @@ namespace ppbox
                     // 添加直播的配置信息
                     if (MEDIA_TYPE_VIDE == info.type) {
                         info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
+                        // change to avc config
+                        Buffer_Array config_list;
+                        H264Nalu::process_live_video_config(
+                            &info.format_data.at(0),
+                            info.format_data.size(),
+                            config_list);
+                        AvcConfig avc_config((boost::uint32_t)framework::memory::MemoryPage::align_page(info.format_data.size() * 2));
+                        if (config_list.size() >= 2) {
+                            Buffer_Array spss;
+                            Buffer_Array ppss;
+                            spss.push_back(config_list[config_list.size()-2]);
+                            ppss.push_back(config_list[config_list.size()-1]);
+                            avc_config.creat(0x01, 0x64, 0x00, 0x15, 0x04, spss, ppss);
+                            info.format_data.resize(avc_config.data_size());
+                            memcpy(&info.format_data.at(0), avc_config.data(), avc_config.data_size());
+                        } else {
+                            info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
+                        }
+                    } else if (MEDIA_TYPE_AUDI == info.type) {
+                        info.format_data = streams_[stream_map_[index]].Audio_Media_Type.CodecSpecificData;
                     }
                 }
             }
