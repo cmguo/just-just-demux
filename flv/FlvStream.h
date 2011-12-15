@@ -3,9 +3,10 @@
 #ifndef _PPBOX_DEMUX_FLV_FLV_STREAM_H_
 #define _PPBOX_DEMUX_FLV_FLV_STREAM_H_
 
-#include "ppbox/demux/flv/FlvFormat.h"
-#include "ppbox/demux/flv/FlvDataType.h"
-#include "ppbox/demux/flv/FlvTagType.h"
+#include <ppbox/avformat/flv/FlvFormat.h>
+#include <ppbox/avformat/flv/FlvDataType.h>
+#include <ppbox/avformat/flv/FlvTagType.h>
+using namespace ppbox::avformat;
 
 namespace ppbox
 {
@@ -13,7 +14,7 @@ namespace ppbox
     {
 
         class FlvStream
-            : public FlvTag
+            : public ppbox::avformat::FlvTag
             , public MediaInfo
         {
         public:

@@ -3,6 +3,7 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/flv/FlvDemuxerBase.h"
 using namespace ppbox::demux::error;
+using namespace ppbox::avformat;
 
 #include <framework/logger/LoggerStreamRecord.h>
 #include <framework/system/BytesOrder.h>

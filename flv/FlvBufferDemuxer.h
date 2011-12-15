@@ -122,8 +122,7 @@ namespace ppbox
             {
                 boost::uint64_t offset = FlvDemuxerBase::seek_to(time, ec);
                 if (!ec) {
-                    buffer_.seek(segment_, offset, ec);
-                    stream_->update_new();
+                    stream_->seek(offset, ec);
                 }
                 return ec;
             }
