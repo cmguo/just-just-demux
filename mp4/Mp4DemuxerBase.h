@@ -59,10 +59,7 @@ namespace ppbox
                 boost::uint32_t head_size_, 
                 boost::uint32_t open_step_, 
                 AP4_File * file_, 
-                std::vector<Track *> tracks_, 
                 boost::uint32_t bitrate_, 
-                SampleList * sample_list_, 
-                bool sample_put_back_, 
                 boost::uint64_t min_offset_);
 
             ~Mp4DemuxerBase();

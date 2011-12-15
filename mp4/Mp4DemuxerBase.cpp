@@ -46,10 +46,7 @@ namespace ppbox
             boost::uint32_t head_size_, 
             boost::uint32_t open_step_, 
             AP4_File * file_, 
-            std::vector<Track *> tracks_, 
             boost::uint32_t bitrate_, 
-            SampleList * sample_list_, 
-            bool sample_put_back_, 
             boost::uint64_t min_offset_)
             : DemuxerBase(buf)
             , is_(& buf)
@@ -57,10 +54,13 @@ namespace ppbox
             , open_step_(from->open_step_)
             , file_(from->file_)
             , bitrate_(from->bitrate_)
-            , sample_list_(from->sample_list_)
-            , sample_put_back_(from->sample_put_back_)
+            , sample_list_(new SampleList)
+            , sample_put_back_(false)
             , min_offset_(from->min_offset_)
         {
+            for (size_t i = 0; i < from->tracks_.size(); ++i) {
+                tracks_.push_back(from->tracks_[i]);
+            }
         }
 
         Mp4DemuxerBase::~Mp4DemuxerBase()
@@ -77,8 +77,8 @@ namespace ppbox
         Mp4DemuxerBase * Mp4DemuxerBase::clone(
             std::basic_streambuf<boost::uint8_t> & buf)
         {
-            Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf, head_size_, open_step_, file_, tracks_, 
-                bitrate_, sample_list_, sample_put_back_, min_offset_);
+            Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf, head_size_, open_step_, file_, 
+                bitrate_, min_offset_);
             return demuxer;
         }
 
@@ -290,7 +290,7 @@ namespace ppbox
             MediaInfoBase & info, 
             boost::system::error_code & ec)
         {
-            if (!file_) {
+            if (!is_open(ec)) {
                 ec = not_open;
             } else if (index >= tracks_.size()) {
                 ec = out_of_range;
@@ -381,7 +381,7 @@ namespace ppbox
             Sample const & sample, 
             error_code & ec)
         {
-            if (!file_) {
+            if (!is_open(ec)) {
                 ec = not_open;
             } else if (sample_list_->empty() || sample_list_->first()->itrack != sample.itrack) {
                 ec = item_not_exist;
@@ -444,7 +444,7 @@ namespace ppbox
         error_code Mp4DemuxerBase::rewind(
             error_code & ec)
         {
-            if (!file_) {
+            if (!is_open(ec)) {
                 ec = not_open;
             } else {
                 sample_list_->clear();
