@@ -51,6 +51,8 @@ namespace ppbox
                 , size_end((boost::uint64_t)-1)
                 , time_beg(0)
                 , time_end((boost::uint64_t)-1)
+                , shard_beg(0)
+                , shard_end((boost::uint64_t)-1)
             {
             }
 

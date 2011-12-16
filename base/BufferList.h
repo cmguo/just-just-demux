@@ -720,12 +720,12 @@ namespace ppbox
                 if (offset <= read_.offset) {
                     data_beg_ = offset + size;
                     read_.offset += size;
-                    read_.size_beg += size;
-                    read_.size_end += size;
+                    read_.shard_beg = read_.size_beg += size;
+                    read_.shard_end = read_.size_end += size;
                     read_hole_.next_beg += size;
                     write_.offset += size;
-                    write_.size_beg += size;
-                    write_.size_end += size;
+                    write_.shard_beg = write_.size_beg += size;
+                    write_.shard_end = write_.size_end += size;
                     write_hole_.next_beg += size;
                     write_hole_.this_end += size;
                     write_tmp_.offset += size;
@@ -737,7 +737,7 @@ namespace ppbox
                     close_segment(ec);
                     close_all_request(ec);
                     if (offset < read_.size_end)
-                        read_.size_end = offset;
+                        read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
                             read_.next_child = source;
@@ -750,13 +750,13 @@ namespace ppbox
                     data_end_ = offset;
                 } else if (offset < write_hole_.this_end) {
                     if (offset < read_.size_end)
-                        read_.size_end = offset;
+                        read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
                             read_.next_child = source;
                     }
                     if (offset < write_.size_end)
-                        write_.size_end = offset;
+                        write_.shard_end = write_.size_end = offset;
                     if (write_.next_child == NULL 
                         || offset < ((SourceBase *)write_.next_child)->insert_size()) {
                             write_.next_child = source;
@@ -776,13 +776,13 @@ namespace ppbox
                     data_end_ = write_.offset;
                 } else {
                     if (offset < read_.size_end)
-                        read_.size_end = offset;
+                        read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
                             read_.next_child = source;
                     }
                     if (offset < write_.size_end)
-                        write_.size_end = offset;
+                        write_.shard_end = write_.size_end = offset;
                     if (write_.next_child == NULL 
                         || offset < ((SourceBase *)write_.next_child)->insert_size()) {
                             write_.next_child = source;
