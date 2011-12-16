@@ -62,9 +62,9 @@ namespace ppbox
             void write_more(
                 boost::uint32_t amount = 0)
             {
-                size_t write_seg = buffer_.write_segment().segment;
+                SegmentPositionEx write_seg = buffer_.write_segment();
                 prepare(amount);
-                if (write_seg == buffer_.write_segment().segment) {
+                if (write_seg == buffer_.write_segment()) {
                     update_new(buffer_.write_segment());
                 }
             }

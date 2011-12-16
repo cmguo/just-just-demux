@@ -480,11 +480,11 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             ec.clear();
-            if (read_demuxer_.stream && segment == read_demuxer_.segment) {
+            if (segment == read_demuxer_.segment) {
                 demuxer.stream = read_demuxer_.stream;
                 demuxer.demuxer = read_demuxer_.demuxer;
                 demuxer.segment = segment;
-            } else if (write_demuxer_.stream && segment == write_demuxer_.segment) {
+            } else if (segment == write_demuxer_.segment) {
                 demuxer.stream = write_demuxer_.stream;
                 demuxer.demuxer = write_demuxer_.demuxer;
                 demuxer.segment = segment;
@@ -507,10 +507,16 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             demuxer_info.segment = segment;
-            BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
-            stream->update_new(segment);
-            demuxer_info.stream.reset(stream);
-            demuxer_info.demuxer.reset(demuxer->clone(* stream));
+            if (segment == read_demuxer_.segment) {
+                demuxer_info.stream = read_demuxer_.stream;
+            } else if (segment == write_demuxer_.segment) {
+                demuxer_info.stream = write_demuxer_.stream;
+            } else {
+                BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
+                stream->update_new(segment);
+                demuxer_info.stream.reset(stream);
+            }
+            demuxer_info.demuxer.reset(demuxer->clone(* demuxer_info.stream));
             if (is_seek)
                 demuxer_info.demuxer->seek(time, ec);
         }
