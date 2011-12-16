@@ -736,11 +736,14 @@ namespace ppbox
                 } else if (offset <= write_.offset) {
                     close_segment(ec);
                     close_all_request(ec);
-                    if (offset < read_.size_end)
+                    /*if (offset < read_.size_end)
                         read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
                             read_.next_child = source;
+                    }*/
+                    if (offset < read_.size_end) {
+                        root_source_->size_seek(offset, read_, ec);
                     }
                     root_source_->size_seek(offset, write_, ec);
                     write_tmp_ = write_;
@@ -749,7 +752,7 @@ namespace ppbox
                     write_hole_tmp_ = write_hole_;
                     data_end_ = offset;
                 } else if (offset < write_hole_.this_end) {
-                    if (offset < read_.size_end)
+                    /*if (offset < read_.size_end)
                         read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
@@ -766,6 +769,15 @@ namespace ppbox
                     if (write_tmp_.next_child == NULL 
                         || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
                             write_tmp_.next_child = source;
+                    }*/
+                    if (offset < read_.size_end) {
+                        root_source_->size_seek(offset, read_, ec);
+                    }
+                    if (offset < write_.size_end) {
+                        root_source_->size_seek(offset, write_, ec);
+                    }
+                    if (offset < write_tmp_.size_end) {
+                        root_source_->size_seek(offset,write_tmp_, ec);
                     }
                     if (sended_req_ > 1) {
                         close_segment(ec);
@@ -775,7 +787,7 @@ namespace ppbox
                     write_hole_tmp_ = write_hole_;
                     data_end_ = write_.offset;
                 } else {
-                    if (offset < read_.size_end)
+                    /*if (offset < read_.size_end)
                         read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
@@ -792,6 +804,15 @@ namespace ppbox
                     if (write_tmp_.next_child == NULL 
                         || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
                             write_tmp_.next_child = source;
+                    }*/
+                    if (offset < read_.size_end) {
+                        root_source_->size_seek(offset, read_, ec);
+                    }
+                    if (offset < write_.size_end) {
+                        root_source_->size_seek(offset, write_, ec);
+                    }
+                    if (offset < write_tmp_.size_end) {
+                        root_source_->size_seek(offset,write_tmp_, ec);
                     }
                     if (offset < write_hole_tmp_.this_end) {
                         close_segment(ec);

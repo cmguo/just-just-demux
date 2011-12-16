@@ -46,6 +46,7 @@ namespace ppbox
                 if (segment.source) {
                     segment.segment = insert_segment_ - 1;
                     segment.size_end -= insert_size_ - insert_delta_; // 伪造上一段的结尾
+                    segment.time_end -= insert_time_;
                     ((SourceBase *)segment.source)->next_segment(segment);
                     segment.shard_beg = segment.size_beg + insert_size_ - insert_delta_;
                 }
