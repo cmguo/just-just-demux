@@ -30,8 +30,8 @@ namespace ppbox
             SourceBase * next_child = (SourceBase *)segment.next_child;
             if (segment.segment == 0 && !segment.source) {
                 segment.source = this;
-                segment.size_beg = segment.size_beg;
-                segment.size_end = segment.size_beg + segment_size(segment.segment);
+                segment.shard_beg = segment.size_beg = segment.size_beg;
+                segment.shard_end = segment.size_end = segment.size_beg + segment_size(segment.segment);
                 segment.time_beg = segment.time_beg;
                 segment.time_end = segment.time_beg + segment_time(segment.segment);
             } else if (next_child 
@@ -51,6 +51,8 @@ namespace ppbox
             } else {
                 segment.size_beg = segment.size_end;
                 segment.size_end = segment.size_beg + segment_size(segment.segment);
+                segment.shard_beg = segment.shard_end;
+                segment.shard_end = segment.size_end;
                 segment.time_beg = segment.time_end;
                 segment.time_end = segment.time_beg + segment_time(segment.segment);
             }

@@ -31,13 +31,13 @@ namespace ppbox
         public:
             BytesStream(
                 BufferList & buffer,
-                SourceBase & source)
+                SegmentPositionEx & segment)
                 : buffer_(buffer)
-                , source_(source)
+                , segment_(segment)
                 , size_(0)
                 , iter_(buffers_.begin())
-                , pos_(0)
-                , end_(0)
+                , pos_(segment.shard_beg - segment.size_beg)
+                , end_(pos_)
                 , buf_(*this)
                 , ec_(boost::asio::error::would_block) // 这里作用是：异步open不希望async_prepare和prepare混在一起调用
             {
@@ -323,7 +323,7 @@ namespace ppbox
 
         private:
             BufferList & buffer_;
-            SourceBase & source_;
+            SegmentPositionEx & segment_;
             read_buffer_t buffers_; // 有效数据
             boost::uint32_t size_;  // buffers_数据的大小
             const_iterator iter_;   // 当前的内存段

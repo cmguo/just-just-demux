@@ -641,8 +641,8 @@ namespace ppbox
             read_buffer_t segment_read_buffer(
                 SegmentPositionEx const & segment) const
             {
-                boost::uint64_t beg = segment.size_beg;
-                boost::uint64_t end = segment.size_end;
+                boost::uint64_t beg = segment.shard_beg;
+                boost::uint64_t end = segment.shard_end;
                 if (beg < read_.offset) {
                     beg = read_.offset;
                 }

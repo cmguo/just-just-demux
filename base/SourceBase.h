@@ -67,6 +67,8 @@ namespace ppbox
             boost::uint64_t size_end; // 全局的偏移
             boost::uint64_t time_beg; // 全局的偏移
             boost::uint64_t time_end; // 全局的偏移
+            boost::uint64_t shard_beg; //碎片的起始
+            boost::uint64_t shard_end; //碎片的结束
         };
 
         typedef boost::intrusive_ptr<

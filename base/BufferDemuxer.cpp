@@ -490,7 +490,7 @@ namespace ppbox
                 demuxer.segment = segment;
             } else {
                 demuxer.segment = segment;
-                BytesStream * stream = new BytesStream(*buffer_, *segment.source);
+                BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
                 stream->update_new(segment);
                 demuxer.stream.reset(stream);
                 demuxer.demuxer.reset(ppbox::demux::create_demuxer(segment.source->demuxer_type(), *demuxer.stream));
@@ -507,7 +507,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             demuxer_info.segment = segment;
-            BytesStream * stream = new BytesStream(*buffer_, *segment.source);
+            BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
             stream->update_new(segment);
             demuxer_info.stream.reset(stream);
             demuxer_info.demuxer.reset(demuxer->clone(* stream));
