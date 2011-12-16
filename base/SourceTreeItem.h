@@ -14,6 +14,7 @@ namespace ppbox
         struct SourceTreePosition
         {
             SourceBase * source;// 处理流程中的下一个子节点
+            SourceTreeItem * prev_child;// 处理流程中的上一个子节点
             SourceTreeItem * next_child;// 处理流程中的下一个子节点
 
             friend bool operator == (
@@ -63,6 +64,7 @@ namespace ppbox
 
             void seek(
                 SourceTreePosition & position, 
+                SourceTreeItem * where_prev, 
                 SourceTreeItem * where) const;
 
             void remove_self()

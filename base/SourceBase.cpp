@@ -36,23 +36,30 @@ namespace ppbox
                 segment.time_end = segment.time_beg + segment_time(segment.segment);
             } else if (next_child 
                 && (!next_child->skip_)
-                && next_child->insert_segment_ == segment.segment
-                && segment.size_beg + next_child->insert_size_ == segment.size_end) {
+                && next_child->insert_segment_ == segment.segment) { // 父切子
+                    segment.size_end = segment.shard_end;
                     next_source(segment);
                     segment.segment = (size_t)-1;
                     ((SourceBase *)segment.source)->next_segment(segment);
-            } else if (++segment.segment == segment_count()) {
+            } else if (++segment.segment == segment_count()) { // 子切父
                 next_source(segment);
                 if (segment.source) {
                     segment.segment = insert_segment_ - 1;
-                    segment.size_end -= insert_size_ - insert_delta_;
+                    segment.size_end -= insert_size_ - insert_delta_; // 伪造上一段的结尾
                     ((SourceBase *)segment.source)->next_segment(segment);
+                    segment.shard_beg = segment.size_beg + insert_size_ - insert_delta_;
                 }
             } else {
                 segment.size_beg = segment.size_end;
                 segment.size_end = segment.size_beg + segment_size(segment.segment);
-                segment.shard_beg = segment.shard_end;
-                segment.shard_end = segment.size_end;
+                segment.shard_beg = segment.size_beg;
+                if (next_child 
+                    && (!next_child->skip_)
+                    && next_child->insert_segment_ == segment.segment) {
+                        segment.shard_end = segment.size_beg + insert_size_;
+                } else {
+                    segment.shard_end = segment.size_end;
+                }
                 segment.time_beg = segment.time_end;
                 segment.time_end = segment.time_beg + segment_time(segment.segment);
             }
@@ -66,20 +73,26 @@ namespace ppbox
         {
             boost::uint64_t time2 = time;
             boost::uint64_t skip_size = 0;
-            SourceBase * item = (SourceBase *)first_child_;
-            while (item) {
-                boost::uint64_t insert_time = source_time_before(item->insert_segment_) + item->insert_time_;
+            SourceBase * next_item = (SourceBase *)first_child_;
+            SourceBase * prev_item = NULL;
+            while (next_item) {
+                if (next_item->skip_) {
+                    next_item = (SourceBase *)next_item->next_sibling_;
+                    continue;
+                }
+                boost::uint64_t insert_time = source_time_before(next_item->insert_segment_) + next_item->insert_time_;
                 if (time2 < insert_time) {
                     break;
-                } else if (time2 < insert_time + item->tree_time()) {
-                    return item->time_seek(time - insert_time_, position, ec);
+                } else if (time2 < insert_time + next_item->tree_time()) {
+                    return next_item->time_seek(time - insert_time_, position, ec);
                 } else {
-                    time2 -= item->tree_time();
-                    skip_size += item->tree_size();
+                    time2 -= next_item->tree_time();
+                    skip_size += next_item->tree_size();
                 }
-                item = (SourceBase *)item->next_sibling_;
+                prev_item = next_item;
+                next_item = (SourceBase *)next_item->next_sibling_;
             }
-            SourceTreeItem::seek(position, item);
+            SourceTreeItem::seek(position, prev_item, next_item);
             position.segment = 1;
             while (position.segment < segment_count() && time2 >= source_time_before(position.segment)) {
                 ++position.segment;
@@ -88,13 +101,17 @@ namespace ppbox
                 ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
-            position.size_beg = skip_size + source_size_before(position.segment);
-            position.size_end = position.size_beg + segment_size(position.segment);
+            position.shard_beg = position.size_beg = skip_size + source_size_before(position.segment);
+            position.shard_end = position.size_end = position.size_beg + segment_size(position.segment);
             position.time_beg = time + source_time_before(position.segment) - time2;
             position.time_end = position.time_beg + segment_time(position.segment);
-            if (item && item->insert_segment_ == position.segment) {
-                position.size_end = position.size_beg + item->insert_size_;
-                position.time_end = position.time_beg + item->insert_time_;
+            if (prev_item && prev_item->insert_segment_ == position.segment) {
+                position.shard_beg = position.size_beg + prev_item->insert_size_ - prev_item->insert_delta_;
+                position.time_beg = position.time_beg + prev_item->insert_time_;
+            }
+            if (next_item && next_item->insert_segment_ == position.segment) {
+                position.shard_end = position.size_beg + next_item->insert_size_;
+                position.time_end = position.time_beg + next_item->insert_time_;
             }
             position.total_state = SegmentPositionEx::is_valid;
             return ec;
@@ -107,21 +124,27 @@ namespace ppbox
         {
             boost::uint64_t size2 = size;
             boost::uint64_t skip_time = 0;
-            SourceBase * item = (SourceBase *)first_child_;
-            while (item) {
-                boost::uint64_t insert_size = source_size_before(item->insert_segment_) + item->insert_size_;
+            SourceBase * next_item = (SourceBase *)first_child_;
+            SourceBase * prev_item = NULL;
+            while (next_item) {
+                if (next_item->skip_) {
+                    next_item = (SourceBase *)next_item->next_sibling_;
+                    continue;
+                }
+                boost::uint64_t insert_size = source_size_before(next_item->insert_segment_) + next_item->insert_size_;
                 if (size2 < insert_size) {
                     break;
-                } else if (size2 < insert_size + item->tree_size()) {
-                    return item->time_seek(size2 - item->insert_size_, position, ec);
+                } else if (size2 < insert_size + next_item->tree_size()) {
+                    return next_item->time_seek(size2 - next_item->insert_size_, position, ec);
                 } else {
-                    size2 -= item->tree_size();
-                    skip_time += item->tree_time();
+                    size2 -= next_item->tree_size();
+                    skip_time += next_item->tree_time();
                 }
-                item = (SourceBase *)item->next_sibling_;
+                prev_item = next_item;
+                next_item = (SourceBase *)next_item->next_sibling_;
             }
-            assert(item == NULL || size2 < item->insert_size_);
-            SourceTreeItem::seek(position, item);
+            assert(next_item == NULL || size2 < next_item->insert_size_);
+            SourceTreeItem::seek(position, prev_item, next_item);
             position.segment = 1;
             while (position.segment < segment_count() && size2 >= source_size_before(position.segment)) {
                 ++position.segment;
@@ -130,13 +153,17 @@ namespace ppbox
                 ec = framework::system::logic_error::out_of_range; 
             }
             --position.segment;
-            position.size_beg = size + source_size_before(position.segment) - size2;
-            position.size_end = position.size_beg + segment_size(position.segment);
+            position.shard_beg = position.size_beg = size + source_size_before(position.segment) - size2;
+            position.shard_end = position.size_end = position.size_beg + segment_size(position.segment);
             position.time_beg = skip_time + source_time_before(position.segment);
             position.time_end = position.time_beg + segment_time(position.segment);
-            if (item && item->insert_segment_ == position.segment) {
-                position.size_end = position.size_beg + item->insert_size_;
-                position.time_end = position.size_beg + item->insert_time_;
+            if (prev_item && prev_item->insert_segment_ == position.segment) {
+                position.shard_beg = position.size_beg + prev_item->insert_size_ - prev_item->insert_delta_;
+                position.time_beg = position.time_beg + prev_item->insert_time_;
+            }
+            if (next_item && next_item->insert_segment_ == position.segment) {
+                position.shard_end = position.size_beg + next_item->insert_size_;
+                position.time_end = position.time_beg + next_item->insert_time_;
             }
             position.total_state = SegmentPositionEx::is_valid;
             return ec;

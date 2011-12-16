@@ -45,17 +45,19 @@ namespace ppbox
         {
             assert(position.source == this);
             position.source = NULL;
-            while (position.next_child) {
-                if (!position.next_child->skip_) {
-                    position.source = (SourceBase *)position.next_child;
-                    position.next_child = position.next_child->first_child_;
-                    break;
-                }
-                position.next_child = position.next_child->next_sibling_;
+            while (position.next_child) { // ¸¸ÇÐ×Ó
+                assert (!position.next_child->skip_);
+                position.source = (SourceBase *)position.next_child;
+                position.prev_child = NULL;
+                position.next_child = position.next_child->first_child_;
             }
-            if (!position.source) {
+            if (!position.source) { // ×ÓÇÐ¸¸
                 position.source = (SourceBase *)parent_;
+                position.prev_child = const_cast<SourceTreeItem *>(this);
                 position.next_child = next_sibling_;
+                while (position.next_child && position.next_child->skip_) {
+                    position.next_child = position.next_child->next_sibling_;
+                }
             }
         }
 
@@ -82,11 +84,13 @@ namespace ppbox
             }
         }
 
-        void SourceTreeItem::seek (
+        void SourceTreeItem::seek(
             SourceTreePosition & position, 
+            SourceTreeItem * where_prev, 
             SourceTreeItem * where) const
         {
             position.source = static_cast<SourceBase *>(const_cast<SourceTreeItem *>((this)));
+            position.prev_child = where_prev;
             position.next_child = where;
         }
 

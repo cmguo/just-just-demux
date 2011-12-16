@@ -729,8 +729,8 @@ namespace ppbox
                     write_hole_.next_beg += size;
                     write_hole_.this_end += size;
                     write_tmp_.offset += size;
-                    write_tmp_.size_beg += size;
-                    write_tmp_.size_end += size;
+                    write_tmp_.shard_beg = write_tmp_.size_beg += size;
+                    write_tmp_.shard_end = write_tmp_.size_end += size;
                     write_hole_tmp_.next_beg += size;
                     write_hole_tmp_.this_end += size;
                 } else if (offset <= write_.offset) {
@@ -762,7 +762,7 @@ namespace ppbox
                             write_.next_child = source;
                     }
                     if (offset < write_tmp_.size_end)
-                        write_tmp_.size_end = offset;
+                        write_tmp_.shard_end = write_tmp_.size_end = offset;
                     if (write_tmp_.next_child == NULL 
                         || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
                             write_tmp_.next_child = source;
@@ -788,7 +788,7 @@ namespace ppbox
                             write_.next_child = source;
                     }
                     if (offset < write_tmp_.size_end)
-                        write_tmp_.size_end = offset;
+                        write_tmp_.shard_end = write_tmp_.size_end = offset;
                     if (write_tmp_.next_child == NULL 
                         || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
                             write_tmp_.next_child = source;
