@@ -736,7 +736,7 @@ namespace ppbox
                 } else if (offset <= write_.offset) {
                     close_segment(ec);
                     close_all_request(ec);
-                    /*if (offset < read_.size_end)
+                   /* if (offset < read_.size_end)
                         read_.shard_end = read_.size_end = offset;
                     if (read_.next_child == NULL 
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
@@ -800,8 +800,8 @@ namespace ppbox
                     if (offset < data_end_)
                         data_end_ = offset;
                 }
-                root_source_->size_seek(read_.offset, read_, ec);
-                root_source_->size_seek(write_.offset, write_, ec);
+                read_.source->size_seek(read_.offset, read_, ec);
+                write_.source->size_seek(write_.offset, write_, ec);
             }
 
         private:
@@ -1041,7 +1041,7 @@ namespace ppbox
             {
                 // W     e^b    e----b      e---
                 // 如果当这个分段不能完全填充当前空洞，会切分出一个小空洞，需要插入
-                boost::uint64_t end = pos.size_end;
+                boost::uint64_t end = pos.shard_end;
                 if (end > seek_end_) {   // 一般这种可能性是先下头部数据的需求
                     end = seek_end_;
                 }
