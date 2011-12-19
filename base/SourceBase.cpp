@@ -85,7 +85,7 @@ namespace ppbox
                 if (time2 < insert_time) {
                     break;
                 } else if (time2 < insert_time + next_item->tree_time()) {
-                    return next_item->time_seek(time - insert_time_, position, ec);
+                    return next_item->time_seek(time - insert_time, position, ec);
                 } else {
                     time2 -= next_item->tree_time();
                     skip_size += next_item->tree_size();
@@ -136,7 +136,7 @@ namespace ppbox
                 if (size2 < insert_size) {
                     break;
                 } else if (size2 < insert_size + next_item->tree_size()) {
-                    return next_item->time_seek(size2 - next_item->insert_size_, position, ec);
+                    return next_item->size_seek(size - insert_size, position, ec);
                 } else {
                     size2 -= next_item->tree_size();
                     skip_time += next_item->tree_time();

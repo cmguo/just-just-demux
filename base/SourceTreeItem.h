@@ -22,7 +22,8 @@ namespace ppbox
                 SourceTreePosition const & r)
             {
                 return l.source == r.source
-                    && l.next_child == r.next_child;
+                    && l.next_child == r.next_child
+                    && l.prev_child == r.prev_child;
             }
 
             friend bool operator != (
@@ -30,7 +31,8 @@ namespace ppbox
                 SourceTreePosition const & r)
             {
                 return l.source != r.source
-                    || l.next_child != r.next_child;
+                    || l.next_child != r.next_child
+                    || l.prev_child != r.prev_child;
             }
 
         };

@@ -164,7 +164,7 @@ namespace ppbox
                 SourceBase * near_src = NULL;
                 bool is_prev = false;
                 SegmentPositionEx position2;
-                SourceBase * item = (SourceBase *)root_source_->first_child();
+                SourceBase * item = (SourceBase *)position.source->first_child();
                 while (item) {
                     if (item->insert_segment() == position.segment) {
                         if (!first_src) {
@@ -176,7 +176,7 @@ namespace ppbox
                         }
                     }
                     item = (SourceBase *)item->next_sibling();
-                    if (item->insert_segment() > position.segment) {
+                    if (item && item->insert_segment() > position.segment) {
                         break;
                     }
                 }
@@ -506,7 +506,6 @@ namespace ppbox
             bool is_seek, 
             boost::system::error_code & ec)
         {
-            demuxer_info.segment = segment;
             if (segment == read_demuxer_.segment) {
                 demuxer_info.stream = read_demuxer_.stream;
             } else if (segment == write_demuxer_.segment) {
@@ -517,6 +516,7 @@ namespace ppbox
                 demuxer_info.stream.reset(stream);
             }
             demuxer_info.demuxer.reset(demuxer->clone(* demuxer_info.stream));
+            demuxer_info.segment = segment;
             if (is_seek)
                 demuxer_info.demuxer->seek(time, ec);
         }

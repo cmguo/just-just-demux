@@ -162,7 +162,7 @@ namespace ppbox
                 seek_to(offset);
                 SegmentPositionEx & read = read_;
                 read = position;
-                root_source_->size_seek(write_.offset, write_, ec);
+                position.source->size_seek(write_.offset, write_, ec);
                 if (!ec) {
                     if (offset > seek_end_)
                         seek_end_ = (boost::uint64_t)-1;
@@ -742,9 +742,6 @@ namespace ppbox
                         || offset < ((SourceBase *)read_.next_child)->insert_size()) {
                             read_.next_child = source;
                     }*/
-                    if (offset < read_.size_end) {
-                        root_source_->size_seek(offset, read_, ec);
-                    }
                     root_source_->size_seek(offset, write_, ec);
                     write_tmp_ = write_;
                     write_tmp_.buffer = NULL;
@@ -770,15 +767,6 @@ namespace ppbox
                         || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
                             write_tmp_.next_child = source;
                     }*/
-                    if (offset < read_.size_end) {
-                        root_source_->size_seek(offset, read_, ec);
-                    }
-                    if (offset < write_.size_end) {
-                        root_source_->size_seek(offset, write_, ec);
-                    }
-                    if (offset < write_tmp_.size_end) {
-                        root_source_->size_seek(offset,write_tmp_, ec);
-                    }
                     if (sended_req_ > 1) {
                         close_segment(ec);
                         close_all_request(ec);
@@ -805,15 +793,6 @@ namespace ppbox
                         || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
                             write_tmp_.next_child = source;
                     }*/
-                    if (offset < read_.size_end) {
-                        root_source_->size_seek(offset, read_, ec);
-                    }
-                    if (offset < write_.size_end) {
-                        root_source_->size_seek(offset, write_, ec);
-                    }
-                    if (offset < write_tmp_.size_end) {
-                        root_source_->size_seek(offset,write_tmp_, ec);
-                    }
                     if (offset < write_hole_tmp_.this_end) {
                         close_segment(ec);
                         close_all_request(ec);
@@ -821,6 +800,8 @@ namespace ppbox
                     if (offset < data_end_)
                         data_end_ = offset;
                 }
+                root_source_->size_seek(read_.offset, read_, ec);
+                root_source_->size_seek(write_.offset, write_, ec);
             }
 
         private:
