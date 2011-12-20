@@ -530,14 +530,17 @@ namespace ppbox
                         }
                     }
                 }
-                delta = seek_offset; // 记录offset最大值
+                delta = 0; // 记录offset最大值
                 for (size_t i = 0; i < tracks_.size(); ++i) {
                     if (i == min_time_index || 
                         AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = seek_time, next_index, sample))) {
                             if (sample.GetOffset() < seek_offset) {
                                 seek_offset = sample.GetOffset();
-                            } else if (sample.GetOffset() > delta) {
-                                delta = sample.GetOffset();
+                            }
+                            if (AP4_SUCCEEDED(tracks_[i]->GetSample(--next_index, sample))) {
+                                if (sample.GetOffset() + sample.GetSize() > delta) {
+                                    delta = sample.GetOffset() + sample.GetSize();
+                                }
                             }
                     }
                 }
@@ -546,9 +549,9 @@ namespace ppbox
             if (seek_offset == 0) {
                 ec = framework::system::logic_error::out_of_range;
             } else {
-                min_offset_ = seek_offset;
                 time = seek_time;
                 ec = error_code();
+                assert(delta >= seek_offset);
                 delta -= seek_offset;
                 seek_offset += delta;
             }

@@ -116,6 +116,29 @@ namespace ppbox
                 return track_;
             }
 
+            AP4_Result GetSample(
+                AP4_Ordinal index, 
+                SampleListItem & sample)
+            {
+                assert(index <= total_index_);
+                if (index == total_index_) {
+                    return AP4_ERROR_OUT_OF_RANGE;
+                } else {
+                    AP4_Result ret = track_->GetSample(index, sample_);
+                    // 正常情况是不会出错的，但是发现一部分影片的sample_count有问题
+                    //assert(AP4_SUCCEEDED(ret));
+                    if (AP4_SUCCEEDED(ret)) {
+#ifndef PPBOX_DEMUX_MP4_USE_CTS
+                        sample_.ustime = sample_.GetDts() * 1000000 / track_->GetMediaTimeScale();
+#else
+                        sample_.ustime = sample_.GetCts() * 1000000 / track_->GetMediaTimeScale();
+#endif // PPBOX_DEMUX_MP4_USE_CTS
+                        sample_.time = (boost::uint32_t)(sample_.ustime / 1000);
+                    }
+                    return ret;
+                }
+            }
+
             AP4_Result GetNextSample()
             {
                 assert(next_index_ <= total_index_);
