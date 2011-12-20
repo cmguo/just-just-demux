@@ -257,12 +257,14 @@ namespace ppbox
                         boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
                         read_demuxer_.stream->drop_all();
                         if (buffer_->read_segment().source) {
+                            size_t insert_time = read_demuxer_.segment.source->insert_time();
                             change_source(const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
                                 read_demuxer_, true, ec);
                             segment_time_ = buffer_->read_segment().time_beg;
                             if (segment_time_ == boost::uint64_t(-1)) {
                                 segment_time_ += cur_time;
                             }
+                            segment_time_ -= insert_time;
                             segment_ustime_ = (boost::uint64_t)segment_time_ * 1000;
                             for (size_t i = 0; i < media_time_scales_.size(); i++) {
                                 dts_offset_[i] = 
@@ -397,7 +399,7 @@ namespace ppbox
             if (old_source != new_segment.source) {
                 if (old_source->parent() == new_segment.source) {  //×ÓÇÐ¸¸
                     if (old_source->insert_demuxer().demuxer) {
-                        reload_demuxer(old_source->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_time(), is_seek, ec);
+                        reload_demuxer(old_source->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
                     } else {
                         SourceBase * prev_sibling = old_source->prev_sibling();
                         bool flag = false;
@@ -405,7 +407,7 @@ namespace ppbox
                             if (prev_sibling->insert_demuxer().demuxer
                                 && prev_sibling->insert_segment() == old_source->insert_segment()) {
                                     flag = true;
-                                    reload_demuxer(prev_sibling->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_time(), is_seek, ec);
+                                    reload_demuxer(prev_sibling->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
                                     break;
                             }
                             prev_sibling = prev_sibling->prev_sibling();

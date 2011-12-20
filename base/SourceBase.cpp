@@ -17,6 +17,7 @@ namespace ppbox
             , insert_size_(0)
             , insert_delta_(0)
             , insert_time_(0)
+            , insert_input_time_(0)
         {
         }
 
@@ -186,7 +187,7 @@ namespace ppbox
             if (!ec) {
                 source->skip_ = true;
                 source->insert_segment_ = position.segment;
-                //source->insert_time_ = time - position.time_beg;
+                source->insert_input_time_ = source->insert_time_ = time - position.time_beg;
                 position.source->insert_child(source, position.next_child);
             }
             return ec;

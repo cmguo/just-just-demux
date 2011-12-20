@@ -242,9 +242,14 @@ namespace ppbox
                 return insert_segment_;
             }
 
-            size_t insert_time() const
+            boost::uint64_t insert_time() const
             {
                 return insert_time_;
+            }
+
+            boost::uint64_t insert_input_time() const
+            {
+                return insert_input_time_;
             }
 
             SourceBase * parent()
@@ -319,6 +324,7 @@ namespace ppbox
             boost::uint64_t insert_size_; // 插入在分段上的偏移位置，相对于分段起始位置
             boost::uint64_t insert_delta_; // 需要重复下载的数据量
             boost::uint64_t insert_time_; // 插入在分段上的时间位置，相对于分段起始位置，单位：微妙
+            boost::uint64_t insert_input_time_;
         };
 
     } // namespace demux
