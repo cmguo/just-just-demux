@@ -371,7 +371,7 @@ namespace ppbox
         }
 
         boost::uint64_t AsfDemuxerBase::get_offset(
-            boost::uint32_t time, 
+            boost::uint32_t & time, 
             boost::uint32_t & delta, 
             boost::system::error_code & ec)
         {

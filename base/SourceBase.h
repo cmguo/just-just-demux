@@ -216,6 +216,8 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             void update_insert(
+                SegmentPositionEx const & position, 
+                boost::uint32_t time, 
                 boost::uint64_t offset, 
                 boost::uint64_t delta);
 

@@ -502,7 +502,7 @@ namespace ppbox
         }
 
         boost::uint64_t Mp4DemuxerBase::get_offset(
-            boost::uint32_t time, 
+            boost::uint32_t & time, 
             boost::uint32_t & delta, 
             boost::system::error_code & ec)
         {

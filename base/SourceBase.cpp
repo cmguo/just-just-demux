@@ -46,9 +46,9 @@ namespace ppbox
                 if (segment.source) {
                     segment.segment = insert_segment_ - 1;
                     segment.size_end -= insert_size_ - insert_delta_; // 伪造上一段的结尾
-                    segment.time_end -= insert_time_;
                     ((SourceBase *)segment.source)->next_segment(segment);
                     segment.shard_beg = segment.size_beg + insert_size_ - insert_delta_;
+                    segment.time_end -= insert_time_;
                 }
             } else {
                 segment.size_beg = segment.size_end;
@@ -85,7 +85,10 @@ namespace ppbox
                 if (time2 < insert_time) {
                     break;
                 } else if (time2 < insert_time + next_item->tree_time()) {
-                    return next_item->time_seek(time - insert_time, position, ec);
+                    next_item->time_seek(time - insert_time, position, ec);
+                    position.time_beg += insert_time;
+                    position.time_end += insert_time;
+                    return ec;
                 } else {
                     time2 -= next_item->tree_time();
                     skip_size += next_item->tree_size();
@@ -136,7 +139,10 @@ namespace ppbox
                 if (size2 < insert_size) {
                     break;
                 } else if (size2 < insert_size + next_item->tree_size()) {
-                    return next_item->size_seek(size - insert_size, position, ec);
+                    next_item->size_seek(size - insert_size, position, ec);
+                    position.size_beg += insert_size;
+                    position.size_end += insert_size;
+                    return ec;
                 } else {
                     size2 -= next_item->tree_size();
                     skip_time += next_item->tree_time();
@@ -180,17 +186,20 @@ namespace ppbox
             if (!ec) {
                 source->skip_ = true;
                 source->insert_segment_ = position.segment;
-                source->insert_time_ = time - position.time_beg;
+                //source->insert_time_ = time - position.time_beg;
                 position.source->insert_child(source, position.next_child);
             }
             return ec;
         }
 
         void SourceBase::update_insert(
+            SegmentPositionEx const & position, 
+            boost::uint32_t time, 
             boost::uint64_t offset, 
             boost::uint64_t delta)
         {
             skip_ = false;
+            insert_time_ = time - position.time_beg;
             insert_size_ = offset;
             insert_delta_ = delta;
         }

@@ -185,7 +185,7 @@ namespace ppbox
                 boost::system::error_code & ec) = 0;
 
             virtual boost::uint64_t get_offset(
-                boost::uint32_t time, 
+                boost::uint32_t & time, 
                 boost::uint32_t & delta, // 要重复下载的数据量 
                 boost::system::error_code & ec) = 0;
         };

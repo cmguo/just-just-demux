@@ -163,7 +163,6 @@ namespace ppbox
                 SourceBase * first_src = NULL;
                 SourceBase * near_src = NULL;
                 bool is_prev = false;
-                SegmentPositionEx position2;
                 SourceBase * item = (SourceBase *)position.source->first_child();
                 while (item) {
                     if (item->insert_segment() == position.segment) {
@@ -185,28 +184,19 @@ namespace ppbox
                     if (time > total_time) {
                         is_prev = true;
                         boost::uint64_t total_size = root_source_->total_size_before(first_src);
-                        position2.segment = position.segment;
-                        position2.source = position.source;
-                        position2.total_state = SegmentPositionEx::is_valid;
-                        position2.size_beg = total_size - first_src->insert_size();
-                        position2.size_end = total_size;
-                        position2.time_beg = total_time - first_src->insert_time();
-                        position2.time_end = total_time;
                         read_demuxer_ = first_src->insert_demuxer();
-                        seg_time = time - position2.time_beg;
                     } else {
                         create_demuxer(position, read_demuxer_, ec);
-                        seg_time = time - position.time_beg;
                     }
                 } else {
                     create_demuxer(position, read_demuxer_, ec);
-                    seg_time = time - position.time_beg;
                 }
+                seg_time = time - position.time_beg;
                 boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);
                 if (!ec) {
                     seek_time_ = 0;
                     if (is_prev) {
-                        reload_demuxer(read_demuxer_.demuxer, position, read_demuxer_, near_src->insert_time(), true, ec);
+                        reload_demuxer(read_demuxer_.demuxer, position, read_demuxer_, 0, false, ec);
                     }
                     read_demuxer_.stream->seek(position, offset);
                     segment_time_ = buffer_->read_segment().time_beg;
@@ -219,8 +209,6 @@ namespace ppbox
                             segment_time_ * media_time_scales_[i] / 1000;
                     }
                 } else {
-                    if (is_prev) 
-                        position = position2;
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
                     if (head_length && time) {
                         read_demuxer_.stream->seek(position, 0, head_length);
@@ -371,10 +359,13 @@ namespace ppbox
                     && position.segment <= buffer_->write_segment().segment) {
                         DemuxerInfo demuxer;
                         create_demuxer(position, demuxer, ec);
+                        if (!source->insert_demuxer().demuxer) {
+                            source->insert_demuxer() = demuxer;
+                        }
                         boost::uint32_t delta;
                         boost::uint64_t offset = demuxer.demuxer->get_offset(time, delta, ec);
                         if (!ec) {
-                            source->update_insert(offset, delta);
+                            source->update_insert(position, time, offset, delta);
                             buffer_->insert_source(offset, source, source->tree_size() + delta, ec);
                         }
                 } else {
@@ -410,7 +401,7 @@ namespace ppbox
                     } else {
                         SourceBase * prev_sibling = old_source->prev_sibling();
                         bool flag = false;
-                        while(prev_sibling ) {
+                        while (prev_sibling ) {
                             if (prev_sibling->insert_demuxer().demuxer
                                 && prev_sibling->insert_segment() == old_source->insert_segment()) {
                                     flag = true;
@@ -584,10 +575,10 @@ namespace ppbox
                             source->insert_demuxer() = write_demuxer_;
                         }
                         boost::uint32_t delta;
-                        boost::uint64_t offset = 
-                            write_demuxer_.demuxer->get_offset(source->insert_time(), delta, ec2);
+                        boost::uint32_t time = source->insert_time();
+                        boost::uint64_t offset = write_demuxer_.demuxer->get_offset(time, delta, ec2);
                         if (!ec2) {
-                            source->update_insert(offset, delta);
+                            source->update_insert(buffer_->write_segment(), time, offset, delta);
                             buffer_->insert_source(offset, source, source->tree_size() + delta, ec2);
                         }
                         source = source->next_sibling();
