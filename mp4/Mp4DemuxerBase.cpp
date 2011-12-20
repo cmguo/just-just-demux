@@ -361,10 +361,12 @@ namespace ppbox
             is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
             if (!is_) {
                 is_.clear();
+                assert(is_);
                 ec = error::file_stream_error;
                 sample_put_back_ = true;
             }
             is_.seekg(min_offset_, std::ios_base::beg);
+                assert(is_);
             if (tc.elapse() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_sample] elapse: " << tc.elapse());
             }
@@ -466,10 +468,13 @@ namespace ppbox
             if (!is_open(ec)) {
                 return 0;
             }
+            assert(is_);
             size_t position = is_.tellg();
             is_.seekg(0, std::ios_base::end);
+            assert(is_);
             size_t offset = is_.tellg();
             is_.seekg(position, std::ios_base::beg);
+            assert(is_);
             AP4_UI32 time = get_duration(ec);
             if (ec) {
                 return 0;
@@ -518,6 +523,7 @@ namespace ppbox
             AP4_Position seek_offset = (AP4_Position)-1;
             SampleListItem sample;
             AP4_Ordinal next_index = 0;
+            AP4_Ordinal min_next_index = 0;
             {
                 AP4_UI32 seek_time1 = time;
                 size_t min_time_index  = 0;
@@ -527,10 +533,12 @@ namespace ppbox
                             seek_time = seek_time1;
                             seek_offset = sample.GetOffset();
                             min_time_index = i;
+                            min_next_index = next_index;
                         }
                     }
                 }
                 delta = 0; // 记录offset最大值
+                next_index = min_next_index;
                 for (size_t i = 0; i < tracks_.size(); ++i) {
                     if (i == min_time_index || 
                         AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = seek_time, next_index, sample))) {
@@ -544,7 +552,6 @@ namespace ppbox
                             }
                     }
                 }
-                sample_put_back_ = true;
             }
             if (seek_offset == 0) {
                 ec = framework::system::logic_error::out_of_range;
