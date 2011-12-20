@@ -275,7 +275,7 @@ namespace ppbox
                             if (segment_time_ == boost::uint64_t(-1)) {
                                 segment_time_ += cur_time;
                             }
-                            segment_ustime_ += (boost::uint64_t)cur_time * 1000;
+                            segment_ustime_ = (boost::uint64_t)segment_time_ * 1000;
                             for (size_t i = 0; i < media_time_scales_.size(); i++) {
                                 dts_offset_[i] = 
                                     (boost::uint64_t)segment_time_ * media_time_scales_[i] / 1000;
@@ -500,7 +500,7 @@ namespace ppbox
 
         void BufferDemuxer::reload_demuxer(
             DemuxerPointer & demuxer, 
-            SegmentPositionEx const & segment, 
+            SegmentPositionEx & segment, 
             DemuxerInfo & demuxer_info, 
             boost::uint32_t time, 
             bool is_seek, 
@@ -517,8 +517,9 @@ namespace ppbox
             }
             demuxer_info.demuxer.reset(demuxer->clone(* demuxer_info.stream));
             demuxer_info.segment = segment;
-            if (is_seek)
+            if (is_seek) {
                 demuxer_info.demuxer->seek(time, ec);
+            }
         }
 
         BufferDemuxer::post_event_func BufferDemuxer::get_poster()

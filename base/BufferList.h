@@ -532,12 +532,12 @@ namespace ppbox
             {
                 if (read_.total_state < SegmentPositionEx::is_valid) {
                     assert(read_.segment == write_.segment);
-                    write_.size_end = write_.offset;
-                    read_.size_end = write_.offset;
+                    write_.shard_end = write_.size_end = write_.offset;
+                    read_.shard_end = read_.size_end = write_.offset;
                     read_.total_state = SegmentPositionEx::by_guess;
                     LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
                 }
-                read_seek_to(read_.size_end, ec);
+                read_seek_to(read_.shard_end, ec);
                 if (!ec) {
                     read_.source->next_segment(read_);
                 }
@@ -736,12 +736,6 @@ namespace ppbox
                 } else if (offset <= write_.offset) {
                     close_segment(ec);
                     close_all_request(ec);
-                   /* if (offset < read_.size_end)
-                        read_.shard_end = read_.size_end = offset;
-                    if (read_.next_child == NULL 
-                        || offset < ((SourceBase *)read_.next_child)->insert_size()) {
-                            read_.next_child = source;
-                    }*/
                     root_source_->size_seek(offset, write_, ec);
                     write_tmp_ = write_;
                     write_tmp_.buffer = NULL;
@@ -749,24 +743,6 @@ namespace ppbox
                     write_hole_tmp_ = write_hole_;
                     data_end_ = offset;
                 } else if (offset < write_hole_.this_end) {
-                    /*if (offset < read_.size_end)
-                        read_.shard_end = read_.size_end = offset;
-                    if (read_.next_child == NULL 
-                        || offset < ((SourceBase *)read_.next_child)->insert_size()) {
-                            read_.next_child = source;
-                    }
-                    if (offset < write_.size_end)
-                        write_.shard_end = write_.size_end = offset;
-                    if (write_.next_child == NULL 
-                        || offset < ((SourceBase *)write_.next_child)->insert_size()) {
-                            write_.next_child = source;
-                    }
-                    if (offset < write_tmp_.size_end)
-                        write_tmp_.shard_end = write_tmp_.size_end = offset;
-                    if (write_tmp_.next_child == NULL 
-                        || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
-                            write_tmp_.next_child = source;
-                    }*/
                     if (sended_req_ > 1) {
                         close_segment(ec);
                         close_all_request(ec);
@@ -775,24 +751,6 @@ namespace ppbox
                     write_hole_tmp_ = write_hole_;
                     data_end_ = write_.offset;
                 } else {
-                    /*if (offset < read_.size_end)
-                        read_.shard_end = read_.size_end = offset;
-                    if (read_.next_child == NULL 
-                        || offset < ((SourceBase *)read_.next_child)->insert_size()) {
-                            read_.next_child = source;
-                    }
-                    if (offset < write_.size_end)
-                        write_.shard_end = write_.size_end = offset;
-                    if (write_.next_child == NULL 
-                        || offset < ((SourceBase *)write_.next_child)->insert_size()) {
-                            write_.next_child = source;
-                    }
-                    if (offset < write_tmp_.size_end)
-                        write_tmp_.shard_end = write_tmp_.size_end = offset;
-                    if (write_tmp_.next_child == NULL 
-                        || offset < ((SourceBase *)write_tmp_.next_child)->insert_size()) {
-                            write_tmp_.next_child = source;
-                    }*/
                     if (offset < write_hole_tmp_.this_end) {
                         close_segment(ec);
                         close_all_request(ec);
@@ -802,6 +760,8 @@ namespace ppbox
                 }
                 read_.source->size_seek(read_.offset, read_, ec);
                 write_.source->size_seek(write_.offset, write_, ec);
+                write_tmp_ = write_;
+                write_tmp_.buffer = NULL;
             }
 
         private:
@@ -827,14 +787,14 @@ namespace ppbox
                         return true;
                     } else if (write_.total_state == SegmentPositionEx::not_exist) {
                         write_.total_state = SegmentPositionEx::by_guess;
-                        write_.size_end = write_.offset;
+                        write_.shard_end = write_.size_end = write_.offset;
                         write_hole_.this_end = write_.offset;
                         if (read_.segment == write_.segment) {
-                            read_.size_end = write_.size_end;
+                            read_.shard_end = read_.size_end = write_.size_end;
                             read_.total_state = SegmentPositionEx::by_guess;
                         }
                         if (write_tmp_.segment == write_.segment) {
-                            write_tmp_.size_end = write_.size_end;
+                            write_tmp_.shard_end = write_tmp_.size_end = write_.size_end;
                             write_tmp_.total_state = SegmentPositionEx::by_guess;
                         }
                         LOG_S(framework::logger::Logger::kLevelInfor, 
@@ -1017,7 +977,7 @@ namespace ppbox
                     return ec = source_error::at_end_point;
                 }
 
-                if (next_offset >= pos.size_end) {
+                if (next_offset >= pos.shard_end) {
                     pos.source->next_segment(pos);
                     if (!pos.source) {
                         return ec = source_error::no_more_segment;
@@ -1063,15 +1023,15 @@ namespace ppbox
                         write_.total_state = SegmentPositionEx::not_exist;
                     } else {
                         write_.total_state = SegmentPositionEx::is_valid;
-                        write_.size_end = write_.size_beg + file_length;
+                        write_.shard_end = write_.size_end = write_.size_beg + file_length;
                         if (write_hole_.this_end >= write_.size_end)
                             write_hole_.this_end = write_.size_end;
                         if (read_.segment == write_.segment) {
-                            read_.size_end = write_.size_end;
+                            read_.shard_end = read_.size_end = write_.size_end;
                             read_.total_state = SegmentPositionEx::is_valid;
                         }
                         if (write_tmp_.segment == write_.segment) {
-                            write_tmp_.size_end = write_.size_end;
+                            write_tmp_.shard_end = write_tmp_.size_end = write_.size_end;
                             write_tmp_.total_state = SegmentPositionEx::is_valid;
                         }
                     }

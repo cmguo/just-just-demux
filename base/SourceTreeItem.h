@@ -13,6 +13,13 @@ namespace ppbox
 
         struct SourceTreePosition
         {
+            SourceTreePosition()
+                : source(NULL)
+                , prev_child(NULL)
+                , next_child(NULL)
+            {
+            }
+
             SourceBase * source;// 处理流程中的下一个子节点
             SourceTreeItem * prev_child;// 处理流程中的上一个子节点
             SourceTreeItem * next_child;// 处理流程中的下一个子节点

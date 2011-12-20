@@ -161,7 +161,7 @@ namespace ppbox
 
             void reload_demuxer(
                 DemuxerPointer & demuxer, 
-                SegmentPositionEx const & segment, 
+                SegmentPositionEx & segment, 
                 DemuxerInfo & demuxer_info, 
                 boost::uint32_t time, 
                 bool is_seek, 
