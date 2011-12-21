@@ -386,8 +386,8 @@ namespace ppbox
             {
                 if (!segment.source) {
                     segment.source = this;
-                    segment.size_beg = segment.size_beg;
-                    segment.size_end = boost::uint64_t(-1);
+                    segment.shard_beg = segment.size_beg = segment.size_beg;
+                    segment.shard_end = segment.size_end = boost::uint64_t(-1);
                     segment.time_beg = segment.time_beg;
                     segment.time_end = boost::uint64_t(-1);
                 } else {
@@ -395,8 +395,8 @@ namespace ppbox
                         segments_.push_back(segment.size_end - segment.size_beg);
                     }
                     ++segment.segment;
-                    segment.size_beg = segment.size_end;
-                    segment.size_end = 
+                    segment.shard_beg = segment.size_beg = segment.size_end;
+                    segment.shard_end = segment.size_end = 
                         segment_size(segment.segment) == boost::uint64_t(-1) ? 
                         boost::uint64_t(-1) : segment_size(segment.segment) + segment.size_beg;
                     if (segment.size_end == (boost::uint64_t)-1) {

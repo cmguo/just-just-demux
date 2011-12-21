@@ -86,13 +86,19 @@ namespace ppbox
                 if (time2 < insert_time) {
                     break;
                 } else if (time2 < insert_time + next_item->tree_time()) {
+                    boost::uint64_t insert_size = source_size_before(next_item->insert_segment_) 
+                        + skip_size + next_item->insert_size_;
                     next_item->time_seek(time - insert_time, position, ec);
+                    position.size_beg += insert_size;
+                    position.size_end += insert_size;
+                    position.shard_beg += insert_size;
+                    position.shard_end += insert_size;
                     position.time_beg += insert_time;
                     position.time_end += insert_time;
                     return ec;
                 } else {
                     time2 -= next_item->tree_time();
-                    skip_size += next_item->tree_size();
+                    skip_size += next_item->tree_size() + next_item->insert_delta_;
                 }
                 prev_item = next_item;
                 next_item = (SourceBase *)next_item->next_sibling_;
@@ -140,9 +146,15 @@ namespace ppbox
                 if (size2 < insert_size) {
                     break;
                 } else if (size2 < insert_size + next_item->tree_size()) {
+                    boost::uint64_t insert_time = source_time_before(next_item->insert_segment_) 
+                        + skip_time + next_item->insert_time_;
                     next_item->size_seek(size - insert_size, position, ec);
                     position.size_beg += insert_size;
                     position.size_end += insert_size;
+                    position.shard_beg += insert_size;
+                    position.shard_end += insert_size;
+                    position.time_beg += insert_time;
+                    position.time_end += insert_time;
                     return ec;
                 } else {
                     size2 -= next_item->tree_size();

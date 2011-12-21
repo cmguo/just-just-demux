@@ -260,9 +260,11 @@ namespace ppbox
                             size_t insert_time = read_demuxer_.segment.source->insert_time();
                             change_source(const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
                                 read_demuxer_, true, ec);
-                            segment_time_ = buffer_->read_segment().time_beg;
-                            if (segment_time_ == boost::uint64_t(-1)) {
+                            boost::uint64_t segment_time = buffer_->read_segment().time_beg;
+                            if (segment_time == boost::uint64_t(-1)) {
                                 segment_time_ += cur_time;
+                            } else {
+                                segment_time_ = segment_time;
                             }
                             segment_time_ -= insert_time;
                             segment_ustime_ = (boost::uint64_t)segment_time_ * 1000;
@@ -571,7 +573,7 @@ namespace ppbox
                 if (source) {
                     boost::system::error_code ec2;
                     int num = 0;
-                    while (source->insert_segment() == write_demuxer_.segment.segment) {
+                    while (source && source->insert_segment() == write_demuxer_.segment.segment) {
                         num++;
                         if (num = 1) {
                             source->insert_demuxer() = write_demuxer_;

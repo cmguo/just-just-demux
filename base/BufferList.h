@@ -162,7 +162,7 @@ namespace ppbox
                 seek_to(offset);
                 SegmentPositionEx & read = read_;
                 read = position;
-                position.source->size_seek(write_.offset, write_, ec);
+                root_source_->size_seek(write_.offset, write_, ec);
                 if (!ec) {
                     if (offset > seek_end_)
                         seek_end_ = (boost::uint64_t)-1;
