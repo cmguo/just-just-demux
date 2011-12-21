@@ -214,6 +214,7 @@ namespace ppbox
                         assert(pos == pos_);
                         assert(eback() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*i));
                         size_t size = boost::asio::buffer_size(*i);
+                        (void)size;
                         assert((size_t)(egptr() - eback()) == size);
                         break;
                     }
