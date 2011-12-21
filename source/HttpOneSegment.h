@@ -17,10 +17,12 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 DemuxerType::Enum demuxer_type, 
                 boost::uint64_t size, 
+                boost::uint64_t head_size, 
                 boost::uint64_t time)
                 : HttpSource(io_svc)
                 , demuxer_type_(demuxer_type)
                 , size_(size)
+                , head_size_(head_size)
                 , time_(time)
             {
             }
@@ -77,9 +79,16 @@ namespace ppbox
                 return time_;
             }
 
+            boost::uint64_t segment_head_size(
+                size_t segment)
+            {
+                return head_size_;
+            }
+
         private:
             DemuxerType::Enum demuxer_type_;
             boost::uint64_t size_;
+            boost::uint64_t head_size_;
             boost::uint64_t time_;
             framework::string::Url url_;
         };
