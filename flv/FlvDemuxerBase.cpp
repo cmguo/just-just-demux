@@ -112,11 +112,11 @@ namespace ppbox
                         streams_[(size_t)flv_tag_.Type].index < stream_map_.size()) {
                             break;
                     }
-                    header_offset_ = parse_offset_ = (boost::uint32_t)archive_.tellg();
                 }
                 if (!ec) {
                     archive_.seekg(parse_offset_, std::ios_base::beg);
                     timestamp_offset_ms_ = flv_tag_.Timestamp;
+                    header_offset_ = parse_offset_;
                     open_step_ = 3;
                 }
             }
