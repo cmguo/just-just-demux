@@ -157,7 +157,7 @@ namespace ppbox
                     position.time_end += insert_time;
                     return ec;
                 } else {
-                    size2 -= next_item->tree_size();
+                    size2 -= next_item->tree_size() + next_item->insert_delta_;
                     skip_time += next_item->tree_time();
                 }
                 prev_item = next_item;
