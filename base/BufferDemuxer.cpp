@@ -159,7 +159,6 @@ namespace ppbox
             boost::uint32_t seg_time = 0;
             root_source_->time_seek(time, position, ec);
             if (!ec) {
-                boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
                 SourceBase * first_src = NULL;
                 SourceBase * near_src = NULL;
                 bool is_prev = false;
@@ -183,7 +182,6 @@ namespace ppbox
                     boost::uint64_t total_time = root_source_->total_time_before(first_src);
                     if (time > total_time) {
                         is_prev = true;
-                        boost::uint64_t total_size = root_source_->total_size_before(first_src);
                         read_demuxer_ = first_src->insert_demuxer();
                     } else {
                         create_demuxer(position, read_demuxer_, ec);
@@ -193,21 +191,18 @@ namespace ppbox
                 }
                 seg_time = time - position.time_beg;
                 boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);
+                segment_time_ = position.time_beg;
+                segment_ustime_ = segment_time_ * 1000;
+                for (size_t i = 0; i < media_time_scales_.size(); i++) {
+                    dts_offset_[i] = 
+                        segment_time_ * media_time_scales_[i] / 1000;
+                }
                 if (!ec) {
                     seek_time_ = 0;
                     if (is_prev) {
                         reload_demuxer(read_demuxer_.demuxer, position, read_demuxer_, 0, false, ec);
                     }
                     read_demuxer_.stream->seek(position, offset);
-                    segment_time_ = buffer_->read_segment().time_beg;
-                    if (segment_time_ == boost::uint64_t(-1)) {
-                        segment_time_ = cur_time;
-                    }
-                    segment_ustime_ = segment_time_ * 1000;
-                    for (size_t i = 0; i < media_time_scales_.size(); i++) {
-                        dts_offset_[i] = 
-                            segment_time_ * media_time_scales_[i] / 1000;
-                    }
                 } else {
                     boost::uint64_t head_length = position.source->segment_head_size(position.segment);
                     if (head_length && time) {
