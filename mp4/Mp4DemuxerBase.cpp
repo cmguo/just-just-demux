@@ -100,21 +100,19 @@ namespace ppbox
             }
 
             if (open_step_ == 0) {
-                size_t length = 0;
-                is_.seekg(0, std::ios_base::end);
-                length = is_.tellg();
-                is_.seekg(0, std::ios_base::beg);
-                if (length < 24) {
+                is_.seekg(24, std::ios_base::beg);
+                if (!is_) {
+                    is_.clear();
                     ec = error::file_stream_error;
                     return false;
                 }
+                is_.seekg(0, std::ios_base::beg);
                 boost::uint8_t size1_char;
                 is_.read(&size1_char, 4);
                 boost::uint32_t size1 = BytesOrder::host_to_net_long(* (boost::uint32_t *)&size1_char);
-                is_.seekg(0, std::ios_base::end);
-                length = is_.tellg();
-                is_.seekg(0, std::ios_base::beg);
-                if (length < size1 + 16) {
+                is_.seekg(size1 + 16, std::ios_base::beg);
+                if (!is_) {
+                    is_.clear();
                     head_size_ = size1 + 16;
                     ec = error::file_stream_error;
                     return false;
@@ -124,10 +122,10 @@ namespace ppbox
                 is_.read(&size2_char, 4);
                 boost::uint32_t size2 = BytesOrder::host_to_net_long(* (boost::uint32_t *)&size2_char);
                 is_.seekg(0, std::ios_base::end);
-                length = is_.tellg();
-                is_.seekg(0, std::ios_base::beg);
                 head_size_ = size1 + size2 + 8;
-                if (length < size1 + size2 + 8) {
+                is_.seekg(size1 + size2 + 8, std::ios_base::beg);
+                if (!is_) {
+                    is_.clear();
                     ec = error::file_stream_error;
                     return false;
                 }
