@@ -6,7 +6,7 @@
 #include "ppbox/demux/base/SourceBase.h"
 #include "ppbox/demux/source/HttpSource.h"
 #include "ppbox/demux/live2/Live2Demuxer.h"
-#include "ppbox/demux/Serialize.h"
+#include "ppbox/common/Serialize.h"
 
 #include <util/protocol/pptv/Base64.h>
 #include <util/serialization/NVPair.h>
