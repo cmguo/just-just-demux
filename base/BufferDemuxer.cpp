@@ -669,5 +669,17 @@ namespace ppbox
             return root_source_->set_time_out(time_out, ec);
         }
 
+        boost::system::error_code BufferDemuxer::pause(
+            boost::system::error_code & ec)
+        {
+            return ec = error::not_support;
+        }
+
+        boost::system::error_code BufferDemuxer::resume(
+            boost::system::error_code & ec)
+        {
+            return ec = error::not_support;
+        }
+
     } // namespace demux
 } // namespace ppbox
