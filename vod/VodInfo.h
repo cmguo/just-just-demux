@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_VOD_INFO_H_
 #define _PPBOX_DEMUX_VOD_INFO_H_
 
-#include "ppbox/demux/Serialize.h"
+#include "ppbox/common/Serialize.h"
 #include "ppbox/demux/base/SourceBase.h"
 
 #include <util/serialization/stl/vector.h>
