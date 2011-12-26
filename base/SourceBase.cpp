@@ -115,11 +115,11 @@ namespace ppbox
             position.shard_beg = position.size_beg = skip_size + source_size_before(position.segment);
             position.shard_end = position.size_end = position.size_beg + segment_size(position.segment);
             position.time_beg = time + source_time_before(position.segment) - time2;
-            position.time_end = position.time_beg + segment_time(position.segment);
             if (prev_item && prev_item->insert_segment_ == position.segment) {
                 position.shard_beg = position.size_beg + prev_item->insert_size_ - prev_item->insert_delta_;
                 position.time_beg = position.time_beg + prev_item->insert_time_;
             }
+            position.time_end = position.time_beg + segment_time(position.segment);
             if (next_item && next_item->insert_segment_ == position.segment) {
                 position.shard_end = position.size_beg + next_item->insert_size_;
                 position.time_end = position.time_beg + next_item->insert_time_;
@@ -176,11 +176,11 @@ namespace ppbox
             position.shard_beg = position.size_beg = size + source_size_before(position.segment) - size2;
             position.shard_end = position.size_end = position.size_beg + segment_size(position.segment);
             position.time_beg = skip_time + source_time_before(position.segment);
-            position.time_end = position.time_beg + segment_time(position.segment);
             if (prev_item && prev_item->insert_segment_ == position.segment) {
                 position.shard_beg = position.size_beg + prev_item->insert_size_ - prev_item->insert_delta_;
                 position.time_beg = position.time_beg + prev_item->insert_time_;
             }
+            position.time_end = position.time_beg + segment_time(position.segment);
             if (next_item && next_item->insert_segment_ == position.segment) {
                 position.shard_end = position.size_beg + next_item->insert_size_;
                 position.time_end = position.time_beg + next_item->insert_time_;

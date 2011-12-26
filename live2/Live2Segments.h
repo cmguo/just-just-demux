@@ -237,19 +237,6 @@ namespace ppbox
                 }
             }
 
-            //void on_error(
-            //    boost::system::error_code & ec)
-            //{
-            //    if (ec == boost::asio::error::eof) {
-            //        ec.clear();
-            //        segments_.push_back(Segment(DemuxerType::flv));
-            //        //clear_readed_segment(ec);
-            //    } else if (ec == boost::asio::error::connection_refused) {
-            //        ec.clear();
-            //        HttpSegments::buffer_->increase_req();
-            //    }
-            //}
-
         public:
             void set_url_key(
                 std::string const & key, 
@@ -393,6 +380,7 @@ namespace ppbox
                 } else {
                     if (segment.segment - num_del_ >= segments_.size()) {
                         segments_.push_back(segment.size_end - segment.size_beg);
+                        update();
                     }
                     ++segment.segment;
                     segment.shard_beg = segment.size_beg = segment.size_end;
