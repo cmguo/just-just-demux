@@ -6,6 +6,7 @@
 #include "ppbox/demux/base/DemuxerError.h"
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/DemuxerStatistic.h"
+#include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/SourceBase.h"
 
 #include <framework/timer/Ticker.h>
@@ -113,6 +114,12 @@ namespace ppbox
 
             void on_extern_error(
                 boost::system::error_code const & ec);
+
+        public:
+            BufferStatistic const & buffer_stat() const
+            {
+                return (BufferStatistic &)(*buffer_);
+            }
 
         protected:
             boost::system::error_code insert_source(

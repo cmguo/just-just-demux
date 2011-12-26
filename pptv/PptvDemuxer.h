@@ -4,7 +4,6 @@
 #define _PPBOX_DEMUX_PPTV_PPTV_DEMUXER_H_
 
 #include "ppbox/demux/base/BufferDemuxer.h"
-#include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/pptv/PptvDemuxerStatistic.h"
 
 
@@ -51,12 +50,6 @@ namespace ppbox
             virtual boost::system::error_code set_max_dl_speed(
                 boost::uint32_t speed, // KBps
                 boost::system::error_code & ec);
-
-        public:
-            BufferStatistic const & buffer_stat() const
-            {
-                return (BufferStatistic&)(*BufferDemuxer::buffer_);
-            }
 
         private:
             void update_stat();
