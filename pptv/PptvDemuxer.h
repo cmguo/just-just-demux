@@ -16,27 +16,17 @@ namespace ppbox
     namespace demux
     {
 
-        struct MediaInfo;
-
-        struct Sample;
-
-        class SourceBase;
-
-        struct SegmentInfo
-        {
-            size_t index;
-            boost::uint32_t duration;
-            boost::uint32_t duration_offset;
-            boost::uint64_t file_length;
-            boost::uint64_t head_length;
-            std::vector<boost::uint8_t> head_data;
-        };
-
         class PptvDemuxer
             : public BufferDemuxer
             , public PptvDemuxerStatistic
         {
-
+        public:
+            static PptvDemuxer * create(
+                util::daemon::Daemon & daemon,
+                std::string const & proto,
+                boost::uint32_t buffer_size,
+                boost::uint32_t prepare_size);
+
         public:
             PptvDemuxer(
                 boost::asio::io_service & io_svc, 
@@ -68,17 +58,6 @@ namespace ppbox
             {
                 return (BufferStatistic&)(*BufferDemuxer::buffer_);
             }
-
-            /*boost::system::error_code get_sample_buffered(
-                Sample & sample, 
-                boost::system::error_code & ec);
-
-            boost::uint32_t get_buffer_time(
-                boost::system::error_code & ec, 
-                boost::system::error_code & ec_buf);
-
-            void on_extern_error(
-                boost::system::error_code const & ec);*/
 
         private:
             void update_stat();

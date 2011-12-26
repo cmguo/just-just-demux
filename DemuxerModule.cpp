@@ -311,10 +311,7 @@ namespace ppbox
                 pos_param -= pos_colon;
             }
 
-            PptvDemuxer * demuxer = pptv_create_demuxer(daemon_, proto, buffer_size_, prepare_size_);
-            if (demuxer == NULL) {
-                //demuxer = new EmptyDemuxer();
-            }
+            PptvDemuxer * demuxer = PptvDemuxer::create(daemon_, proto, buffer_size_, prepare_size_);
             demuxer->set_param(play_link.substr(pos_param+1));
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_statĞèÒª¼ÓËø

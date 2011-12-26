@@ -1,6 +1,7 @@
 // HttpOneSegment.h
 
 #include "ppbox/demux/source/HttpSource.h"
+#include "ppbox/demux/source/OneSegment.h"
 
 #include <framework/string/Url.h>
 
@@ -10,20 +11,13 @@ namespace ppbox
     {
 
         class HttpOneSegment
-            : public HttpSource
+            : public OneSegmentT<HttpSource>
         {
         public:
             HttpOneSegment(
                 boost::asio::io_service & io_svc, 
-                DemuxerType::Enum demuxer_type, 
-                boost::uint64_t size, 
-                boost::uint64_t head_size, 
-                boost::uint64_t time)
-                : HttpSource(io_svc)
-                , demuxer_type_(demuxer_type)
-                , size_(size)
-                , head_size_(head_size)
-                , time_(time)
+                DemuxerType::Enum demuxer_type)
+                : OneSegmentT<HttpSource>(io_svc, demuxer_type)
             {
             }
 
@@ -50,46 +44,13 @@ namespace ppbox
                 url_.from_string(url);
             }
 
-            void set_name(
+            virtual void set_name(
                 std::string const & name)
             {
                 url_.from_string(name);
             }
 
-        public:
-            DemuxerType::Enum demuxer_type() const
-            {
-                return demuxer_type_;
-            }
-
-            size_t segment_count() const
-            {
-                return 1;
-            }
-
-            boost::uint64_t segment_size(
-                size_t segment)
-            {
-                return size_;
-            }
-
-            boost::uint64_t segment_time(
-                size_t segment)
-            {
-                return time_;
-            }
-
-            boost::uint64_t segment_head_size(
-                size_t segment)
-            {
-                return head_size_;
-            }
-
         private:
-            DemuxerType::Enum demuxer_type_;
-            boost::uint64_t size_;
-            boost::uint64_t head_size_;
-            boost::uint64_t time_;
             framework::string::Url url_;
         };
 
