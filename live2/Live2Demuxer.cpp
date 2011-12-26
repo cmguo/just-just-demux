@@ -161,7 +161,7 @@ namespace ppbox
 
                         open_step_ = StepType::head_normal;
 
-                        BufferDemuxer::async_open(
+                        BufferDemuxer::async_open("", 
                             boost::bind(&Live2Demuxer::handle_async_open, this, _1));
                         return;
                     } else {

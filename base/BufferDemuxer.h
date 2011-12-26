@@ -40,9 +40,11 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code open (
+                std::string const & name, 
                 boost::system::error_code & ec);
 
             virtual void async_open(
+                std::string const & name, 
                 open_response_type const & resp);
 
             virtual boost::system::error_code seek(
@@ -50,10 +52,10 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code pause(
-                boost::system::error_code & ec) = 0;
+                boost::system::error_code & ec);
 
             virtual boost::system::error_code resume(
-                boost::system::error_code & ec) = 0;
+                boost::system::error_code & ec);
 
             virtual boost::system::error_code cancel(
                 boost::system::error_code & ec);

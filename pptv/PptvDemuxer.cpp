@@ -5,6 +5,13 @@
 #include "ppbox/demux/base/BufferList.h"
 #include "ppbox/demux/base/SourceBase.h"
 
+#include "ppbox/demux/vod/VodDemuxer.h"
+#include "ppbox/demux/live/LiveDemuxer.h"
+#include "ppbox/demux/live2/Live2Demuxer.h"
+
+#include "ppbox/vod/Vod.h"
+#include "ppbox/live/Live.h"
+
 #include <framework/logger/LoggerSection.h>
 using namespace framework::logger;
 
@@ -21,7 +28,7 @@ namespace ppbox
 
         PptvDemuxer * PptvDemuxer::create(
             util::daemon::Daemon & daemon,
-            std::string const & proto,
+            framework::string::Url const & url,
             boost::uint32_t buffer_size,
             boost::uint32_t prepare_size)
         {
@@ -34,7 +41,7 @@ namespace ppbox
             }
             PptvDemuxerType::Enum demux_type = PptvDemuxerType::none;
             std::map<std::string, PptvDemuxerType::Enum>::const_iterator iter = 
-                type_map.find(proto);
+                type_map.find(url.protocol());
             if (iter != type_map.end()) {
                 demux_type = iter->second;
             }
@@ -56,9 +63,11 @@ namespace ppbox
                     demuxer = new Live2Demuxer(daemon.io_svc(), 0, buffer_size, prepare_size);
                     break;
                 default:
-                    demuxer = new EmptyDemuxer(daemon.io_svc());
                     assert(0);
             }
+            std::string params;
+            url.param(params);
+            demuxer->set_param(params);
             return demuxer;
         }
     

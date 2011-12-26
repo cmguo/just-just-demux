@@ -108,7 +108,7 @@ namespace ppbox
 
                 buffer_->set_max_try(1);
 
-                BufferDemuxer::async_open(
+                BufferDemuxer::async_open("",
                     boost::bind(&LiveDemuxer::handle_async_open, this, _1));
                 return;
             }
@@ -179,7 +179,7 @@ namespace ppbox
 
                         buffer_->set_max_try(1);
 
-                        BufferDemuxer::async_open(
+                        BufferDemuxer::async_open("",
                             boost::bind(&LiveDemuxer::handle_async_open, this, _1));
                         return;
                     } else {

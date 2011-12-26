@@ -21,12 +21,11 @@ namespace ppbox
             , public PptvDemuxerStatistic
         {
         public:
-            static PptvDemuxer * create(
-                util::daemon::Daemon & daemon,
-                std::string const & proto,
+            static PptvDemuxer * create(
+                util::daemon::Daemon & daemon,
+                framework::string::Url const & url,
                 boost::uint32_t buffer_size,
                 boost::uint32_t prepare_size);
-
         public:
             PptvDemuxer(
                 boost::asio::io_service & io_svc, 

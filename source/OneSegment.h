@@ -28,20 +28,20 @@ namespace ppbox
 
         template <typename Source>
         class OneSegmentT
-            : public SourceBase
+            : public Source
             , public OneSegment
         {
         public:
             OneSegmentT(
                 boost::asio::io_service & io_svc, 
                 DemuxerType::Enum demuxer_type)
-                : SourceBase(io_svc)
+                : Source(io_svc)
                 , demuxer_type_(demuxer_type)
             {
             }
 
         public:
-            virtual DemuxerType::Enum demuxer_type()
+            virtual DemuxerType::Enum demuxer_type() const
             {
                 return demuxer_type_;
             }
@@ -51,15 +51,21 @@ namespace ppbox
                 return 1;
             }
 
+            boost::uint64_t segment_size(
+                size_t segment)
+            {
+                return boost::uint64_t(-1);
+            }
+
+            boost::uint64_t segment_time(
+                size_t segment)
+            {
+                return boost::uint64_t(-1);
+            }
+
         private:
             DemuxerType::Enum demuxer_type_;
         };
-
-    } // namespace demux
-} // namespace ppbox
-
-#endif
-        }
 
     } // namespace demux
 } // namespace ppbox

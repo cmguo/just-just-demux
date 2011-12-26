@@ -3,8 +3,8 @@
 #ifndef _PPBOX_DEMUX_SOURCE_FILE_BUFFER_LIST_H_
 #define _PPBOX_DEMUX_SOURCE_FILE_BUFFER_LIST_H_
 
-#include "ppbox/demux/source/BufferList.h"
-#include "ppbox/demux/source/SourceBase.h"
+#include "ppbox/demux/base/BufferList.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 #include <framework/system/ErrorCode.h>
 
@@ -88,7 +88,7 @@ namespace ppbox
                 size_t segment, 
                 boost::system::error_code & ec)
             {
-                on_seg_close(segment);
+                on_seg_end(segment);
                 file_.close();
                 is_open_ = false;
                 return ec = boost::system::error_code();
@@ -173,7 +173,7 @@ namespace ppbox
             virtual boost::system::error_code get_file_name(
                 size_t segment, 
                 boost::filesystem::path & file, 
-                boost::system::error_code & ec) = 0
+                boost::system::error_code & ec) = 0;
 
         private:
             std::ifstream file_;

@@ -33,7 +33,7 @@ namespace ppbox
     namespace demux
     {
 
-        class PptvDemuxer;
+        class BufferDemuxer;
 
         class DemuxerModule
 #ifdef PPBOX_DISABLE_CERTIFY
@@ -45,7 +45,7 @@ namespace ppbox
         public:
             typedef boost::function<void (
                 boost::system::error_code const &, 
-                PptvDemuxer *)
+                BufferDemuxer *)
             > open_response_type;
 
         public:
@@ -85,7 +85,7 @@ namespace ppbox
                 boost::uint32_t buffer_time);
 
         public:
-            PptvDemuxer * open(
+            BufferDemuxer * open(
                 std::string const & play_link, 
                 size_t & close_token, 
                 boost::system::error_code & ec);

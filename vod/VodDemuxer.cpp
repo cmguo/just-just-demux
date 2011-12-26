@@ -5,6 +5,7 @@
 #include "ppbox/demux/pptv/PptvJump.h"
 #include "ppbox/demux/pptv/PptvDrag.h"
 #include "ppbox/demux/vod/VodSegments.h"
+#include "ppbox/demux/source/HttpOneSegment.h"
 using namespace ppbox::demux::error;
 
 #include <ppbox/common/Environment.h>
@@ -172,6 +173,10 @@ namespace ppbox
         void VodDemuxer::response(
             error_code const & ec)
         {
+            /*HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4, 1192113, 9462, 16580);
+            source->set_name("http://192.168.45.211/movies/yu_2.mp4");
+            error_code ecc = error_code();
+            insert_source(20000, source, ecc);*/
             open_response_type resp;
             resp.swap(resp_);
 
@@ -343,7 +348,7 @@ namespace ppbox
 
                                 LOG_S(Logger::kLevelEvent, "data: start");
 
-                                BufferDemuxer::async_open(
+                                BufferDemuxer::async_open("",
                                     boost::bind(&VodDemuxer::handle_async_open, this, _1));
 
                                 return;
@@ -400,7 +405,7 @@ namespace ppbox
 
                             LOG_S(Logger::kLevelEvent, "data: start");
 
-                            BufferDemuxer::async_open(
+                            BufferDemuxer::async_open("", 
                                 boost::bind(&VodDemuxer::handle_async_open, this, _1));
                             return;
                         }
@@ -504,8 +509,6 @@ namespace ppbox
             parse_drag(*drag_info, buf, ecc);
             // 这里的this可能早已经析构了，不过没关系，这时候process_drag肯定不会被调用
             post_event(boost::bind(&VodDemuxer::process_drag, this, boost::ref(*drag_info), ecc));
-            
-            //insert_source(100, 
         }
 
         error_code VodDemuxer::cancel(

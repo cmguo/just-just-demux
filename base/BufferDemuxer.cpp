@@ -21,10 +21,10 @@ namespace ppbox
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size,
             SourceBase * source)
-            : buffer_(new BufferList(buffer_size, prepare_size, (SourceBase *)source, this))
-            , io_svc_(io_svc)
-            , seek_time_(0)
+            : io_svc_(io_svc)
             , root_source_(source)
+            , buffer_(new BufferList(buffer_size, prepare_size, (SourceBase *)source, this))
+            , seek_time_(0)
             , segment_time_(0)
             , segment_ustime_(0)
         {
@@ -76,15 +76,17 @@ namespace ppbox
         };
 
         boost::system::error_code BufferDemuxer::open (
+            std::string const & name, 
             boost::system::error_code & ec)
         {
             SyncResponse resp(ec);
-            async_open(boost::ref(resp));
+            async_open(name, boost::ref(resp));
             resp.wait();
             return ec;
         }
 
         void BufferDemuxer::async_open(
+            std::string const & name, 
             open_response_type const & resp)
         {
             resp_ = resp;
