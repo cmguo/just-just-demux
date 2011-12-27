@@ -231,6 +231,11 @@ namespace ppbox
                 buffer_ = buffer;
             }
 
+            virtual void set_name(
+                std::string const & name)
+            {
+            }
+
         public:
             boost::uint64_t insert_size() const
             {

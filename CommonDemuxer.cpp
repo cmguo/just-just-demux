@@ -70,7 +70,7 @@ namespace ppbox
                 key_playlink, key_playlink.end()), "|");
             assert(key_playlink.size() > 0);
             std::string playlink = key_playlink[key_playlink.size()-1];
-            //source_->set_name(playlink);
+            source_->set_name(playlink);
             return BufferDemuxer::open(name, ec);
         }
 
@@ -83,7 +83,7 @@ namespace ppbox
                 key_playlink, key_playlink.end()), "|");
             assert(key_playlink.size() > 0);
             std::string playlink = key_playlink[key_playlink.size()-1];
-            //source_->set_name(playlink);
+            source_->set_name(playlink);
             BufferDemuxer::async_open(name, resp);
         }
 
