@@ -24,10 +24,13 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size, 
-                SourceBase * source)
+                SourceBase * source, 
+                std::string const & url_str )
                 : BufferDemuxer(io_svc, buffer_size, prepare_size, source)
                 , source_(source)
+                , url_str_(url_str)
             {
+                source_->set_buffer_list(buffer_);
             }
 
             virtual ~CommonDemuxer()
@@ -46,6 +49,7 @@ namespace ppbox
 
         private:
             SourceBase * source_;
+            std::string url_str_;
         };
 
     } // namespace demux

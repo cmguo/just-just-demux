@@ -51,10 +51,10 @@ namespace ppbox
             switch (source_type) {
                 case SourceType::http:
                     return new CommonDemuxer(daemon.io_svc(), buffer_size, prepare_size, 
-                        new HttpOneSegment(daemon.io_svc(), demuxer_type)) ;
+                        new HttpOneSegment(daemon.io_svc(), demuxer_type), url_str) ;
                 case SourceType::file:
                     return new CommonDemuxer(daemon.io_svc(), buffer_size, prepare_size, 
-                        new FileOneSegment(daemon.io_svc(), demuxer_type));
+                        new FileOneSegment(daemon.io_svc(), demuxer_type), url_str);
                 default:
                     assert(0);
                     return NULL;
@@ -65,12 +65,12 @@ namespace ppbox
             std::string const & name, 
             boost::system::error_code & ec)
         {
-            std::vector<std::string> key_playlink;
+            /*std::vector<std::string> key_playlink;
             slice<std::string>(name, std::inserter(
                 key_playlink, key_playlink.end()), "|");
             assert(key_playlink.size() > 0);
-            std::string playlink = key_playlink[key_playlink.size()-1];
-            source_->set_name(playlink);
+            std::string playlink = key_playlink[key_playlink.size()-1];*/
+            source_->set_name(url_str_);
             return BufferDemuxer::open(name, ec);
         }
 
@@ -78,12 +78,12 @@ namespace ppbox
             std::string const & name, 
             BufferDemuxer::open_response_type const & resp)
         {
-            std::vector<std::string> key_playlink;
+            /*std::vector<std::string> key_playlink;
             slice<std::string>(name, std::inserter(
                 key_playlink, key_playlink.end()), "|");
             assert(key_playlink.size() > 0);
-            std::string playlink = key_playlink[key_playlink.size()-1];
-            source_->set_name(playlink);
+            std::string playlink = key_playlink[key_playlink.size()-1];*/
+            source_->set_name(url_str_);
             BufferDemuxer::async_open(name, resp);
         }
 
