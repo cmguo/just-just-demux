@@ -6,6 +6,7 @@
 #include "ppbox/demux/source/SourceType.h"
 #include "ppbox/demux/source/FileOneSegment.h"
 #include "ppbox/demux/source/HttpOneSegment.h"
+#include "ppbox/demux/source/PipeOneSegment.h"
 
 namespace ppbox
 {
@@ -55,6 +56,9 @@ namespace ppbox
                 case SourceType::file:
                     return new CommonDemuxer(daemon.io_svc(), buffer_size, prepare_size, 
                         new FileOneSegment(daemon.io_svc(), demuxer_type), url_str);
+                case SourceType::pipe:
+                    return new CommonDemuxer(daemon.io_svc(), buffer_size, prepare_size, 
+                        new PipeOneSegment(daemon.io_svc(), demuxer_type), url_str);
                 default:
                     assert(0);
                     return NULL;

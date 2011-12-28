@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_SOURCE_PIPE_SOURCE_H_
 #define _PPBOX_DEMUX_SOURCE_PIPE_SOURCE_H_
 
-#include "ppbox/demux/source/BufferList.h"
+#include "ppbox/demux/base/BufferList.h"
 
 #include <framework/system/ErrorCode.h>
 
@@ -20,13 +20,10 @@ namespace ppbox
     namespace demux
     {
 
-        >
         class PipeSource
             : public SourceBase
         {
         public:
-            typedef ppbox::demux::BufferList<DescriptorSegments> BufferList;
-
             typedef descriptor::native_type native_descriptor;
 
         public:
@@ -38,7 +35,7 @@ namespace ppbox
             {
             }
 
-            boost::system::error_code open_segment(
+            boost::system::error_code segment_open(
                 size_t segment, 
                 boost::uint64_t beg, 
                 boost::uint64_t end, 
@@ -51,7 +48,7 @@ namespace ppbox
                     ec = framework::system::logic_error::unknown_error;
                     return ec;
                 }
-                if (!segments().get_native_descriptor(segment, nd, ec)) {
+                if (!get_native_descriptor(segment, nd, ec)) {
                     descriptor_.assign(nd);
                     is_open_ = descriptor_.is_open();
                     if (!is_open_) {
@@ -64,13 +61,21 @@ namespace ppbox
                 return ec;
             }
 
-            bool is_open(
+            void segment_async_open(
+                size_t segment, 
+                boost::uint64_t beg, 
+                boost::uint64_t end, 
+                response_type const & resp)
+            {
+            }
+
+            bool segment_is_open(
                 boost::system::error_code & ec)
             {
                 return is_open_;
             }
 
-            boost::system::error_code cancel_segment(
+            boost::system::error_code segment_cancel(
                 size_t segment, 
                 boost::system::error_code & ec)
             {
@@ -78,7 +83,7 @@ namespace ppbox
                 return ec = boost::system::error_code();
             }
 
-            boost::system::error_code close_segment(
+            boost::system::error_code segment_close(
                 size_t segment, 
                 boost::system::error_code & ec)
             {
@@ -93,12 +98,17 @@ namespace ppbox
                 return ec = boost::system::error_code();
             }
 
-            template <typename MutableBufferSequence>
-            std::size_t read_some(
-                const MutableBufferSequence & buffers,
+            std::size_t segment_read(
+                const write_buffer_t & buffers,
                 boost::system::error_code & ec)
             {
                 return descriptor_.read_some(buffers, ec);
+            }
+
+            void segment_async_read(
+                const write_buffer_t & buffers,
+                read_handle_type handler)
+            {
             }
 
             boost::uint64_t total(
@@ -143,7 +153,7 @@ namespace ppbox
             virtual boost::system::error_code get_native_descriptor(
                 size_t segment, 
                 native_descriptor & file, 
-                boost::system::error_code & ec) = 0
+                boost::system::error_code & ec) = 0;
             
         private:
             descriptor descriptor_;

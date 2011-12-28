@@ -17,7 +17,7 @@ namespace ppbox
             PipeOneSegment(
                 boost::asio::io_service & io_svc, 
                 DemuxerType::Enum demuxer_type)
-                : OneSegmentT<PipeSource>(io_svc, pr demuxer_type)
+                : OneSegmentT<PipeSource>(io_svc, demuxer_type)
             {
 #ifndef BOOST_WINDOWS_API
                 descriptor_ = ::fileno(stdin);
