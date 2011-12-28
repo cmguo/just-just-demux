@@ -65,7 +65,11 @@ namespace ppbox
                 segment.time_beg = segment.time_end;
                 segment.time_end = segment.time_beg + segment_time(segment.segment);
             }
-            segment.total_state = SegmentPositionEx::is_valid;
+            if (segment.size_end != (boost::uint64_t)-1) {
+                segment.total_state = SegmentPositionEx::is_valid;
+            } else {
+                segment.total_state = SegmentPositionEx::not_exist;
+            }
         }
 
         boost::system::error_code SourceBase::time_seek (
@@ -124,7 +128,11 @@ namespace ppbox
                 position.shard_end = position.size_beg + next_item->insert_size_;
                 position.time_end = position.time_beg + next_item->insert_time_;
             }
-            position.total_state = SegmentPositionEx::is_valid;
+            if (position.size_end != (boost::uint64_t)-1) {
+                position.total_state = SegmentPositionEx::is_valid;
+            } else {
+                position.total_state = SegmentPositionEx::not_exist;
+            }
             return ec;
         }
 
@@ -185,7 +193,11 @@ namespace ppbox
                 position.shard_end = position.size_beg + next_item->insert_size_;
                 position.time_end = position.time_beg + next_item->insert_time_;
             }
-            position.total_state = SegmentPositionEx::is_valid;
+            if (position.size_end != (boost::uint64_t)-1) {
+                position.total_state = SegmentPositionEx::is_valid;
+            } else {
+                position.total_state = SegmentPositionEx::not_exist;
+            }
             return ec;
         }
 
