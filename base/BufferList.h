@@ -540,6 +540,12 @@ namespace ppbox
                 read_seek_to(read_.shard_end, ec);
                 if (!ec) {
                     read_.source->next_segment(read_);
+                    if (read_.total_state == SegmentPositionEx::not_init
+                        && read_.segment == write_.segment) {
+                            read_.size_end = write_.size_end;
+                            read_.shard_end = write_.shard_end;
+                            read_.total_state = write_.total_state;
+                    }
                 }
                     
                 return ec;
@@ -784,11 +790,6 @@ namespace ppbox
                     }
                 } else if (ec == boost::asio::error::eof) {
                     if (write_.offset >= write_hole_.this_end) {
-                        if (read_.total_state == SegmentPositionEx::not_init
-                            && read_.segment == write_.segment) {
-                                read_.shard_end = read_.size_end = write_.size_end;
-                                read_.total_state = SegmentPositionEx::by_guess;
-                        }
                         return true;
                     } else if (write_.total_state == SegmentPositionEx::not_exist) {
                         write_.total_state = SegmentPositionEx::by_guess;
