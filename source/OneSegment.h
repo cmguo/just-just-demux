@@ -17,7 +17,7 @@ namespace ppbox
             {
             }
 
-            ~OneSegment()
+            virtual ~OneSegment()
             {
             }
 
@@ -37,6 +37,9 @@ namespace ppbox
                 DemuxerType::Enum demuxer_type)
                 : Source(io_svc)
                 , demuxer_type_(demuxer_type)
+                , segment_size_(boost::uint64_t(-1))
+                , segment_time_(boost::uint64_t(-1))
+                , head_size_(0)
             {
             }
 
@@ -51,20 +54,45 @@ namespace ppbox
                 return 1;
             }
 
-            boost::uint64_t segment_size(
+            virtual boost::uint64_t segment_size(
                 size_t segment)
             {
-                return boost::uint64_t(-1);
+                return segment_size_;
             }
 
-            boost::uint64_t segment_time(
+            virtual boost::uint64_t segment_time(
                 size_t segment)
             {
-                return boost::uint64_t(-1);
+                return segment_time_;
+            }
+
+            virtual boost::uint64_t segment_head_size(
+                size_t segment)
+            {
+                return head_size_;
+            }
+
+        public:
+            void set_segment_size(boost::uint64_t size)
+            {
+                segment_size_ = size;
+            }
+
+            void set_segment_time(boost::uint64_t time)
+            {
+                segment_time_ = time;
+            }
+
+            void set_head_size(boost::uint64_t head)
+            {
+                head_size_ = head;
             }
 
         private:
             DemuxerType::Enum demuxer_type_;
+            boost::uint64_t segment_size_;
+            boost::uint64_t segment_time_;
+            boost::uint64_t head_size_;
         };
 
     } // namespace demux
