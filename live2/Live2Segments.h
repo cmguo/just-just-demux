@@ -25,15 +25,16 @@ using namespace boost::system;
 
 #define P2P_HEAD_LENGTH     1400
 
+#ifndef PPBOX_DNS_LIVE2_JUMP
+#  define PPBOX_DNS_LIVE2_JUMP "(tcp)(v4)live.dt.synacast.com:80"
+#endif
+
 namespace ppbox
 {
     namespace demux
     {
-#ifdef API_PPLIVE
-        static const NetName dns_live2_jump_server("(tcp)(v4)live.dt.synacast.com:80");
-#else
-        static const NetName dns_live2_jump_server("(tcp)(v4)live.dt.synacast.com:80");
-#endif
+
+        static const NetName dns_live2_jump_server(PPBOX_DNS_LIVE2_JUMP);
 
         struct Live2JumpInfo
         {

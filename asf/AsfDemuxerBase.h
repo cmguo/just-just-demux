@@ -124,7 +124,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-            ASFArchive archive_;
+            ASFIArchive archive_;
 
             size_t open_step_;
             ASF_Header_Object header_;

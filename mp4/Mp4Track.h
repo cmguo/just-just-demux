@@ -66,7 +66,8 @@ namespace ppbox
                 SampleListItem const & l, 
                 SampleListItem const & r)
             {
-                return l.ustime < r.ustime;
+                return l.ustime < r.ustime 
+                    || (l.ustime == r.ustime && l.itrack < r.itrack);
             }
         };
 

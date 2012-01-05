@@ -99,6 +99,8 @@ namespace ppbox
                 size_t close_token, 
                 boost::system::error_code & ec);
 
+            static Demuxer * find(std::string name);
+
         public:
             struct DemuxInfo;
 
@@ -150,6 +152,9 @@ namespace ppbox
             std::vector<DemuxInfo *> demuxers_;
             boost::mutex mutex_;
             boost::condition_variable cond_;
+
+            // specify record demuxer
+            static Demuxer * record_demuxer_;
         };
 
     } // namespace demux

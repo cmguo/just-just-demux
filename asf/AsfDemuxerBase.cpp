@@ -54,7 +54,7 @@ namespace ppbox
                     return false;
                 }
                 boost::uint32_t offset = archive_.tellg();
-                if (!archive_.seekg(std::ios::off_type(header_.ObjectSize), std::ios_base::beg)) {
+                if (!archive_.seekg(std::ios::off_type(header_.ObjLength), std::ios_base::beg)) {
                     archive_.clear();
                     ec = file_stream_error;
                     return false;
@@ -63,7 +63,7 @@ namespace ppbox
                 assert(archive_);
                 streams_.clear();
                 stream_map_.clear();
-                while (archive_ && offset < header_.ObjectSize) {
+                while (archive_ && offset < header_.ObjLength) {
                     ASF_Object_Header obj_head;
                     archive_ >> obj_head;
                     if (obj_head.ObjectId == ASF_FILE_PROPERTIES_OBJECT) {
@@ -83,7 +83,7 @@ namespace ppbox
                     archive_.seekg(offset, std::ios_base::beg);
                 }
 
-                if (!archive_ || offset != header_.ObjectSize || stream_map_.empty()) {
+                if (!archive_ || offset != header_.ObjLength || stream_map_.empty()) {
                     open_step_ = (size_t)-1;
                     ec = bad_file_format;
                     return false;
@@ -93,7 +93,7 @@ namespace ppbox
             }
 
             if (open_step_ == 1) {
-                archive_.seekg(std::ios::off_type(header_.ObjectSize), std::ios_base::beg);
+                archive_.seekg(std::ios::off_type(header_.ObjLength), std::ios_base::beg);
                 assert(archive_);
                 ASF_Data_Object DataObject;
                 archive_ >> DataObject;

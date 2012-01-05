@@ -61,10 +61,7 @@ namespace ppbox
         private:
             void parse()
             {
-                ppbox::avformat::ASFUUID ASF_Audio_Media = {
-                    0xF8699E40,0x5B4D,0x11CF,{0xA8,0xFD,0x00,0x80,0x5F,0x5C,0x44,0x2B}};
-                ppbox::avformat::ASFUUID ASF_Video_Media = {
-                    0xBC19EFC0,0x5B4D,0x11CF,{0xA8,0xFD,0x00,0x80,0x5F,0x5C,0x44,0x2B}};
+                using namespace ppbox::avformat;
 
                 if (TypeSpecificDataLength > 0) {
                     if (ASF_Video_Media == StreamType) { 
