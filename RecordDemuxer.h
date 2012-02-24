@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_RECORD_DEMUXER_H_
 #define _PPBOX_DEMUX_RECORD_DEMUXER_H_
 
-#include "ppbox/demux/Demuxer.h"
+#include "ppbox/demux/BufferDemuxer.h"
 
 namespace ppbox
 {
@@ -41,7 +41,7 @@ namespace ppbox
         {
         public:
             RecordDemuxer(boost::asio::io_service & io_svc)
-                : Demuxer(io_svc, buffer_statistic_)
+                : BufferDemuxer(io_svc, buffer_statistic_)
                 , io_svc_(io_svc)
                 , step_(StepType::not_open)
                 , pool_max_size_(4000)
