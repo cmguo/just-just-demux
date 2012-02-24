@@ -173,10 +173,22 @@ namespace ppbox
         void VodDemuxer::response(
             error_code const & ec)
         {
-            /*HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4, 1192113, 9462, 16580);
-            source->set_name("http://192.168.45.211/movies/yu_2.mp4");
-            error_code ecc = error_code();
-            insert_source(20000, source, ecc);*/
+            //HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
+            //source->set_name("http://192.168.1.211/media/ad.mp4");
+            //source->set_segment_size(3115304);
+            //source->set_segment_time(17044);
+            ////source->set_head_size(9462);
+            //boost::system::error_code ecc = boost::system::error_code();
+            //insert_source(20000, source, ecc);
+
+            //HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
+            //source->set_name("http://192.168.1.100/movies/yu_2.mp4");
+            //source->set_segment_size(1192113);
+            //source->set_segment_time(16580);
+            //source->set_head_size(9462);
+            //error_code ecc = error_code();
+            //insert_source(290000, source, ecc);
+
             open_response_type resp;
             resp.swap(resp_);
 
@@ -242,7 +254,7 @@ namespace ppbox
                         LOG_S(Logger::kLevelDebug, "drag failure (" << open_logs_[2].total_elapse << " milliseconds)");
                     }
 
-                    DemuxerStatistic::on_error(ec);
+                    DemuxerStatistic::last_error(ec);
                 }
 
                 is_ready_ = true;
@@ -435,7 +447,7 @@ namespace ppbox
             }
 
             if (ec != boost::asio::error::would_block) {
-                DemuxerStatistic::on_error(ec);
+                DemuxerStatistic::last_error(ec);
             }
 
             is_ready_ = drag_info_->is_ready;
