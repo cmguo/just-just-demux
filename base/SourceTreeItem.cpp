@@ -55,9 +55,6 @@ namespace ppbox
                 position.source = (SourceBase *)parent_;
                 position.prev_child = const_cast<SourceTreeItem *>(this);
                 position.next_child = next_sibling_;
-                while (position.next_child && position.next_child->skip_) {
-                    position.next_child = position.next_child->next_sibling_;
-                }
             }
         }
 
