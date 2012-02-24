@@ -25,6 +25,26 @@ namespace ppbox
     namespace demux
     {
 
+        //************************************
+        // Method:    BufferList 
+        // 功能需求：
+        //  1、顺序下载；
+        //  2、提供读取接口（限制在分段之内）；
+        //  3、出错上报，支持上面处理错误并恢复下载；
+        //  4、支持SEEK：读取位置，写位置自动调整（尽量保存已经下载的数据）；
+        //  5、支持串行下载管理（即管理顺序发出多个请求）；
+        //  6、插入下载；（读写空洞记录信息为相对位置，读写指针进行调整）
+        //  7、内部保证读写分段信息的正确性（提供外部使用）；
+        // FullName:  ppbox::demux::BufferList::BufferList
+        // Access:    public 
+        // Returns:   
+        // Qualifier: : root_source_(source) , demuxer_(demuxer) , num_try_(size_t(-1)) , max_try_(size_t(-1)) , buffer_(NULL) , buffer_size_(framework::memory::MemoryPage::align_page(buffer_size)) , prepare_size_(prepare_size) , time_block_(0) , time_out_(0) , source_closed_(true) , data_beg_(0) , data_end_(0) , seek_end_(boost::uint64_t(-1)) , amount_(0) , expire_pause_time_(Time::now()) , total_req_(total_req) , sended_req_(0)
+        // Parameter: boost::uint32_t buffer_size
+        // Parameter: boost::uint32_t prepare_size
+        // Parameter: SourceBase * source
+        // Parameter: BufferDemuxer * demuxer
+        // Parameter: size_t total_req
+        //************************************
         class BufferList
             : public BufferObserver
             , public BufferStatistic
@@ -41,7 +61,7 @@ namespace ppbox
                 {
                 }
 
-                boost::uint64_t this_end;
+                boost::uint64_t this_end; // 绝对位置
                 boost::uint64_t next_beg;
             };
 
@@ -63,8 +83,8 @@ namespace ppbox
                     return os;
                 }
 
-                boost::uint64_t offset;
-                char * buffer;
+                boost::uint64_t offset; // 整部影片的偏移量
+                char * buffer;          // 当前物理地址
             };
             /*
                                             offset=500
@@ -232,7 +252,7 @@ namespace ppbox
                     if (ec) {
                     } else if (write_.offset >= write_hole_.this_end) {
                         ec = boost::asio::error::eof;
-                    } else if (write_.offset >= read_.offset + buffer_size_) {
+                    } else if (write_.offset >= read_.offset + buffer_size_) {// 写满
                         ec = boost::asio::error::no_buffer_space;
                         break;
                     } else if (source_closed_ && open_segment(false, ec)) {
@@ -683,6 +703,14 @@ namespace ppbox
                 return write_buffer(beg, end);
             }
 
+            //************************************
+            // Method:    add_request 串行请求
+            // FullName:  ppbox::demux::BufferList::add_request
+            // Access:    public 
+            // Returns:   void
+            // Qualifier:
+            // Parameter: boost::system::error_code & ec
+            //************************************
             void add_request(
                 boost::system::error_code & ec)
             {
@@ -1396,7 +1424,7 @@ namespace ppbox
                 move_front_to(p, offset);
                 if (p.buffer + size <= buffer_end()) {
                     data.push_back(boost::asio::buffer(p.buffer, size));
-                } else {
+                } else {// 分段buffer
                     size_t size1 = buffer_end() - p.buffer;
                     data.push_back(boost::asio::buffer(p.buffer, size1));
                     data.push_back(boost::asio::buffer(buffer_beg(), size - size1));
@@ -1516,6 +1544,7 @@ namespace ppbox
                 return buffer_ + buffer_size_;
             }
 
+            // 循环前移
             char * buffer_move_front(
                 char * buffer, 
                 boost::uint64_t offset) const
@@ -1528,6 +1557,7 @@ namespace ppbox
                 return buffer;
             }
 
+            // 循环后移
             char * buffer_move_back(
                 char * buffer, 
                 boost::uint64_t offset) const
@@ -1540,6 +1570,15 @@ namespace ppbox
                 return buffer;
             }
 
+            //************************************
+            // Method:    move_back 后移
+            // FullName:  ppbox::demux::BufferList::move_back
+            // Access:    private 
+            // Returns:   void
+            // Qualifier: const
+            // Parameter: Position & position
+            // Parameter: boost::uint64_t offset 相对当前位置
+            //************************************
             void move_back(
                 Position & position, 
                 boost::uint64_t offset) const
@@ -1548,6 +1587,15 @@ namespace ppbox
                 position.offset -= offset;
             }
 
+            //************************************
+            // Method:    move_front 前移
+            // FullName:  ppbox::demux::BufferList::move_front
+            // Access:    private 
+            // Returns:   void
+            // Qualifier: const
+            // Parameter: Position & position
+            // Parameter: boost::uint64_t offset 相对当前位置
+            //************************************
             void move_front(
                 Position & position, 
                 boost::uint64_t offset) const
@@ -1556,6 +1604,15 @@ namespace ppbox
                 position.offset += offset;
             }
 
+            //************************************
+            // Method:    move_back_to 后移到
+            // FullName:  ppbox::demux::BufferList::move_back_to
+            // Access:    private 
+            // Returns:   void
+            // Qualifier: const
+            // Parameter: Position & position
+            // Parameter: boost::uint64_t offset 文件绝对位置
+            //************************************
             void move_back_to(
                 Position & position, 
                 boost::uint64_t offset) const
@@ -1564,6 +1621,15 @@ namespace ppbox
                 position.offset = offset;
             }
 
+            //************************************
+            // Method:    move_front_to 前移到
+            // FullName:  ppbox::demux::BufferList::move_front_to
+            // Access:    private 
+            // Returns:   void
+            // Qualifier: const
+            // Parameter: Position & position
+            // Parameter: boost::uint64_t offset 文件绝对位置
+            //************************************
             void move_front_to(
                 Position & position, 
                 boost::uint64_t offset) const
@@ -1572,6 +1638,15 @@ namespace ppbox
                 position.offset = offset;
             }
 
+            //************************************
+            // Method:    move_to 移动到
+            // FullName:  ppbox::demux::BufferList::move_to
+            // Access:    private 
+            // Returns:   void
+            // Qualifier: const
+            // Parameter: Position & position
+            // Parameter: boost::uint64_t offset 文件绝对位置
+            //************************************
             void move_to(
                 Position & position, 
                 boost::uint64_t offset) const

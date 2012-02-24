@@ -97,6 +97,7 @@ namespace ppbox
             handle_async(boost::system::error_code());
         }
 
+        // 获取读位置的时间
         boost::uint32_t BufferDemuxer::get_cur_time(
             boost::system::error_code & ec)
         {
@@ -104,6 +105,14 @@ namespace ppbox
                 handle_events();
             }
             boost::uint32_t time = 0;
+
+            //if (read_demuxer_.demuxer) {
+            //    time = buffer_->read_segment().time_beg + read_demuxer_.demuxer->get_cur_time(ec);
+            //} else { // 可能已经播放结束了
+            //    ec.clear();
+            //    time = buffer_->read_segment().time_end;
+            //}
+
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     time = buffer_->read_segment().time_end;
@@ -116,7 +125,8 @@ namespace ppbox
                     time = buffer_->read_segment().time_end;
                 }
             }
-            on_error(ec);
+
+            last_error(ec);
             return time;
         }
 
@@ -133,7 +143,8 @@ namespace ppbox
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
-                    time = buffer_->write_segment().time_end;
+                    //time = buffer_->write_segment().time_end;
+                    time = buffer_->write_segment().time_beg;
                 }
             } else {
                 if (write_demuxer_.demuxer) {
@@ -143,11 +154,13 @@ namespace ppbox
                     }
                 } else { // 可能已经下载结束了
                     ec.clear();
-                    time = buffer_->write_segment().time_end;
+                    // 下载完最后一个分段时，Bufferlist保证写指针信息不被清空
+                    //time = buffer_->write_segment().time_end;
+                    time = buffer_->write_segment().time_beg;
                 }
             }
             ec_buf = write_demuxer_.stream->error();
-            on_error(ec);
+            last_error(ec);
             return time;
         }
 
@@ -165,7 +178,7 @@ namespace ppbox
                 SourceBase * near_src = NULL;
                 bool is_prev = false;
                 SourceBase * item = (SourceBase *)position.source->first_child();
-                while (item) {
+                while (item) { // 处理插入分段
                     if (item->insert_segment() == position.segment) {
                         if (!first_src) {
                             near_src = first_src = item;
@@ -191,9 +204,9 @@ namespace ppbox
                 } else {
                     create_demuxer(position, read_demuxer_, ec);
                 }
-                seg_time = time - position.time_beg;
-                boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);
-                segment_time_ = position.time_beg;
+                seg_time = time - position.time_beg; // 相对于开头的时间
+                boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);// 计算分段位置
+                segment_time_ = position.time_beg;// 当前分段开始时间（绝对位置）
                 segment_ustime_ = segment_time_ * 1000;
                 for (size_t i = 0; i < media_time_scales_.size(); i++) {
                     dts_offset_[i] = 
@@ -220,13 +233,13 @@ namespace ppbox
                 DemuxerStatistic::seek(ec, time);
             }
             if (ec) {
-                seek_time_ = time;
+                seek_time_ = time; // 用户连续seek，以最后一次为准
                 if (ec == error::file_stream_error) {
                     ec = boost::asio::error::would_block;
                 }
             }
             root_source_->on_error(ec);
-            on_error(ec);
+            last_error(ec);
             return ec;
         }
 
@@ -245,6 +258,7 @@ namespace ppbox
                 }
                 return ec;
             }
+            // 丢掉上一次的数据
             read_demuxer_.stream->drop();
             while (read_demuxer_.demuxer->get_sample(sample, ec)) {
                 if (ec == ppbox::demux::error::file_stream_error
@@ -270,6 +284,8 @@ namespace ppbox
                                     (boost::uint64_t)segment_time_ * media_time_scales_[i] / 1000;
                             }
                             continue;
+                        } else {
+                            ec = error::no_more_sample;
                         }
                     }
                     if (ec == error::file_stream_error) {
@@ -290,7 +306,7 @@ namespace ppbox
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     buffer_->peek(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {
-                        on_error(ec);
+                        last_error(ec);
                         break;
                     }
                 }
@@ -298,7 +314,7 @@ namespace ppbox
                 if (ec == boost::asio::error::would_block) {
                     block_on();
                 }
-                on_error(ec);
+                last_error(ec);
             }
             return ec;
         }
@@ -307,7 +323,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             size_t n = read_demuxer_.demuxer->get_media_count(ec);
-            on_error(ec);
+            last_error(ec);
             return n;
         }
 
@@ -317,7 +333,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             read_demuxer_.demuxer->get_media_info(index, info, ec);
-            on_error(ec);
+            last_error(ec);
             return ec;
         }
 
@@ -325,7 +341,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             boost::uint32_t d = read_demuxer_.demuxer->get_duration(ec);
-            on_error(ec);
+            last_error(ec);
             return d;
         }
 
@@ -357,7 +373,7 @@ namespace ppbox
             root_source_->time_insert(time, source, position, ec);
             if (!ec) {
                 if (position.segment >= buffer_->read_segment().segment
-                    && position.segment <= buffer_->write_segment().segment) {
+                    && position.segment <= buffer_->write_segment().segment) { // 插入分段在读写分段之间（即当前播放分段，则马上处理）
                         DemuxerInfo demuxer;
                         create_demuxer(position, demuxer, ec);
                         if (!source->insert_demuxer().demuxer) {
@@ -366,16 +382,15 @@ namespace ppbox
                         boost::uint32_t delta;
                         boost::uint64_t offset = demuxer.demuxer->get_offset(time, delta, ec);
                         if (!ec) {
-                            source->update_insert(position, time, offset, delta);
+                            source->update_insert(position, time, offset, delta);// 获取插入的具体位置，进行更新
                             buffer_->insert_source(offset, source, source->tree_size() + delta, ec);
                         }
-                } else {
+                } else { // 不是操作当前分段，设定截止点为当前读位置--->被插入分段的头部结束点
                     buffer_->seek(
                         const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
                         buffer_->read_offset() - buffer_->read_segment().size_beg, 
                         position.source->segment_head_size(position.segment) + position.size_beg 
-                            - buffer_->read_segment().size_beg, 
-                        ec);
+                            - buffer_->read_segment().size_beg, ec);
                 }
             }
             return ec;
@@ -426,14 +441,15 @@ namespace ppbox
             boost::system::error_code const & ecc)
         {
             boost::system::error_code ec = ecc;
-            if (!ec) {
+            if (!ec) {// Jump中已经有一个分段
                 read_demuxer_.stream->update_new(buffer_->read_segment());
                 if (read_demuxer_.demuxer->is_open(ec)) {
                     read_demuxer_.stream->drop();
                     if (seek_time_ && seek(seek_time_, ec)) {
                     }
                 } else if (ec == ppbox::demux::error::file_stream_error) {
-                    boost::uint64_t head_length = buffer_->read_segment().source->segment_head_size(buffer_->read_segment().segment);
+                    boost::uint64_t head_length = 
+                        buffer_->read_segment().source->segment_head_size(buffer_->read_segment().segment);
                     if (head_length && buffer_->read_back() < head_length) {
                         buffer_->async_prepare(
                             head_length - buffer_->read_back(), 
@@ -567,20 +583,20 @@ namespace ppbox
                 }
                 SegmentPositionEx old_seg = buffer_->write_segment();
                 SourceBase * source = (SourceBase *)old_seg.next_child;
-                if (source) {
+                if (source) {// 说明本段有分段插入，source指向插入分段
                     boost::system::error_code ec2;
                     int num = 0;
                     while (source && source->insert_segment() == write_demuxer_.segment.segment) {
                         num++;
-                        if (num = 1) {
+                        if (num == 1) {
                             source->insert_demuxer() = write_demuxer_;
                         }
                         boost::uint32_t delta;
-                        boost::uint32_t time = source->insert_time();
-                        boost::uint64_t offset = write_demuxer_.demuxer->get_offset(time, delta, ec2);
+                        boost::uint32_t time = source->insert_time();// 获取插入的时间点
+                        boost::uint64_t offset = write_demuxer_.demuxer->get_offset(time, delta, ec2);  // 根据时间获取插入位置
                         if (!ec2) {
-                            source->update_insert(buffer_->write_segment(), time, offset, delta);
-                            buffer_->insert_source(offset, source, source->tree_size() + delta, ec2);
+                            source->update_insert(buffer_->write_segment(), time, offset, delta);       //
+                            buffer_->insert_source(offset, source, source->tree_size() + delta, ec2);   // 真插入
                         }
                         source = source->next_sibling();
                     }
@@ -598,7 +614,7 @@ namespace ppbox
                 }
                 ec.clear();
             }
-            DemuxerStatistic::on_error(ec);
+            DemuxerStatistic::last_error(ec);
         }
 
         boost::system::error_code BufferDemuxer::get_sample_buffered(
