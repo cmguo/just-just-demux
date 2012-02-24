@@ -109,30 +109,32 @@ namespace ppbox
             }
             SourceTreeItem::seek(position, prev_item, next_item);
             position.segment = 1;
-            while (position.segment < segment_count() && time2 >= source_time_before(position.segment)) {
+            while (position.segment <= segment_count() && time2 >= source_time_before(position.segment)) {
                 ++position.segment;
             }
             if (position.segment > segment_count()) {
                 ec = framework::system::logic_error::out_of_range; 
-            }
-            --position.segment;
-            position.shard_beg = position.size_beg = skip_size + source_size_before(position.segment);
-            position.shard_end = position.size_end = position.size_beg + segment_size(position.segment);
-            position.time_beg = time + source_time_before(position.segment) - time2;
-            if (prev_item && prev_item->insert_segment_ == position.segment) {
-                position.shard_beg = position.size_beg + prev_item->insert_size_ - prev_item->insert_delta_;
-                position.time_beg = position.time_beg + prev_item->insert_time_;
-            }
-            position.time_end = position.time_beg + segment_time(position.segment);
-            if (next_item && next_item->insert_segment_ == position.segment) {
-                position.shard_end = position.size_beg + next_item->insert_size_;
-                position.time_end = position.time_beg + next_item->insert_time_;
-            }
-            if (position.size_end != (boost::uint64_t)-1) {
-                position.total_state = SegmentPositionEx::is_valid;
             } else {
-                position.total_state = SegmentPositionEx::not_exist;
+                --position.segment;
+                position.shard_beg = position.size_beg = skip_size + source_size_before(position.segment);
+                position.shard_end = position.size_end = position.size_beg + segment_size(position.segment);
+                position.time_beg = time + source_time_before(position.segment) - time2;
+                if (prev_item && prev_item->insert_segment_ == position.segment) {
+                    position.shard_beg = position.size_beg + prev_item->insert_size_ - prev_item->insert_delta_;
+                    position.time_beg = position.time_beg + prev_item->insert_time_;
+                }
+                position.time_end = position.time_beg + segment_time(position.segment);
+                if (next_item && next_item->insert_segment_ == position.segment) {
+                    position.shard_end = position.size_beg + next_item->insert_size_;
+                    position.time_end = position.time_beg + next_item->insert_time_;
+                }
+                if (position.size_end != (boost::uint64_t)-1) {
+                    position.total_state = SegmentPositionEx::is_valid;
+                } else {
+                    position.total_state = SegmentPositionEx::not_exist;
+                }
             }
+
             return ec;
         }
 
@@ -209,10 +211,10 @@ namespace ppbox
         {
             time_seek(time, position, ec);
             if (!ec) {
-                source->skip_ = true;
-                source->insert_segment_ = position.segment;
-                source->insert_input_time_ = source->insert_time_ = time - position.time_beg;
-                position.source->insert_child(source, position.next_child);
+                source->skip_ = true;// 假插入
+                source->insert_segment_ = position.segment;// 指向父分段
+                source->insert_input_time_ = source->insert_time_ = time - position.time_beg;   // 插入分段上的时间位置（相对）
+                position.source->insert_child(source, position.next_child);                     // 插入子节点
             }
             return ec;
         }
@@ -223,8 +225,8 @@ namespace ppbox
             boost::uint64_t offset, 
             boost::uint64_t delta)
         {
-            skip_ = false;
-            insert_time_ = time - position.time_beg;
+            skip_ = false; // 真插入
+            insert_time_ = time - position.time_beg; // 插入的时间点（相对本分段开始位置位置）
             insert_size_ = offset;
             insert_delta_ = delta;
         }
@@ -322,7 +324,7 @@ namespace ppbox
                 while (item) {
                     if (!item->skip_) {
                         total += item->tree_size();
-                        total += item->insert_delta_;
+                        total += item->insert_delta_; // 需要加入前半部分的数据才能正常播放
                     }
                     item = (SourceBase *)item->prev_sibling_;
                 }
