@@ -181,13 +181,13 @@ namespace ppbox
             //boost::system::error_code ecc = boost::system::error_code();
             //insert_source(20000, source, ecc);
 
-            //HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
-            //source->set_name("http://192.168.1.100/movies/yu_2.mp4");
-            //source->set_segment_size(1192113);
-            //source->set_segment_time(16580);
-            //source->set_head_size(9462);
-            //error_code ecc = error_code();
-            //insert_source(290000, source, ecc);
+            HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
+            source->set_name("http://192.168.1.100/movies/yu_2.mp4");
+            source->set_segment_size(1192113);
+            source->set_segment_time(16580);
+            source->set_head_size(9462);
+            error_code ecc = error_code();
+            insert_source(290000, source, ecc);
 
             open_response_type resp;
             resp.swap(resp_);

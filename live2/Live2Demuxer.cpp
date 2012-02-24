@@ -102,7 +102,7 @@ namespace ppbox
                         LOG_S(Logger::kLevelDebug, "data failure (" << open_logs_[1].total_elapse << " milliseconds)");
                     }
 
-                    DemuxerStatistic::on_error(ec);
+                    DemuxerStatistic::last_error(ec);
                 }
 
                 is_ready_ = true;
@@ -187,7 +187,7 @@ namespace ppbox
             }
 
             if (ec != boost::asio::error::would_block) {
-                DemuxerStatistic::on_error(ec);
+                DemuxerStatistic::last_error(ec);
             }
 
             is_ready_ = true;
