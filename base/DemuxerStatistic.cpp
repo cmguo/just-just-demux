@@ -155,7 +155,7 @@ namespace ppbox
             }
         }
 
-        void DemuxerStatistic::on_error(
+        void DemuxerStatistic::last_error(
             boost::system::error_code const & ec)
         {
             last_error_ = ec;

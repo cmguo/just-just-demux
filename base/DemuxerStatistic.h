@@ -80,7 +80,7 @@ namespace ppbox
                 bool ok, 
                 boost::uint32_t seek_time);
 
-            void on_error(
+            void last_error(
                 boost::system::error_code const & ec);
 
             void close();
