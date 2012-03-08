@@ -109,11 +109,11 @@ namespace ppbox
                 stream_->more(0);
                 ec_buf = stream_->error();
 
-                if (is_open(ec)) {
+                if (buffer_.write_segment() == buffer_.read_segment()) {
+                    return FlvDemuxerBase::get_end_time(ec);
+                } else {
                     return buffer_.write_segment() * 5000;
                 }
-
-                return 0;
             }
 
             boost::system::error_code seek(
@@ -125,6 +125,14 @@ namespace ppbox
                     stream_->seek(offset, ec);
                 }
                 return ec;
+            }
+
+            void close(
+                boost::system::error_code & ec)
+            {
+                FlvDemuxerBase::close(ec);
+                segment_ = 0;
+                stream_->close();
             }
 
         private:

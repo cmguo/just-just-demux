@@ -162,9 +162,15 @@ namespace ppbox
             std::string const & name, 
             open_response_type const & resp)
         {
-            name_ = name;
-            resp_ = resp;
 
+            Demuxer::open_beg(name);
+            open_logs_.resize(3);
+
+            LOG_S(Logger::kLevelDebug, "name: " << name);
+
+            buffer_->set_name(name);
+
+            resp_ = resp;
             open_step_ = StepType::opening;
 
             handle_async_open(boost::system::error_code());
@@ -265,39 +271,12 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    open_beg();
-                    demux_data().set_name(name_);
-
-                    open_logs_.resize(3);
-
-                    std::string::size_type slash = name_.find('|');
-                    std::string url;
-                    if (slash == std::string::npos) {
-                        ec = empty_name;
-                    } else {
-                        std::string key = name_.substr(0, slash);
-                        url = name_.substr(slash + 1);
-                        if (url.size() > 4 && url.substr(url.size() - 4) == ".mp4") {
-                            if (url.find('%') == std::string::npos) {
-                                url = Url::encode(url);
-                            }
-                        } else {
-                            url = pptv::url_decode(url, key);
-                            StringToken st(url, "||");
-                            if (!st.next_token(ec)) {
-                                url = st.remain();
-                            }
-                        }
-                    }
-
-                    if (url.empty()) {
+                    if (buffer_->get_name().empty()) {
                         ec = empty_name;
                     }
 
                     if (!ec) {
-                        LOG_S(Logger::kLevelDebug, "url: " << url);
 
-                        segments_->set_name(url);
                         open_logs_[0].reset();
 
                         open_step_ = StepType::jump;

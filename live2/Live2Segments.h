@@ -83,6 +83,8 @@ namespace ppbox
                 , num_del_(0)
                 , server_time_(0)
                 , file_time_(0)
+                , seek_time_(0)
+                , bwtype_(0)
                 , index_(0)
                 , interval_(10)
                 , live_demuxer_(NULL)
@@ -119,12 +121,14 @@ namespace ppbox
                         patcher += jump_info_.channelGUID;
                         patcher += framework::string::join(rid_.begin(), rid_.end(), "@", "&rid=");
                         patcher += framework::string::join(rate_.begin(), rate_.end(), "@", "&datarate=");
-                        patcher += "&replay=0";
+                        patcher += "&replay=1";
                         patcher += "&start=";
                         patcher += framework::string::format(file_time_);
                         patcher += "&interval=";
                         patcher += framework::string::format(interval_);
-                        patcher += "&BWType=0&source=0&uniqueid=";
+                        patcher += "&BWType=";
+                        patcher += framework::string::format(bwtype_);
+                        patcher += "&source=0&uniqueid=";
                         patcher += framework::string::format(seq_);
                         head.path = patcher;
                     } else {
@@ -190,21 +194,42 @@ namespace ppbox
             }
 
         public:
-            void set_url_key(
-                std::string const & key, 
-                std::string const & url)
+            void set_name(std::string const & name)
             {
-                key_ = key;
+                std::string::size_type slash = name.find('|');
+                if (slash == std::string::npos) 
+                {
+                    return;
+                }
 
-                //std::string tmp = pptv::base64_encode("channel={831db0b0-08a2-4e4d-9dc1-739cbab9afe3}&name=live2 test&sid=e9301e073cf94732a380b765c8b9573d@0a5adf8f23494bbf970e3ce02b1b73a2@9cd54184428347f7bd663efa39fc4891&datarate=51200@68900@71200&interval=5", key);
+                key_ = name.substr(0, slash);
+                std::string url = name.substr(slash + 1);
                 //std::string tmp = "e9301e073cf94732a380b765c8b9573d-5";
+
+                //解URL
+                //std::string   temp_host = "http://host/";
+                //url = temp_host + url;
+                url = framework::string::Url::decode(url);
+                framework::string::Url request_url(url);
+                url = request_url.path().substr(1);
+
+                std::string strSeek = request_url.param("seek");
+                if(!strSeek.empty())
+                {
+                    seek_time_ = framework::string::parse<boost::uint32_t>(strSeek);
+                }
+                std::string strBWType = request_url.param("bwtype");
+                if(!strBWType.empty())
+                {
+                    bwtype_ = framework::string::parse<boost::int32_t>(strBWType);
+                }
 
                 if (url.find('-') != std::string::npos) {
                     // "[StreamID]-[Interval]-[datareate]
                     url_ = url;
                     std::vector<std::string> strs;
                     slice<std::string>(url, std::inserter(strs, strs.end()), "-");
-                    if (strs.size() == 3) {
+                    if (strs.size() >= 3) {
                         name_ = "Stream:" + strs[0];
                         rid_.push_back(strs[0]);
                         stream_id_ = rid_[0];
@@ -212,15 +237,12 @@ namespace ppbox
                         boost::uint32_t rate = 0;
                         parse2(strs[2], rate);
                         rate_.push_back(rate);
-                    }
-                    else
-                    {
+                    } else {
                         std::cout<<"Wrong URL Param"<<std::endl;
                     }
                     return;
                 }
-
-                url_ = pptv::base64_decode(url, key);
+                url_ = pptv::base64_decode(url, key_);
                 if (!url_.empty()) {
                     map_find(url_, "name", name_, "&");
                     map_find(url_, "channel", channel_, "&");
@@ -234,7 +256,7 @@ namespace ppbox
                     slice<boost::uint32_t>(datarate, std::inserter(rate_, rate_.end()), "@");
                 }
             }
-
+            
             framework::string::Url get_jump_url()
             {
                 framework::string::Url url("http://localhost/");
@@ -255,9 +277,35 @@ namespace ppbox
                 local_time_ = Time::now();
 
                 server_time_ = jump_info_.server_time.to_time_t();
-                file_time_ = server_time_ - jump_info_.delay_play_time;
+                if (seek_time_ > 0)
+                {
+                    std::cout<<"Live2 seek_time_:"<<seek_time_<<std::endl;
+                    file_time_ = server_time_ - jump_info_.delay_play_time-seek_time_;
+                }
+                else
+                {
+                    file_time_ = server_time_ - jump_info_.delay_play_time;
+                }
+
 
                 file_time_ = file_time_ / interval_ * interval_;
+
+			}
+
+            void set_file_time(boost::uint32_t iTime,bool bSign)  //sign ture +++  false ---
+            {
+                file_time_ = server_time_ - jump_info_.delay_play_time;
+
+                if(bSign)
+                {
+                    file_time_+=iTime/1000;
+                }
+                else
+                {
+                    file_time_-=iTime/1000;
+                }
+                file_time_ = file_time_ / interval_ * interval_;
+	
             }
 
             void update()
@@ -265,7 +313,7 @@ namespace ppbox
                 // 当前分段已经下载的时间
                 file_time_ += interval_;
                 // 当前已经播放时长
-                boost::int64_t total_seconds = (Time::now() - local_time_).total_seconds();
+                /*boost::int64_t total_seconds = (Time::now() - local_time_).total_seconds();
                 if (total_seconds + server_time_ > file_time_ + jump_info_.delay_play_time * 2) {
                     // 跳段时，保证比正常播放时间延迟 delay_play_time
                     while (total_seconds + server_time_ > file_time_ + jump_info_.delay_play_time) {
@@ -273,7 +321,7 @@ namespace ppbox
                             "[next_segment] skip " << interval_ << "seconds");
                         file_time_ += interval_;
                     }
-                }
+                }*/
             }
 
             void set_http_proxy(
@@ -378,6 +426,8 @@ namespace ppbox
             Time local_time_;
             time_t server_time_;
             time_t file_time_;
+            boost::uint32_t seek_time_;
+            boost::int32_t bwtype_;
 
             int index_;
             std::vector<std::string> rid_;

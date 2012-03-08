@@ -78,6 +78,10 @@ namespace ppbox
                         audio_format.sample_rate = frequency[AudioHeader.SoundRate];
                         audio_format.sample_size = size[AudioHeader.SoundSize];
                         audio_format.channel_count = channel[AudioHeader.SoundType];
+                        if (metadata.audiosamplerate > 0)
+                            audio_format.sample_rate = metadata.audiosamplerate;
+                        if (metadata.audiosamplesize > 0)
+                            audio_format.sample_size = metadata.audiosamplesize;
                         format_data = codec_data;
                     }
                 }

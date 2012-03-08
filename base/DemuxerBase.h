@@ -62,6 +62,7 @@ namespace ppbox
                 : type(MEDIA_TYPE_NONE)
                 , sub_type(VIDEO_TYPE_NONE)
                 , time_scale(0)
+                , duration(0)
             {
             }
 
@@ -112,7 +113,11 @@ namespace ppbox
 
         struct Sample
         {
-            Sample():us_delta(boost::uint32_t(-1)){}
+            Sample()
+            :flags(0)
+            ,us_delta(boost::uint32_t(-1))
+            {
+            }
             enum FlagEnum
             {
                  sync = 1, 

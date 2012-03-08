@@ -132,9 +132,8 @@ namespace ppbox
 
             open_response_type resp_;
 
-            std::string name_;
-
             StepType::Enum open_step_;
+            boost::uint32_t time_;
         };
 
     } // namespace demux

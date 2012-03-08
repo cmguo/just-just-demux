@@ -380,7 +380,8 @@ namespace ppbox
                             return;
                         }
                     } else {
-                        close_request(ec);
+                        boost::system::error_code ec1;
+                        close_request(ec1);
                     }
                 } else if (write_.offset >= write_hole_.this_end) {
                     ec = boost::asio::error::eof;
@@ -578,11 +579,12 @@ namespace ppbox
                 read_.offset = 0;
                 read_.segment = 0;
                 read_.size_beg = 0;
-                write_ = read_;
+                read_.seg_end = (boost::uint64_t)-1;
+                write_tmp_ = write_ = read_;
+                write_tmp_.buffer = NULL;
                 read_hole_.this_end = 0;
                 read_hole_.next_beg = 0;
-                write_hole_.this_end = 0;
-                write_hole_.next_beg = 0;
+                write_hole_tmp_ = write_hole_ = read_hole_;
                 time_block_ = 0;
                 time_out_ = 0;
                 source_closed_ = true;
@@ -591,6 +593,7 @@ namespace ppbox
                 seek_end_ = (boost::uint64_t)-1;
                 amount_ = 0;
                 expire_pause_time_ = Time::now();
+                sended_req_ = 0;
                 clear_error();
             }
 

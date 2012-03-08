@@ -148,6 +148,10 @@ namespace ppbox
             dac::Dac & dac_;
 #endif
 
+#ifndef PPBOX_DISABLE_PEER
+            peer::Peer & peer_;
+#endif
+
         private:
             framework::timer::Timer * timer_;
             std::vector<DemuxInfo *> demuxers_;

@@ -179,8 +179,6 @@ namespace ppbox
 
             open_response_type resp_;
 
-            std::string name_;
-
             StepType::Enum open_step_;
 
             boost::system::error_code pending_error_;

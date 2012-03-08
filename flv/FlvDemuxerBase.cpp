@@ -150,40 +150,6 @@ namespace ppbox
             }
         }
 
-        //error_code FlvDemuxerBase::parse_stream(
-        //    error_code &ec)
-        //{
-        //    ec.clear();
-        //    streams_[0].type = MEDIA_TYPE_AUDI;
-        //    streams_[0].time_scale = 1000;
-        //    if (metadata_.audiocodecid == SoundCodec::FLV_CODECID_AAC) {
-        //        streams_[0].sub_type = AUDIO_TYPE_MP4A;
-        //        streams_[0].format_type = MediaInfo::audio_iso_mp4;
-        //        if (metadata_.stereo) {
-        //            streams_[0].audio_format.channel_count = 2;
-        //        } else {
-        //            streams_[0].audio_format.channel_count = 1;
-        //        }
-        //        streams_[0].audio_format.sample_size = metadata_.audiosamplesize;
-        //        streams_[0].audio_format.sample_rate = metadata_.audiosamplerate;
-        //    } else {
-        //        ec = error::bad_file_format;
-        //    }
-
-        //    streams_[1].type = MEDIA_TYPE_VIDE;
-        //    streams_[1].time_scale = 1000;
-        //    if (metadata_.videocodecid == VideoCodec::FLV_CODECID_H264) {
-        //        streams_[1].sub_type = VIDEO_TYPE_AVC1;
-        //        streams_[1].format_type = MediaInfo::video_avc_packet;
-        //        streams_[1].video_format.frame_rate = metadata_.framerate;
-        //        streams_[1].video_format.height = metadata_.height;
-        //        streams_[1].video_format.width = metadata_.width;
-        //    } else {
-        //        ec = error::bad_file_format;
-        //    }
-        //    return ec;
-        //}
-
         void FlvDemuxerBase::parse_metadata(
             FlvTag const & metadata_tag)
         {
@@ -191,20 +157,35 @@ namespace ppbox
             metadata_tag.DataTag.Value.ECMAArray.Variables;
             for (boost::uint32_t i = 0; i < variables.size(); ++i) {
                 FlvDataObjectProperty const & property = variables[i];
+                if (property.PropertyName.StringData == "datarate") {
+                    metadata_.datarate = (boost::uint32_t)property.PropertyData.Double;
+                }
                 if (property.PropertyName.StringData == "width") {
-                    metadata_.width = (double)property.PropertyData.Double;
+                    metadata_.width = (boost::uint32_t)property.PropertyData.Double;
                 }
                 if (property.PropertyName.StringData == "height") {
-                    metadata_.height = (double)property.PropertyData.Double;
+                    metadata_.height = (boost::uint32_t)property.PropertyData.Double;
                 }
                 if (property.PropertyName.StringData == "framerate") {
-                    metadata_.framerate = (double)property.PropertyData.Double;
+                    metadata_.framerate = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "audiosamplerate") {
+                    metadata_.audiosamplerate = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "audiosamplesize") {
+                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "audiosamplesize") {
+                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
                 }
             }
         }
 
         error_code FlvDemuxerBase::close(error_code & ec)
         {
+            header_offset_ = 0;
+            timestamp_offset_ms_ = 0;
+            parse_offset_ = 0;
             ec.clear();
             open_step_ = boost::uint32_t(-1);
             return ec;
@@ -308,7 +289,23 @@ namespace ppbox
         boost::uint32_t FlvDemuxerBase::get_end_time(
             boost::system::error_code & ec)
         {
-            return 0;
+            if (!is_open(ec)) {
+                return 0;
+            }
+            boost::uint64_t beg = archive_.tellg();
+            archive_.seekg(0, std::ios_base::end);
+            boost::uint64_t end = archive_.tellg();
+            archive_.seekg(beg, std::ios_base::beg);
+            assert(archive_);
+            boost::uint32_t time = 0;
+            if (flv_tag_.Timestamp - timestamp_offset_ms_ > 1000) {
+                time = (flv_tag_.Timestamp - timestamp_offset_ms_) * end / parse_offset_;
+            } else if (metadata_.datarate) {
+                time = end / metadata_.datarate;
+            } else {
+                time = 0;
+            }
+            return time;
         }
 
         boost::uint32_t FlvDemuxerBase::get_cur_time(

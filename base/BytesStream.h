@@ -171,6 +171,18 @@ namespace ppbox
                 }
             }
 
+            void close()
+            {
+                boost::system::error_code ec1;
+                size_ = 0;
+                buffers_ = read_buffer_t();
+                setg(NULL, NULL, NULL);
+                iter_ = buffers_.begin();
+                pos_ = 0;
+                end_ = 0;
+                ec_= boost::asio::error::would_block;
+            }
+
         private:
             void prepare(
                 boost::uint32_t amount)

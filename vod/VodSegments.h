@@ -8,6 +8,7 @@
 #include "ppbox/demux/vod/VodDemuxer.h"
 #include "ppbox/demux/vod/VodInfo.h"
 
+#include <util/protocol/pptv/Url.h>
 #include <util/protocol/pptv/TimeKey.h>
 #include <util/serialization/NVPair.h>
 using namespace util::protocol;
@@ -57,7 +58,7 @@ namespace ppbox
                 : HttpSource(io_svc)
                 , vod_port_(vod_port)
                 , first_seg_(true)
-                , bwtype_(0)
+                , bwtype_(-1)
                 , url_("http://localhost/")
                 , max_dl_speed_(-1)
                 , vod_demuxer_(NULL)
@@ -156,7 +157,46 @@ namespace ppbox
             void set_name(
                 std::string const & name)
             {
-                name_ = name;
+                boost::system::error_code ec;
+                //name_ = name;
+                std::string::size_type slash = name.find('|');
+                
+                if (slash == std::string::npos) 
+                {
+                    return;
+                } 
+                std::string key = name.substr(0, slash);
+                std::string url = name.substr(slash + 1);
+
+                //std::string   temp_host = "http://host/";
+                //url = temp_host + url;
+                url = framework::string::Url::decode(url);
+                framework::string::Url request_url(url);
+                url = request_url.path().substr(1);
+                std::string strBwtype = request_url.param("bwtype");
+
+                if(!strBwtype.empty())
+                {
+                    bwtype_ = framework::string::parse<boost::int32_t>(strBwtype);
+                }
+
+                if (url.size() > 4 && url.substr(url.size() - 4) == ".mp4") {
+                    if (url.find('%') == std::string::npos) {
+                        url = Url::encode(url, ".");
+                    }
+                } else {
+                    url = pptv::url_decode(url, key);
+                    StringToken st(url, "||");
+                    if (!st.next_token(ec)) {
+                        url = st.remain();
+                    }
+                }
+                name_ = url;
+            }
+
+            std::string const & get_name() const
+            {
+                return name_;
             }
 
             framework::string::Url get_jump_url()
@@ -187,7 +227,8 @@ namespace ppbox
                 server_host_ = server_host;
                 server_time_ = time;
                 local_time_ = Time::now();
-                bwtype_ = bwtype;
+                if(bwtype_ < 0)
+                    bwtype_ = bwtype;
             }
 
             NetName const & get_server_host() const
@@ -280,7 +321,7 @@ namespace ppbox
             NetName server_host_;
             NetName proxy_addr_;
             bool first_seg_;
-            int bwtype_;
+            boost::int32_t bwtype_;
             Time local_time_;
             time_t server_time_;
             Url url_;

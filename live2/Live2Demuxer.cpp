@@ -39,6 +39,7 @@ namespace ppbox
             : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new Live2Segments(io_svc, live_port))
             , jump_(new PptvJump(io_svc, JumpType::live))
             , open_step_(StepType::not_open)
+            , time_(0)
         {
             set_play_type(PptvDemuxerType::live2);
             segments_->set_live_demuxer(this);
@@ -65,7 +66,11 @@ namespace ppbox
             std::string const & name, 
             open_response_type const & resp)
         {
-            name_ = name;
+            Demuxer::open_beg(name);
+            open_logs_.resize(2);
+            
+            buffer_->set_name(name);
+
             resp_ = resp;
 
             open_step_ = StepType::opening;
@@ -113,20 +118,8 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    DemuxerStatistic::open_beg();
-                    demux_data().set_name(name_);
-
-                    open_logs_.resize(2);
-
-                    std::string::size_type slash = name_.find('|');
-                    if (slash == std::string::npos) {
+                    if (buffer_->get_name().empty()) {
                         ec = empty_name;
-                    } else {
-                        segments_->set_url_key(name_.substr(0, slash), name_.substr(slash + 1));
-
-                        if (segments_->get_name().empty()) {
-                            ec = empty_name;
-                        }
                     }
 
                     if (!ec) {
@@ -318,9 +311,30 @@ namespace ppbox
             boost::uint32_t & time, 
             error_code & ec)
         {
-            ec = not_supported;
-            if (0 == time)
-                ec.clear();
+            ec.clear();
+            if(0 == time_)
+            {
+                time_ = time;
+            }
+            else
+            {
+                boost::system::error_code ec1;
+                buffer_->close_segment(0,ec1);
+                buffer_->clear();
+                demuxer_->close(ec1);
+                if(time > time_)
+                {
+                    buffer_->set_file_time(time-time_,true);
+                }
+                else
+                {
+                    buffer_->set_file_time(time_-time,false);
+                }
+
+                demuxer_->open(ec1);
+                seg_end(buffer_->segment());
+                open_step_ = StepType::finish;
+            }
             return ec;
         }
 
