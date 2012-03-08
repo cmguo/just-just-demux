@@ -27,9 +27,9 @@ namespace framework
 
 namespace ppbox
 {
-
+#ifndef PPBOX_DISABLE_DAC
     namespace dac { class Dac; }
-
+#endif
     namespace demux
     {
 
@@ -144,8 +144,9 @@ namespace ppbox
             framework::network::NetName http_proxy_;
 
         private:
-            util::daemon::Daemon & daemon_;
+#ifndef PPBOX_DISABLE_DAC
             dac::Dac & dac_;
+#endif
 
         private:
             framework::timer::Timer * timer_;

@@ -103,7 +103,7 @@ namespace ppbox
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
                 if (segment == 0) {
-					if (live_port_){
+                    if (live_port_){
                         set_time_out(0, ec);
                         addr.host("127.0.0.1");
                         addr.port(live_port_);
@@ -128,10 +128,6 @@ namespace ppbox
                         patcher += framework::string::format(seq_);
                         head.path = patcher;
                     } else {
-                        beg += P2P_HEAD_LENGTH;
-                        if (end != (boost::uint64_t)-1) {
-                            end += P2P_HEAD_LENGTH;
-                        }
                         set_time_out(5 * 1000, ec);
                         addr = jump_info_.server_host;
                         if (!proxy_addr_.host().empty()) {
@@ -147,6 +143,10 @@ namespace ppbox
                 }
                 else
                 {
+                    beg += P2P_HEAD_LENGTH;
+                    if (end != (boost::uint64_t)-1) {
+                        end += P2P_HEAD_LENGTH;
+                    }
                     head.path = "/live/" + stream_id_ + "/" + format(file_time_) + ".block";
                 }
 

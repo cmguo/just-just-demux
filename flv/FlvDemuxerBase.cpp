@@ -64,7 +64,11 @@ namespace ppbox
                     open_step_ = 1;
                     parse_offset_ = std::ios::off_type(flv_header_.DataOffset) + 4; // + 4 PreTagSize
                 } else {
-                    ec = archive_.failed() ? error::bad_file_format : error::file_stream_error;
+                    if (archive_.failed()) {
+                        ec = error::bad_file_format;
+                    } else {
+                        ec = error::file_stream_error;
+                    }
                 }
             }
 
@@ -238,6 +242,7 @@ namespace ppbox
                 sample.ustime = (timestamp - timestamp_offset_ms_) * 1000;
                 sample.dts = timestamp - timestamp_offset_ms_;
                 sample.cts_delta = flv_tag_.cts_delta;
+                sample.us_delta = 1000*sample.cts_delta;
                 sample.duration = 0;
                 sample.size = flv_tag_.DataSize;
                 sample.blocks.clear();

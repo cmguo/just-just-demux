@@ -59,7 +59,7 @@ namespace ppbox
                 , first_seg_(true)
                 , bwtype_(0)
                 , url_("http://localhost/")
-                , max_dl_speed_(boost::uint32_t(-1))
+                , max_dl_speed_(-1)
                 , vod_demuxer_(NULL)
             {
             }
@@ -117,7 +117,9 @@ namespace ppbox
                         url.param("drag", buf_time < 15000 ? "1" : "0");
                         url.param("headonly", end <= segments_[segment].head_length ? "1" : "0");
                         url.param("BWType", format(bwtype_));
-                        //url.param("BWType", "0");
+
+                        if(max_dl_speed_ != boost::uint32_t(-1))
+                            url.param("speedlimit", format(max_dl_speed_));
                         url.param("blocknum", format(segments_[segment].block_num));
 
                         url.encode();

@@ -112,6 +112,7 @@ namespace ppbox
 
         struct Sample
         {
+            Sample():us_delta(boost::uint32_t(-1)){}
             enum FlagEnum
             {
                  sync = 1, 
@@ -124,6 +125,7 @@ namespace ppbox
             boost::uint32_t time;
             boost::uint64_t ustime;
             boost::uint64_t dts;
+            boost::uint32_t us_delta; //pts-dts
             boost::uint32_t cts_delta;
             boost::uint32_t duration;
             boost::uint32_t size;

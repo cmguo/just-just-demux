@@ -5,8 +5,9 @@
 #include "ppbox/demux/CommonDemuxer.h"
 #include "ppbox/demux/pptv/PptvDemuxer.h"
 using namespace ppbox::demux;
-
+#ifndef PPBOX_DISABLE_DAC
 #include <ppbox/dac/Dac.h>
+#endif
 
 #include <framework/timer/Timer.h>
 #include <framework/logger/LoggerStreamRecord.h>
@@ -88,8 +89,9 @@ namespace ppbox
 #else  
             : ppbox::certify::CertifyUserModuleBase<DemuxerModule>(daemon, "DemuxerModule")
 #endif
-            , daemon_(daemon)
+#ifndef PPBOX_DISABLE_DAC
             , dac_(util::daemon::use_module<ppbox::dac::Dac>(daemon))
+#endif
             , timer_(NULL)
         {
             buffer_size_ = 20 * 1024 * 1024;
@@ -195,7 +197,9 @@ namespace ppbox
                 DemuxInfo * info = *iter;
                 BufferDemuxer * demuxer = info->demuxer;
                 if (info->status == DemuxInfo::opened && !info->dac_sent_) {
+#ifndef PPBOX_DISABLE_DAC
                     dac_.play_open_info(info->ec, demuxer);
+#endif
                     info->dac_sent_ = true;
                 }
             }
@@ -313,7 +317,7 @@ namespace ppbox
                 pos_param -= pos_colon;
             }
 
-            BufferDemuxer * demuxer = CommonDemuxer::create(daemon_, play_link, buffer_size_, prepare_size_);
+            BufferDemuxer * demuxer = CommonDemuxer::create(get_daemon(), play_link, buffer_size_, prepare_size_);
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_stat需要加锁
             DemuxInfo * info = new DemuxInfo(demuxer);
@@ -391,7 +395,9 @@ namespace ppbox
             } else {
                 info->status = DemuxInfo::opened;
                 if (!info->dac_sent_) {
+#ifndef PPBOX_DISABLE_DAC
                     dac_.play_open_info(info->ec, demuxer);
+#endif
                     info->dac_sent_ = true;
                 }
             }
@@ -447,10 +453,14 @@ namespace ppbox
             if (info->play_link.empty()) //表示demuxer曾经做过open,所以需要close
                 demuxer->close(ec);
             if (!info->dac_sent_) {
+#ifndef PPBOX_DISABLE_DAC
                 dac_.play_open_info(info->ec, demuxer);
+#endif
                 info->dac_sent_ = true;
             }
+#ifndef PPBOX_DISABLE_DAC
             dac_.play_close_info(demuxer);
+#endif
             return ec;
         }
 

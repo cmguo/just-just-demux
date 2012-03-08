@@ -344,6 +344,7 @@ namespace ppbox
             sample.ustime = ap4_sample.ustime;
             sample.dts = ap4_sample.GetDts();
             sample.cts_delta = ap4_sample.GetCtsDelta();
+            sample.us_delta = (boost::uint64_t)1000000*sample.cts_delta/tracks_[ap4_sample.itrack]->time_scale;
             sample.size = ap4_sample.GetSize();
             sample.blocks.clear();
             sample.blocks.push_back(FileBlock(ap4_sample.GetOffset(), ap4_sample.GetSize()));

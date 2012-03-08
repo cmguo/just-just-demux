@@ -160,7 +160,7 @@ namespace ppbox
         void PptvJump::cancel()
         {
             error_code ec1;
-            http_.cancel(ec1);
+            http_.cancel_forever(ec1);
 
             canceled_ = true;
         }

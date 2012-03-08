@@ -20,7 +20,12 @@ namespace ppbox
                 : DescriptorBufferList<DescriptorOneSegment>(io_svc, buffer_size, prepare_size)
             {
 #ifndef BOOST_WINDOWS_API
+#  ifdef fileno
+                /* Remove compile error that under mips-android platform 'fileno' is defined as a macro */
+                descriptor_ = fileno(stdin);
+#  else
                 descriptor_ = ::fileno(stdin);
+#  endif
 #else
 		descriptor_ = ::GetStdHandle(STD_INPUT_HANDLE);
 #endif
