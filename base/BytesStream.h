@@ -26,7 +26,7 @@ namespace ppbox
             typedef read_buffer_t::const_iterator const_iterator;
 
             typedef util::buffers::StlBuffer<
-                BytesStream, util::buffers::detail::_read> buffer_type;
+                util::buffers::detail::_read, boost::uint8_t, std::char_traits<boost::uint8_t> > buffer_type;
 
         public:
             BytesStream(

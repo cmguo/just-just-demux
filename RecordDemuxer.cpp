@@ -1,6 +1,7 @@
 // RecordDemuxer.h
 
 #include "ppbox/demux/Common.h"
+#if 0
 #include "ppbox/demux/RecordDemuxer.h"
 using namespace ppbox::demux::error;
 
@@ -195,3 +196,4 @@ namespace ppbox
 
     } // namespace demux
 } // namespace ppbox
+#endif

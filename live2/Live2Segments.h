@@ -6,8 +6,8 @@
 #include "ppbox/demux/base/SourceBase.h"
 #include "ppbox/demux/source/HttpSource.h"
 #include "ppbox/demux/live2/Live2Demuxer.h"
-#include "ppbox/common/Serialize.h"
 
+#include <ppbox/common/Serialize.h>
 #include <util/protocol/pptv/Base64.h>
 #include <util/serialization/NVPair.h>
 #include <util/serialization/stl/vector.h>
@@ -62,84 +62,6 @@ namespace ppbox
             }
         };
 
-        struct Live2Stream
-        {
-            boost::uint16_t delay_play_time;
-
-            template<
-                typename Archive
-            >
-            void serialize(
-            Archive & ar)
-            {
-                ar & util::serialization::make_nvp("delay", delay_play_time);
-            }
-        };
-
-        struct Live2Channel
-        {
-            std::string channelGUID;
-            Live2Stream stream;
-
-            template<
-                typename Archive
-            >
-            void serialize(
-            Archive & ar)
-            {
-                ar & util::serialization::make_nvp("rid", channelGUID)
-                    & SERIALIZATION_NVP(stream);
-            }
-        };
-
-        struct Live2sh
-        {
-            std::string server_limit;
-
-            template<
-                typename Archive
-            >
-            void serialize(
-            Archive & ar)
-            {
-                ar & util::serialization::make_nvp("limit", server_limit);
-            }
-        };
-
-        struct Live2dt
-        {
-            NetName server_host;
-            Live2sh sh;
-            util::serialization::UtcTime server_time;
-
-            template<
-                typename Archive
-            >
-            void serialize(
-            Archive & ar)
-            {
-                ar & util::serialization::make_nvp("sh", server_host)
-                    & SERIALIZATION_NVP(sh)
-                    & util::serialization::make_nvp("st", server_time);
-            }
-        };
-
-        struct Live2JumpInfoNew
-        {
-            Live2Channel channel;
-            Live2dt dt;
-
-            template<
-                typename Archive
-            >
-            void serialize(
-            Archive & ar)
-            {
-                ar & SERIALIZATION_NVP(channel)
-                    & SERIALIZATION_NVP(dt);
-            }
-        };
-
         static std::string addr_host(
             framework::network::NetName const & addr)
         {
@@ -165,6 +87,8 @@ namespace ppbox
                 , interval_(10)
                 , live_demuxer_(NULL)
             {
+                static boost::uint32_t g_seq = 1;
+                seq_ = g_seq++;
             }
 
         public:
@@ -176,28 +100,55 @@ namespace ppbox
                 util::protocol::HttpRequest & request, 
                 error_code & ec)
             {
-                beg += P2P_HEAD_LENGTH;
-                if (end != (boost::uint64_t)-1) {
-                    end += P2P_HEAD_LENGTH;
-                }
-
                 util::protocol::HttpRequestHead & head = request.head();
                 ec = error_code();
                 if (segment == 0) {
-                    set_time_out(5 * 1000, ec);
-                    if (!proxy_addr_.host().empty()) {
-                        addr = proxy_addr_;
-                    } else if (!live_port_){
-                        addr = jump_info_.server_host;
-                    } else {
+					if (live_port_){
+                        set_time_out(0, ec);
                         addr.host("127.0.0.1");
                         addr.port(live_port_);
+                        std::string url("http://");
+                        url += jump_info_.server_host.host();
+                        url += ":";
+                        url += jump_info_.server_host.svc();
+                        url += "/live/";
+                        url = framework::string::Url::encode(url);
+                        std::string patcher("/playlive.flv?url=");
+                        patcher += url;
+                        patcher += "&channelid=";
+                        patcher += jump_info_.channelGUID;
+                        patcher += framework::string::join(rid_.begin(), rid_.end(), "@", "&rid=");
+                        patcher += framework::string::join(rate_.begin(), rate_.end(), "@", "&datarate=");
+                        patcher += "&replay=0";
+                        patcher += "&start=";
+                        patcher += framework::string::format(file_time_);
+                        patcher += "&interval=";
+                        patcher += framework::string::format(interval_);
+                        patcher += "&BWType=0&source=0&uniqueid=";
+                        patcher += framework::string::format(seq_);
+                        head.path = patcher;
+                    } else {
+                        beg += P2P_HEAD_LENGTH;
+                        if (end != (boost::uint64_t)-1) {
+                            end += P2P_HEAD_LENGTH;
+                        }
+                        set_time_out(5 * 1000, ec);
+                        addr = jump_info_.server_host;
+                        if (!proxy_addr_.host().empty()) {
+                            addr = proxy_addr_;
+                        }
                     }
                     head.host.reset(addr_host(addr));
                     head.connection = util::protocol::http_field::Connection::keep_alive;
                 }
 
-                head.path = "/live/" + stream_id_ + "/" + format(file_time_) + ".block";
+                if (live_port_)
+                {
+                }
+                else
+                {
+                    head.path = "/live/" + stream_id_ + "/" + format(file_time_) + ".block";
+                }
 
                 return ec;
             }
@@ -249,15 +200,22 @@ namespace ppbox
                 //std::string tmp = "e9301e073cf94732a380b765c8b9573d-5";
 
                 if (url.find('-') != std::string::npos) {
-                    // "[StreamID]-[Interval]
+                    // "[StreamID]-[Interval]-[datareate]
                     url_ = url;
                     std::vector<std::string> strs;
                     slice<std::string>(url, std::inserter(strs, strs.end()), "-");
-                    if (strs.size() == 2) {
+                    if (strs.size() == 3) {
                         name_ = "Stream:" + strs[0];
                         rid_.push_back(strs[0]);
                         stream_id_ = rid_[0];
                         parse2(strs[1], interval_);
+                        boost::uint32_t rate = 0;
+                        parse2(strs[2], rate);
+                        rate_.push_back(rate);
+                    }
+                    else
+                    {
+                        std::cout<<"Wrong URL Param"<<std::endl;
                     }
                     return;
                 }
@@ -311,6 +269,8 @@ namespace ppbox
                 if (total_seconds + server_time_ > file_time_ + jump_info_.delay_play_time * 2) {
                     // 跳段时，保证比正常播放时间延迟 delay_play_time
                     while (total_seconds + server_time_ > file_time_ + jump_info_.delay_play_time) {
+                        LOG_S(framework::logger::Logger::kLevelAlarm, 
+                            "[next_segment] skip " << interval_ << "seconds");
                         file_time_ += interval_;
                     }
                 }
@@ -428,6 +388,8 @@ namespace ppbox
             boost::uint16_t interval_;
 
             Live2Demuxer * live_demuxer_;
+
+            boost::uint32_t seq_;
         };
 
     } // namespace demux
