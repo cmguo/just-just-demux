@@ -321,7 +321,7 @@ namespace ppbox
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_statÐèÒª¼ÓËø
             DemuxInfo * info = new DemuxInfo(demuxer);
-            info->play_link = play_link.substr(pos_colon, pos_param);
+            info->play_link = play_link;
             info->status = DemuxInfo::opening;
             info->resp = resp;
             demuxers_.push_back(info);
