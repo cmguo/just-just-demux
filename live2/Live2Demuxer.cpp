@@ -66,10 +66,10 @@ namespace ppbox
             std::string const & name, 
             open_response_type const & resp)
         {
-            Demuxer::open_beg(name);
+            PptvDemuxer::open_beg();
             open_logs_.resize(2);
             
-            buffer_->set_name(name);
+            segments_->set_name(name);
 
             resp_ = resp;
 
@@ -118,7 +118,7 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    if (buffer_->get_name().empty()) {
+                    if (segments_->get_name().empty()) {
                         ec = empty_name;
                     }
 
@@ -319,20 +319,20 @@ namespace ppbox
             else
             {
                 boost::system::error_code ec1;
-                buffer_->close_segment(0,ec1);
+                //buffer_->close_segment(ec1);
                 buffer_->clear();
-                demuxer_->close(ec1);
+                PptvDemuxer::close(ec1);
                 if(time > time_)
                 {
-                    buffer_->set_file_time(time-time_,true);
+                    segments_->set_file_time(time-time_,true);
                 }
                 else
                 {
-                    buffer_->set_file_time(time_-time,false);
+                    segments_->set_file_time(time_-time,false);
                 }
 
-                demuxer_->open(ec1);
-                seg_end(buffer_->segment());
+                PptvDemuxer::open( segments_->get_name(), ec1);
+                seg_end(buffer_->read_segment().segment);
                 open_step_ = StepType::finish;
             }
             return ec;

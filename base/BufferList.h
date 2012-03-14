@@ -575,18 +575,18 @@ namespace ppbox
             void clear()
             {
                 //segments_->clear();
+                read_ = PositionEx();
                 read_.buffer = buffer_beg();
-                read_.offset = 0;
-                read_.segment = 0;
-                read_.size_beg = 0;
-                read_.seg_end = (boost::uint64_t)-1;
                 write_tmp_ = write_ = read_;
                 write_tmp_.buffer = NULL;
+
                 read_hole_.this_end = 0;
                 read_hole_.next_beg = 0;
                 write_hole_tmp_ = write_hole_ = read_hole_;
+
                 time_block_ = 0;
                 time_out_ = 0;
+
                 source_closed_ = true;
                 data_beg_ = 0;
                 data_end_ = 0;

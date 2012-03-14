@@ -163,12 +163,12 @@ namespace ppbox
             open_response_type const & resp)
         {
 
-            Demuxer::open_beg(name);
+            PptvDemuxer::open_beg();
             open_logs_.resize(3);
 
             LOG_S(Logger::kLevelDebug, "name: " << name);
 
-            buffer_->set_name(name);
+            segments_->set_name(name);
 
             resp_ = resp;
             open_step_ = StepType::opening;
@@ -271,7 +271,7 @@ namespace ppbox
             switch (open_step_) {
             case StepType::opening:
                 {
-                    if (buffer_->get_name().empty()) {
+                    if (segments_->get_name().empty()) {
                         ec = empty_name;
                     }
 
