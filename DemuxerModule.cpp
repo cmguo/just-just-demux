@@ -551,6 +551,8 @@ namespace ppbox
             if ( !msg_queue_.pop( msg ) )
             {
                 ec = boost::asio::error::would_block;
+
+                LOG_S(Logger::kLevelAlarm, "get_insert_media, ec = " << ec.message() );
                 return *mediainfo_;
             }
 
@@ -560,6 +562,8 @@ namespace ppbox
             std::istream is(&read_buf_);
             util::archive::TextIArchive<> ia( is );
             ia >> mediainfo_;
+
+            LOG_S(Logger::kLevelDebug, "get_insert_media: " << msg.data );
 
             ec.clear();
             return *mediainfo_;
