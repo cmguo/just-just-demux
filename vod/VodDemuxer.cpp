@@ -6,7 +6,10 @@
 #include "ppbox/demux/pptv/PptvDrag.h"
 #include "ppbox/demux/vod/VodSegments.h"
 #include "ppbox/demux/source/HttpOneSegment.h"
+#include "ppbox/demux/DemuxerModule.h"
 using namespace ppbox::demux::error;
+
+#include "ppbox/ppbox/Common.h"
 
 #include <ppbox/common/Environment.h>
 
@@ -15,6 +18,9 @@ using namespace ppbox::demux::error;
 #include <util/archive/XmlIArchive.h>
 #include <util/archive/ArchiveBuffer.h>
 #include <util/buffers/BufferCopy.h>
+
+#include <util/archive/TextIArchive.h>
+#include <util/archive/TextOArchive.h>
 
 #include <framework/string/Parse.h>
 #include <framework/string/StringToken.h>
@@ -52,8 +58,10 @@ namespace ppbox
             , drag_(new PptvDrag(io_svc))
             , drag_info_(new VodDragInfoNew())
             , keep_count_(0)
+            , can_insert_media_( false )
             , open_step_(StepType::not_open)
             , pending_error_(would_block)
+            , msg_queue_( "AdProcesser", ( ( util::daemon::use_module<ppbox::demux::DemuxerModule>(global_daemon()) ) ).shared_memory() )
         {
             set_play_type(PptvDemuxerType::vod);
             segments_->set_vod_demuxer(this);
@@ -158,11 +166,66 @@ namespace ppbox
             return !ec;
         }
 
+        void VodDemuxer::process_insert_media()
+        {
+            if ( !can_insert_media_ ) return;
+
+            boost::system::error_code ec;
+            framework::process::Message msg; 
+            msg.level = 0;
+            msg.type = 6;
+
+            while ( msg_queue_.pop( msg ) )
+            {
+                InsertMediaInfo mediainfo;
+                boost::asio::streambuf read_buf_;
+                std::ostream os(&read_buf_);
+                os.write( msg.data.c_str(), msg.data.size() );
+                std::istream is(&read_buf_);
+                util::archive::TextIArchive<> ia( is );
+                ia >> mediainfo;
+
+                HttpOneSegment * source = new HttpOneSegment(
+                    io_svc_, DemuxerType::mp4);
+
+                source->set_name( mediainfo.url );
+                source->set_segment_size( mediainfo.media_size );
+                source->set_segment_time( mediainfo.media_duration );
+                source->set_head_size( mediainfo.head_size );
+
+                insert_source( mediainfo.insert_time, source, ec);
+                if ( !ec )
+                {
+                    mediainfo.event_time = (size_t)time(NULL);
+                    mediainfo.event_type = INS_TIME;
+                    mediainfo.argment = mediainfo.insert_time;
+
+                    framework::process::Message msg;
+                    msg.receiver = "AdInserter";
+                    msg.level = 0;
+                    msg.type = 6;
+
+                    boost::asio::streambuf write_buf;
+                    std::ostream os(&write_buf);
+                    util::archive::TextOArchive<> oa( os );
+                    oa << mediainfo;
+                    msg.data = ( char * )boost::asio::detail::buffer_cast_helper( write_buf.data() );
+
+                    msg_queue_.push( msg );
+                }
+
+                msg.sender.clear();
+                msg.receiver.clear();
+                msg.level = 0;
+                msg.type = 6;
+                msg.data.clear();
+            }
+        }
+
         void VodDemuxer::async_open(
             std::string const & name, 
             open_response_type const & resp)
         {
-
             PptvDemuxer::open_beg();
             open_logs_.resize(3);
 
@@ -179,22 +242,6 @@ namespace ppbox
         void VodDemuxer::response(
             error_code const & ec)
         {
-            //HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
-            //source->set_name("http://192.168.1.211/media/ad.mp4");
-            //source->set_segment_size(3115304);
-            //source->set_segment_time(17044);
-            ////source->set_head_size(9462);
-            //boost::system::error_code ecc = boost::system::error_code();
-            //insert_source(20000, source, ecc);
-
-            HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
-            source->set_name("http://192.168.1.100/movies/yu_2.mp4");
-            source->set_segment_size(1192113);
-            source->set_segment_time(16580);
-            source->set_head_size(9462);
-            error_code ecc = error_code();
-            insert_source(290000, source, ecc);
-
             open_response_type resp;
             resp.swap(resp_);
 
@@ -614,6 +661,18 @@ namespace ppbox
                     continue;
                 segments_->add_segment(segments[i]);
             }
+
+            //HttpOneSegment * source = new HttpOneSegment(io_svc_, DemuxerType::mp4);
+            //source->set_name("http://192.168.45.211/movies/yu_2.mp4");
+            //source->set_segment_size(1192113);
+            //source->set_segment_time(16580);
+            //source->set_head_size(9462);
+            //error_code ecc = error_code();
+            //boost::uint32_t time = 20000;
+            //insert_source( time, source, ecc );
+
+            can_insert_media_ = true;
+            process_insert_media();
         }
 
         void VodDemuxer::seg_beg(

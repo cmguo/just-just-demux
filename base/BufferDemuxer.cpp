@@ -170,6 +170,7 @@ namespace ppbox
         {
             // 如果找不到对应的分段，错误码就是source_error::no_more_segment
             //ec = source_error::no_more_segment;
+            //ec.clear();
             SegmentPositionEx position;
             boost::uint32_t seg_time = 0;
             root_source_->time_seek(time, position, ec);
@@ -365,7 +366,7 @@ namespace ppbox
         }
 
         boost::system::error_code BufferDemuxer::insert_source(
-            boost::uint32_t time, 
+            boost::uint32_t & time, 
             SourceBase * source, 
             boost::system::error_code & ec)
         {

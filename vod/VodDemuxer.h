@@ -150,6 +150,8 @@ namespace ppbox
                  bool need_check_seek, 
                  boost::system::error_code & ec);
 
+             void process_insert_media();
+
         private:
             struct StepType
             {
@@ -179,9 +181,11 @@ namespace ppbox
 
             open_response_type resp_;
 
+            bool can_insert_media_;
             StepType::Enum open_step_;
 
             boost::system::error_code pending_error_;
+            framework::process::MessageQueue msg_queue_;
         };
 
     } // namespace demux

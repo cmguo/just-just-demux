@@ -32,6 +32,7 @@ namespace ppbox
 #endif
     namespace demux
     {
+        struct InsertMediaInfo;
 
         class BufferDemuxer;
 
@@ -41,6 +42,7 @@ namespace ppbox
 #else
             : public ppbox::certify::CertifyUserModuleBase<DemuxerModule>
 #endif            
+            , public boost::noncopyable
         {
         public:
             typedef boost::function<void (
@@ -83,6 +85,21 @@ namespace ppbox
 
             void set_play_buffer_time(
                 boost::uint32_t buffer_time);
+
+            boost::system::error_code insert_media(
+                boost::uint32_t id,
+                boost::uint64_t insert_time,      // 插入的时间点
+                boost::uint64_t media_duration,   // 影片时长
+                boost::uint64_t media_size,       // 影片大小
+                boost::uint64_t head_size,        // 文件头部大小
+                boost::uint32_t report,
+                char const * url,                 // 影片URL
+                char const * report_begin_url,
+                char const * report_end_url,
+                boost::system::error_code & ec);
+
+            InsertMediaInfo const & get_insert_media(
+                boost::uint32_t media_id, boost::system::error_code & ec );
 
         public:
             BufferDemuxer * open(
@@ -157,6 +174,9 @@ namespace ppbox
             std::vector<DemuxInfo *> demuxers_;
             boost::mutex mutex_;
             boost::condition_variable cond_;
+            framework::process::MessageQueue msg_queue_;
+
+            InsertMediaInfo * mediainfo_;
 
             // specify record demuxer
             static BufferDemuxer * record_demuxer_;

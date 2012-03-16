@@ -15,6 +15,9 @@ using namespace ppbox::demux;
 using namespace framework::logger;
 using namespace framework::network;
 
+#include <util/archive/TextIArchive.h>
+#include <util/archive/TextOArchive.h>
+
 #include <boost/bind.hpp>
 using namespace boost::system;
 
@@ -93,6 +96,8 @@ namespace ppbox
             , dac_(util::daemon::use_module<ppbox::dac::Dac>(daemon))
 #endif
             , timer_(NULL)
+            , msg_queue_( "AdInserter", shared_memory() )
+            , mediainfo_( new InsertMediaInfo() )
         {
             buffer_size_ = 20 * 1024 * 1024;
             prepare_size_ = 10 * 1024;
@@ -114,6 +119,11 @@ namespace ppbox
 
         DemuxerModule::~DemuxerModule()
         {
+            if ( mediainfo_ )
+            {
+                delete mediainfo_;
+                mediainfo_ = NULL;
+            }
         }
 
         error_code DemuxerModule::startup()
@@ -500,6 +510,59 @@ namespace ppbox
             boost::uint32_t buffer_time)
         {
             buffer_time_ = buffer_time;
+        }
+
+        boost::system::error_code DemuxerModule::insert_media(
+            boost::uint32_t id,
+            boost::uint64_t insert_time,      // 插入的时间点
+            boost::uint64_t media_duration,   // 影片时长
+            boost::uint64_t media_size,       // 影片大小
+            boost::uint64_t head_size,        // 文件头部大小
+            boost::uint32_t report,
+            char const * url,                 // 影片URL
+            char const * report_begin_url,
+            char const * report_end_url,
+            boost::system::error_code & ec)
+        {
+            InsertMediaInfo mediainfo( id, insert_time, media_duration, media_size, head_size, url );
+            framework::process::Message msg;
+            msg.receiver = "AdProcesser";
+            msg.level = 0;
+            msg.type = 6;
+
+            boost::asio::streambuf write_buf;
+            std::ostream os(&write_buf);
+            util::archive::TextOArchive<> oa( os );
+            oa << mediainfo;
+            msg.data = ( char * )boost::asio::detail::buffer_cast_helper( write_buf.data() );
+
+            msg_queue_.push( msg );
+
+            return boost::system::error_code();
+        }
+
+        InsertMediaInfo const & DemuxerModule::get_insert_media(
+            boost::uint32_t media_id, boost::system::error_code & ec )
+        {
+            framework::process::Message msg; 
+            msg.level = 0;
+            msg.type = 6;
+
+            if ( !msg_queue_.pop( msg ) )
+            {
+                ec = boost::asio::error::would_block;
+                return *mediainfo_;
+            }
+
+            boost::asio::streambuf read_buf_;
+            std::ostream os(&read_buf_);
+            os.write( msg.data.c_str(), msg.data.size() );
+            std::istream is(&read_buf_);
+            util::archive::TextIArchive<> ia( is );
+            ia >> mediainfo_;
+
+            ec.clear();
+            return *mediainfo_;
         }
 
     } // namespace demux

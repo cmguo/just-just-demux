@@ -17,6 +17,78 @@ namespace ppbox
 {
     namespace demux
     {
+        enum _eEvtType
+        {
+            INS_NONE = -1,
+            INS_TIME = 0,
+            INS_BEG,
+            INS_END,
+        };
+
+        struct InsertMediaInfo
+        {
+            InsertMediaInfo()
+                : id( -1 )
+                , insert_time( ~0 )
+                , media_duration( ~0 )
+                , media_size( ~0 )
+                , head_size( ~0 )
+                , report( 0 )
+                , url( url )
+                , report_begin_url( "" )
+                , report_end_url( "" )
+                , event_time( 0 )
+                , event_type( INS_NONE )
+                , argment( 0 ) {}
+
+            InsertMediaInfo(
+                boost::uint32_t id, boost::uint64_t insert_time, boost::uint64_t media_duration,
+                boost::uint64_t media_size, boost::uint64_t head_size, std::string const & url )
+                : id( id )
+                , insert_time( insert_time )
+                , media_duration( media_duration )
+                , media_size( media_size )
+                , head_size( head_size )
+                , report( 0 )
+                , url( url )
+                , report_begin_url( "" )
+                , report_end_url( "" )
+                , event_time( 0 )
+                , event_type( INS_NONE )
+                , argment( 0 ) {}
+
+            boost::uint32_t id;
+            boost::uint32_t insert_time;      // 插入的时间点
+            boost::uint64_t media_duration;   // 影片时长
+            boost::uint64_t media_size;       // 影片大小
+            boost::uint64_t head_size;        // 文件头部大小
+            boost::uint32_t report;
+            std::string url;                 // 影片URL
+            std::string report_begin_url;
+            std::string report_end_url;
+            // ret
+            boost::uint64_t event_time;
+            boost::uint16_t event_type;
+            boost::uint32_t argment;
+        };
+
+        template <typename Archive>
+        void serialize(Archive & ar, InsertMediaInfo & t)
+        {
+            ar & t.id;
+            ar & t.insert_time;
+            ar & t.media_duration;
+            ar & t.media_size;
+            ar & t.head_size;
+            ar & t.report;
+            ar & t.url;
+            ar & t.report_begin_url;
+            ar & t.report_end_url;
+            ar & t.event_time;
+            ar & t.event_type;
+            ar & t.argment;
+        }
+
         class BufferList;
         class BytesStream;
 
@@ -123,7 +195,7 @@ namespace ppbox
 
         protected:
             boost::system::error_code insert_source(
-                boost::uint32_t time,
+                boost::uint32_t & time,
                 SourceBase * source, 
                 boost::system::error_code & ec);
 
