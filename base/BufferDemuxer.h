@@ -34,7 +34,7 @@ namespace ppbox
                 , media_size( ~0 )
                 , head_size( ~0 )
                 , report( 0 )
-                , url( url )
+                , url( "" )
                 , report_begin_url( "" )
                 , report_end_url( "" )
                 , event_time( 0 )
