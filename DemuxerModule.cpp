@@ -536,6 +536,8 @@ namespace ppbox
             oa << mediainfo;
             msg.data = ( char * )boost::asio::detail::buffer_cast_helper( write_buf.data() );
 
+            LOG_S(Logger::kLevelDebug, "[insert_media] insert media info = " << msg.data);
+
             msg_queue_.push( msg );
 
             return boost::system::error_code();
@@ -563,7 +565,7 @@ namespace ppbox
             util::archive::TextIArchive<> ia( is );
             ia >> mediainfo_;
 
-            LOG_S(Logger::kLevelDebug, "get_insert_media: " << msg.data );
+            LOG_S(Logger::kLevelDebug, "[get_insert_media] get insert media : " << msg.data );
 
             ec.clear();
             return *mediainfo_;
