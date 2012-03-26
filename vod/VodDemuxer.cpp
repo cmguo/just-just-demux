@@ -191,8 +191,9 @@ namespace ppbox
                 source->set_name( mediainfo.url );
                 source->set_segment_size( mediainfo.media_size );
                 source->set_segment_time( mediainfo.media_duration );
-                source->set_head_size( mediainfo.head_size );
+                //source->set_head_size( mediainfo.head_size );
 
+				LOG_S(Logger::kLevelDebug, "Begin insert media: " << msg.data);
                 insert_source( mediainfo.insert_time, source, ec);
                 if ( !ec )
                 {
@@ -211,6 +212,7 @@ namespace ppbox
                     oa << mediainfo;
                     msg.data = ( char * )boost::asio::detail::buffer_cast_helper( write_buf.data() );
 
+				    LOG_S(Logger::kLevelDebug, "End insert media: " << msg.data);
                     msg_queue_.push( msg );
                 }
 
