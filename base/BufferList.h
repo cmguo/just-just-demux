@@ -754,8 +754,9 @@ namespace ppbox
                 boost::uint64_t size,
                 boost::system::error_code & ec)
             {
-                if (offset <= read_.offset) {
-                    data_beg_ = offset + size;
+                boost::uint64_t abs_offset = write_.size_beg + offset;
+                if (abs_offset <= read_.offset) {// 插入分段在当前读位置之前
+                    data_beg_ = abs_offset + size;
                     read_.offset += size;
                     read_.shard_beg = read_.size_beg += size;
                     read_.shard_end = read_.size_end += size;
@@ -770,16 +771,16 @@ namespace ppbox
                     write_tmp_.shard_end = write_tmp_.size_end += size;
                     write_hole_tmp_.next_beg += size;
                     write_hole_tmp_.this_end += size;
-                } else if (offset <= write_.offset) {
+                } else if (abs_offset <= write_.offset) {// 插入分段在当前写位置之前
                     close_segment(ec);
                     close_all_request(ec);
-                    root_source_->size_seek(offset, write_, ec);
+                    root_source_->size_seek(abs_offset, write_, ec);
                     write_tmp_ = write_;
                     write_tmp_.buffer = NULL;
-                    write_hole_.next_beg = write_hole_.this_end = offset;
+                    write_hole_.next_beg = write_hole_.this_end = abs_offset;
                     write_hole_tmp_ = write_hole_;
-                    data_end_ = offset;
-                } else if (offset < write_hole_.this_end) {
+                    data_end_ = abs_offset;
+                } else if (abs_offset < write_hole_.this_end) {// 插入位置在当前写空洞之前
                     if (sended_req_ > 1) {
                         close_segment(ec);
                         close_all_request(ec);
@@ -788,13 +789,14 @@ namespace ppbox
                     write_hole_tmp_ = write_hole_;
                     data_end_ = write_.offset;
                 } else {
-                    if (offset < write_hole_tmp_.this_end) {
+                    if (abs_offset < write_hole_tmp_.this_end) {
                         close_segment(ec);
                         close_all_request(ec);
                     }
-                    if (offset < data_end_)
-                        data_end_ = offset;
+                    if (abs_offset < data_end_)
+                        data_end_ = abs_offset;
                 }
+                // 更新读写分段
                 read_.source->size_seek(read_.offset, read_, ec);
                 write_.source->size_seek(write_.offset, write_, ec);
                 write_tmp_ = write_;
