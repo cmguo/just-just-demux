@@ -173,7 +173,7 @@ namespace ppbox
                 prev_item = next_item;
                 next_item = (SourceBase *)next_item->next_sibling_;
             }
-            assert(next_item == NULL || size2 < next_item->insert_size_);
+            assert(next_item == NULL || size2 < next_item->insert_size_ + position.size_end);
             SourceTreeItem::seek(position, prev_item, next_item);
             position.segment = 1;
             while (position.segment < segment_count() && size2 >= source_size_before(position.segment)) {
