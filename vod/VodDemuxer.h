@@ -150,7 +150,7 @@ namespace ppbox
                  bool need_check_seek, 
                  boost::system::error_code & ec);
 
-             void process_insert_media();
+             virtual void process_insert_media();
 
         private:
             struct StepType

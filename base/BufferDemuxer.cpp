@@ -557,6 +557,7 @@ namespace ppbox
         {
             if (ticker_->check()) {
                 update_stat();
+                process_insert_media();
             }
         }
 

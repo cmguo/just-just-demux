@@ -206,6 +206,8 @@ namespace ppbox
         protected:
             void tick_on();
 
+            virtual void process_insert_media(){}
+
         protected:
             typedef boost::function<
                 void(void)> event_func;
