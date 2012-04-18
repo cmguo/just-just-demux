@@ -56,6 +56,8 @@ namespace ppbox
             write_tmp_ = write_ = read_;
             write_hole_.this_end = boost::uint64_t(-1);
             write_tmp_.buffer = NULL;
+            source_init();
+
             read_bytesstream_ = new BytesStream(
                 *this, read_);
             write_bytesstream_ = new BytesStream(
