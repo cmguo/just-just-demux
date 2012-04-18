@@ -209,7 +209,7 @@ namespace ppbox
                 return boost::uint64_t(-1);
             }
 
-            void next_segment(
+            bool next_segment(
                 SegmentPositionEx & segment)
             {
                 if (!segment.source) {
@@ -239,6 +239,7 @@ namespace ppbox
                     num_del_++;
                     segments_.pop_front();
                 }
+                return true;
             }
 
         private:

@@ -86,6 +86,35 @@ namespace ppbox
             SegmentPosition segment;
         };
 
+        struct _tEvent
+        {
+            enum _eEventType
+            {
+                // 下载
+                EVENT_SEG_DL_OPEN,      // 分段下载打开成功
+                EVENT_SEG_DL_BEGIN,     // 开始下载分段
+                EVENT_SEG_DL_END,       // 结束下载分段
+
+                // 解封装
+                EVENT_SEG_DEMUXER_OPEN, // 分段解封装打开成功
+                EVENT_SEG_DEMUXER_PLAY, // 开始播放分段
+                EVENT_SEG_DEMUXER_STOP, // 结束播放分段
+            };
+
+            _tEvent(
+                _eEventType type, SegmentPositionEx seg, boost::system::error_code ec)
+                : evt_type( type )
+                , seg_info( seg )
+                , ec( ec )
+            {
+            }
+
+
+            _eEventType evt_type;
+            SegmentPositionEx seg_info;
+            boost::system::error_code ec;
+        };
+
         class BufferList;
         class BufferDemuxer;
 
@@ -122,13 +151,20 @@ namespace ppbox
                 boost::system::error_code const &)
             > response_type;
 
+
+            static SourceBase * create(
+                boost::asio::io_service & io_svc, std::string const & playlink);
+
+            static void destory(
+                SourceBase * sourcebase);
+
         public:
             SourceBase(
                 boost::asio::io_service & io_svc);
 
             virtual ~SourceBase();
 
-        public:
+        public: // BufferList调用
             virtual boost::system::error_code segment_open(
                 size_t segment, 
                 boost::uint64_t beg, 
@@ -177,7 +213,40 @@ namespace ppbox
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec) = 0;
 
+        public: // BufferDemuxer调用
+            virtual boost::system::error_code open(){ return boost::system::error_code(); }
+
+            virtual void async_open(
+                response_type const & resp){}
+
+            virtual bool is_open()
+            {
+                return true;
+            }
+
+            virtual void update_segment_duration(
+                size_t segment,boost::uint32_t time){}
+
+            virtual void update_segment_file_size(
+                size_t segment,boost::uint64_t fsize){}
+
+            virtual void update_segment_head_size(
+                size_t segment,boost::uint64_t hsize){}
+
             virtual DemuxerType::Enum demuxer_type() const = 0;
+
+            virtual void set_url(std::string const &url){}
+
+            virtual boost::system::error_code reset(
+                size_t& segment)
+            {
+                return boost::system::error_code();
+            }
+
+            virtual boost::uint32_t get_duration()
+            {
+                return 0;
+            }
 
         public:
             virtual void on_error(
@@ -189,8 +258,12 @@ namespace ppbox
             virtual void on_seg_end(
                 size_t segment) {}
 
+            // 处理事件通知
+            virtual void on_event(
+                _tEvent const & evt);
+
         public:
-            virtual void next_segment(
+            virtual bool next_segment(
                 SegmentPositionEx & position);
 
             virtual boost::system::error_code time_seek (
@@ -390,6 +463,11 @@ namespace ppbox
                 SourceBase * child);
 
         protected:
+            boost::asio::io_service & ios_service()
+            {
+                return io_svc_;
+            }
+
             BufferList * buffer()
             {
                 return buffer_;
@@ -401,6 +479,7 @@ namespace ppbox
             }
 
         private:
+            boost::asio::io_service & io_svc_;
             DemuxerInfo insert_demuxer_;// 父节点的demuxer
             BufferList * buffer_;
             BufferDemuxer * demuxer_;

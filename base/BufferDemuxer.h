@@ -140,6 +140,9 @@ namespace ppbox
             virtual void on_error(
                 boost::system::error_code & ec);
 
+            virtual void on_event(
+                _tEvent const & evt) {}
+
         public:
             size_t get_media_count(
                 boost::system::error_code & ec);

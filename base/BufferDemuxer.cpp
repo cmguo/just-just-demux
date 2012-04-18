@@ -385,6 +385,10 @@ namespace ppbox
                         if (!ec) {
                             source->update_insert(position, time, offset, delta);// 获取插入的具体位置，进行更新
                             buffer_->insert_source(offset, source, source->tree_size() + delta, ec);
+                            //SegmentPositionEx read_seg = buffer_->read_segment();
+                            //SegmentPositionEx write_seg = buffer_->write_segment();
+                            //read_demuxer_.stream->unchecked_update( read_seg );
+                            //write_demuxer_.stream->unchecked_update( write_seg );
                         }
                 } else { // 不是操作当前分段，设定截止点为当前读位置--->被插入分段的头部结束点
                     buffer_->seek(
@@ -556,8 +560,8 @@ namespace ppbox
         void BufferDemuxer::tick_on()
         {
             if (ticker_->check()) {
-                update_stat();
                 process_insert_media();
+                update_stat();
             }
         }
 
@@ -579,6 +583,8 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (ec == source_error::at_end_point) {
+                write_demuxer_.stream->update_new(
+                    buffer_->write_segment());
                 if (seek_time_) {
                     boost::system::error_code ec1;
                     seek(seek_time_, ec1);

@@ -4,6 +4,8 @@
 #include "ppbox/demux/base/SourceBase.h"
 #include "ppbox/demux/base/BytesStream.h"
 
+#include "ppbox/demux/vod/VodSource.h"
+
 #include <framework/system/LogicError.h>
 
 namespace ppbox
@@ -11,9 +13,33 @@ namespace ppbox
     namespace demux
     {
 
+        SourceBase * SourceBase::create(
+            boost::asio::io_service & io_svc, std::string const & playlink)
+        {
+            SourceBase* source = NULL;
+            std::string::size_type pos_colon = playlink.find("://");
+            std::string proto = "ppvod";
+            if (pos_colon != std::string::npos)
+            {
+                proto = playlink.substr(0, pos_colon);
+            }
+
+            source = new VodSource(io_svc);
+            source->set_url(playlink);
+            return source;
+        }
+
+        void SourceBase::destory(
+            SourceBase * sourcebase)
+        {
+            delete sourcebase;
+            sourcebase = NULL;
+        }
+
         SourceBase::SourceBase(
             boost::asio::io_service & io_svc)
-            : insert_segment_(0)
+            : io_svc_( io_svc )
+            , insert_segment_(0)
             , insert_size_(0)
             , insert_delta_(0)
             , insert_time_(0)
@@ -25,16 +51,34 @@ namespace ppbox
         {
         }
 
-        void SourceBase::next_segment(
+        void SourceBase::on_event(
+            _tEvent const & evt)
+        {
+            switch ( evt.evt_type )
+            {
+            case _tEvent::EVENT_SEG_DL_OPEN:
+                // 更新插入状态
+                break;
+            case _tEvent::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
+                // 更新插入状态
+                break;
+            default:
+                break;
+            }
+        }
+
+        bool SourceBase::next_segment(
             SegmentPositionEx & segment)
         {
             SourceBase * next_child = (SourceBase *)segment.next_child;
-            if (segment.segment == 0 && !segment.source) {
+            if (segment.segment == 0 && !segment.source) {// 开始分段
                 segment.source = this;
                 segment.shard_beg = segment.size_beg = segment.size_beg;
-                segment.shard_end = segment.size_end = segment.size_beg + segment_size(segment.segment);
+                boost::uint64_t seg_size = segment_size(segment.segment);
+                segment.shard_end = segment.size_end = (seg_size == (boost::uint64_t)-1 ? -1: segment.size_beg + seg_size);
                 segment.time_beg = segment.time_beg;
-                segment.time_end = segment.time_beg + segment_time(segment.segment);
+                boost::uint64_t seg_time = segment_time(segment.segment);
+                segment.time_end = ( seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.time_beg + segment_time(segment.segment) );
             } else if (next_child 
                 && (!next_child->skip_)
                 && next_child->insert_segment_ == segment.segment) { // 父切子
@@ -53,7 +97,8 @@ namespace ppbox
                 }
             } else {
                 segment.size_beg = segment.size_end;
-                segment.size_end = segment.size_beg + segment_size(segment.segment);
+                boost::uint64_t seg_size = segment_size(segment.segment);
+                segment.size_end = (seg_size == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.size_beg + segment_size(segment.segment));
                 segment.shard_beg = segment.size_beg;
                 if (next_child 
                     && (!next_child->skip_)
@@ -63,13 +108,16 @@ namespace ppbox
                     segment.shard_end = segment.size_end;
                 }
                 segment.time_beg = segment.time_end;
-                segment.time_end = segment.time_beg + segment_time(segment.segment);
+                boost::uint64_t seg_time = segment_time(segment.segment);
+                segment.time_end = (seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.time_beg + segment_time(segment.segment));
             }
             if (segment.size_end != (boost::uint64_t)-1) {
                 segment.total_state = SegmentPositionEx::is_valid;
             } else {
                 segment.total_state = SegmentPositionEx::not_exist;
             }
+
+            return true;
         }
 
         boost::system::error_code SourceBase::time_seek (
@@ -77,6 +125,26 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
+            boost::uint64_t time2 = time;
+            SegmentPositionEx position2 = position, tmp_pos;
+
+
+            if (position2.size_end == (boost::uint64_t)-1)
+                next_segment(position2);
+
+            do
+            {
+                if (position2.size_end == (boost::uint64_t)-1)
+                {
+                    tmp_pos = position2;
+                }
+
+                if (position2.time_end > time2) break; // 找到了
+                position2.segment++;
+            } while ( !next_segment(position2) );
+            position = position2;
+
+            /*
             boost::uint64_t time2 = time;
             boost::uint64_t skip_size = 0;
             SourceBase * next_item = (SourceBase *)first_child_;
@@ -134,6 +202,7 @@ namespace ppbox
                     position.total_state = SegmentPositionEx::not_exist;
                 }
             }
+            */
 
             return ec;
         }
@@ -143,6 +212,18 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
+            boost::uint64_t size2 = size, tmp_size = 0;
+            SegmentPositionEx position2 = position;
+            do
+            {
+                if ( position2.shard_end >= size2 )
+                    break;
+                position2.segment++;
+            } while ( next_segment(position2) );
+
+            position = position2;
+
+            /*
             boost::uint64_t size2 = size;
             boost::uint64_t skip_time = 0;
             SourceBase * next_item = (SourceBase *)first_child_;
@@ -200,6 +281,8 @@ namespace ppbox
             } else {
                 position.total_state = SegmentPositionEx::not_exist;
             }
+            */
+
             return ec;
         }
 
