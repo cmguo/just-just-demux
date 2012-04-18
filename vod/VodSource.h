@@ -38,6 +38,19 @@ namespace ppbox
             virtual bool is_open();
 
         public:
+
+            boost::system::error_code segment_open(
+                size_t segment, 
+                boost::uint64_t beg, 
+                boost::uint64_t end, 
+                boost::system::error_code & ec);
+
+            void segment_async_open(
+                size_t segment, 
+                boost::uint64_t beg, 
+                boost::uint64_t end, 
+                SourceBase::response_type const & resp) ;
+
             virtual DemuxerType::Enum demuxer_type() const;
 
             virtual void set_url(std::string const &url);
@@ -94,6 +107,8 @@ namespace ppbox
 
             std::string get_key() const;
 
+            void update_segment(size_t segment);
+
         private:
             struct StepType
             {
@@ -124,6 +139,7 @@ namespace ppbox
             framework::network::NetName proxy_addr_;
             boost::int32_t bwtype_;
             bool first_seg_;
+            bool know_seg_count_;
 
             Time local_time_;
             time_t server_time_;

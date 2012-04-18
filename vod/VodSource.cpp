@@ -61,10 +61,11 @@ namespace ppbox
             , drag_(new PptvDrag(io_svc))
             , open_step_(StepType::not_open)
             , bwtype_(0)
-            , vod_port_(2)
+            , vod_port_(0)
             , url_("http://localhost/")
             , max_dl_speed_(boost::uint32_t(-1))
             , first_seg_(true)
+            , know_seg_count_(false)
         {
         }
 
@@ -189,6 +190,8 @@ namespace ppbox
         {
             set_info_by_video(drag_info.video);
 
+            know_seg_count_ = true;
+
             std::vector<VodSegmentNew> & segmentsTmp = drag_info.segments;
             for (size_t i = 0;  i < segmentsTmp.size(); ++i) {
                 if (i == 0 && segments_.size() > 0)
@@ -267,6 +270,7 @@ namespace ppbox
 
                     if (segments_.size() > 0 && jump_info.video.duration == jump_info.firstseg.duration)
                     {
+                        know_seg_count_ = true;
                         open_step_ = StepType::finish;
 
                     }
@@ -300,7 +304,6 @@ namespace ppbox
             response(ec);
         }
 
-
         void VodSource::response(
             boost::system::error_code const & ec)
         {
@@ -314,6 +317,46 @@ namespace ppbox
         bool VodSource::is_open()
         {
             return (open_step_ > StepType::status);
+        }
+
+        void VodSource::update_segment(size_t segment)
+        {
+            if (segments_.size() == segment )
+            {
+                VodSegmentNew newSegment;
+                newSegment.duration = boost::uint32_t(-1);
+                newSegment.file_length = boost::uint64_t(-1);
+                newSegment.head_length = boost::uint64_t(-1);
+                segments_.push_back(newSegment);
+            }
+            else if (segments_.size() > segment)
+            {
+                //正常情况
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+
+        boost::system::error_code VodSource::segment_open(
+            size_t segment, 
+            boost::uint64_t beg, 
+            boost::uint64_t end, 
+            boost::system::error_code & ec)
+        {
+            update_segment(segment);
+            return HttpSource::segment_open(segment,beg,end,ec);
+        }
+
+        void VodSource::segment_async_open(
+            size_t segment, 
+            boost::uint64_t beg, 
+            boost::uint64_t end, 
+            SourceBase::response_type const & resp) 
+        {
+            update_segment(segment);
+            HttpSource::segment_async_open(segment,beg,end,resp);
         }
 
         boost::system::error_code VodSource::get_request(
@@ -451,11 +494,11 @@ namespace ppbox
         size_t VodSource::segment_count() const
         {
             size_t ret = size_t(-1);
-            if (segments_.size() > 0 &&  segments_[0].duration != video_->duration)
+            if (know_seg_count_)
             {
                 ret = segments_.size();
             }
-            return ret;		
+            return ret;
         }
 
         boost::uint64_t VodSource::segment_size(size_t segment)
