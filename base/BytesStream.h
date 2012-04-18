@@ -139,7 +139,7 @@ namespace ppbox
                     }
                     if (buf_size > buf_size2)
                     {
-                        buf_.rewind(buf_size - buf_size2);
+                        //buf_.rewind(buf_size - buf_size2);
                     }
                 } else {
                     // 原先是空BufferList，Buffer是在后面追加的假定不成立
@@ -290,7 +290,7 @@ namespace ppbox
                     }
                     if (buf_size > buf_size2)
                     {
-                        buf_.rewind(buf_size - buf_size2);
+                        //buf_.rewind(buf_size - buf_size2);
                     }
                 } else {
                     // 原先是空BufferList，Buffer是在后面追加的假定不成立

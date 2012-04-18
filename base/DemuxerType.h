@@ -23,7 +23,7 @@ namespace ppbox
         class DemuxerBase;
         class BytesStream;
 
-        DemuxerBase * create_demuxer(
+        DemuxerBase * create_demuxer_base(
             DemuxerType::Enum type,
             BytesStream & stream);
 

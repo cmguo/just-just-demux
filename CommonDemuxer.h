@@ -26,7 +26,8 @@ namespace ppbox
                 boost::uint32_t prepare_size, 
                 SourceBase * source, 
                 std::string const & url_str )
-                : BufferDemuxer(io_svc, buffer_size, prepare_size, source)
+                //: BufferDemuxer(io_svc, buffer_size, prepare_size, source)
+                : BufferDemuxer(io_svc, buffer_size, prepare_size)
                 , source_(source)
                 , url_str_(url_str)
             {
@@ -39,13 +40,13 @@ namespace ppbox
             }
 
         public:
-            virtual boost::system::error_code open(
-                std::string const & name, 
-                boost::system::error_code & ec);
+            //virtual boost::system::error_code open(
+            //    std::string const & name, 
+            //    boost::system::error_code & ec);
 
-            virtual void async_open(
-                std::string const & name, 
-                BufferDemuxer::open_response_type const & resp);
+            //virtual void async_open(
+            //    std::string const & name, 
+            //    BufferDemuxer::open_response_type const & resp);
 
         private:
             SourceBase * source_;

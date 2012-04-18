@@ -19,7 +19,7 @@ namespace ppbox
             : SourceTreePosition
         {
             SegmentPosition()
-                : segment(0)
+                : segment(size_t(-1))
             {
             }
 

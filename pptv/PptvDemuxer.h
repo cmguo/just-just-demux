@@ -29,8 +29,8 @@ namespace ppbox
             PptvDemuxer(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size,
-                SourceBase * segmentbase);
+                boost::uint32_t prepare_size
+                /*SourceBase * segmentbase*/);
 
             virtual ~PptvDemuxer();
 

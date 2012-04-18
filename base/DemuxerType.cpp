@@ -12,7 +12,7 @@ namespace ppbox
     namespace demux
     {
 
-        DemuxerBase * create_demuxer(
+        DemuxerBase * create_demuxer_base(
             DemuxerType::Enum type,
             BytesStream & stream)
         {

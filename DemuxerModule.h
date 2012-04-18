@@ -127,6 +127,10 @@ namespace ppbox
                 open_response_type const & resp, 
                 boost::system::error_code & ec);
 
+            BufferDemuxer * create(
+                boost::uint32_t buffer_size,
+                boost::uint32_t prepare_size);
+
             void async_open(
                 DemuxInfo * info);
 

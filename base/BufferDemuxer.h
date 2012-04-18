@@ -89,6 +89,17 @@ namespace ppbox
             ar & t.argment;
         }
 
+        struct OpenState
+        {
+            enum Enum
+            {
+                not_open,
+                source_open,
+                demuxer_open,
+                open_finished,
+            };
+        };
+
         class BufferList;
         class BytesStream;
 
@@ -106,8 +117,8 @@ namespace ppbox
             BufferDemuxer(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size,
-                SourceBase * source);
+                boost::uint32_t prepare_size
+                /*SourceBase * source*/);
 
             virtual ~BufferDemuxer();
 
@@ -144,6 +155,8 @@ namespace ppbox
                 _tEvent const & evt) {}
 
         public:
+            bool is_open(boost::system::error_code & ec);
+
             size_t get_media_count(
                 boost::system::error_code & ec);
 
@@ -234,7 +247,7 @@ namespace ppbox
             void handle_events();
 
         private:
-            void handle_async(
+            void handle_async_open(
                 boost::system::error_code const & ecc);
 
             void response(
@@ -246,7 +259,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             void reload_demuxer(
-                DemuxerPointer & demuxer, 
+                DemuxerPointer & demuxer,
                 SegmentPositionEx & segment, 
                 DemuxerInfo & demuxer_info, 
                 boost::uint32_t time, 
@@ -274,12 +287,17 @@ namespace ppbox
             boost::uint64_t segment_time_;
             boost::uint64_t segment_ustime_;
 
+            boost::uint32_t buffer_size_;
+            boost::uint32_t prepare_size_;
+
             DemuxerInfo read_demuxer_;
             DemuxerInfo write_demuxer_;
 
             std::vector<boost::uint32_t> media_time_scales_;
             std::vector<boost::uint64_t> dts_offset_;
+            std::vector<MediaInfo> stream_infos_;
 
+            OpenState::Enum open_state_;
             open_response_type resp_;
 
         private:
