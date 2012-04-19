@@ -62,6 +62,9 @@ namespace ppbox
                 not_exist, 
                 is_valid, 
                 by_guess, 
+
+                unknown_time,   // 未知时长
+                unknown_size,   // 未知大小
             };
 
             TotalStateEnum total_state;
@@ -108,7 +111,6 @@ namespace ppbox
                 , ec( ec )
             {
             }
-
 
             _eEventType evt_type;
             SegmentPositionEx seg_info;
