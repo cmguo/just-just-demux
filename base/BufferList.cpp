@@ -62,8 +62,6 @@ namespace ppbox
                 *this, read_);
             write_bytesstream_ = new BytesStream(
                 *this, write_);
-
-            source_init();
         }
 
         BufferList::~BufferList()
@@ -253,6 +251,12 @@ namespace ppbox
             //{
             //    write_bytesstream_->update_new(write_);
             //}
+            read_bytesstream_->update_new(read_);
+            if (write_seg == write_)
+            {
+                write_bytesstream_->update_new(write_);
+            }
+
             return ec;
         }
 
@@ -1152,6 +1156,10 @@ namespace ppbox
             source_closed_ = false;
             sended_req_++;
             ++num_try_;
+
+            // 分段打开事件通知
+            Event evt(Event::EVENT_SEG_DL_OPEN, Event::WRITE, write_, boost::system::error_code());
+            write_.source->on_event(evt);
 
             write_.source->on_seg_beg(write_.segment);
             write_.source->segment_async_open(
