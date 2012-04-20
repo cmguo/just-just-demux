@@ -17,6 +17,7 @@ namespace ppbox
 {
     namespace demux
     {
+
         enum _eEvtType
         {
             INS_NONE = -1,
@@ -117,8 +118,7 @@ namespace ppbox
             BufferDemuxer(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size
-                /*SourceBase * source*/);
+                boost::uint32_t prepare_size);
 
             virtual ~BufferDemuxer();
 
@@ -151,8 +151,10 @@ namespace ppbox
             virtual void on_error(
                 boost::system::error_code & ec);
 
+            //virtual void on_event(
+            //    _tEvent const & evt) {}
             virtual void on_event(
-                _tEvent const & evt) {}
+                Event const & event);
 
         public:
             bool is_open(boost::system::error_code & ec);
@@ -197,8 +199,8 @@ namespace ppbox
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf);
 
-            void segment_write_beg(
-                SegmentPositionEx & segment);
+            //void segment_write_beg(
+            //    SegmentPositionEx & segment);
 
             void on_extern_error(
                 boost::system::error_code const & ec);

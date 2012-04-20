@@ -89,9 +89,9 @@ namespace ppbox
             SegmentPosition segment;
         };
 
-        struct _tEvent
+        struct Event
         {
-            enum _eEventType
+            enum EventType
             {
                 // 下载
                 EVENT_SEG_DL_OPEN,      // 分段下载打开成功
@@ -104,15 +104,26 @@ namespace ppbox
                 EVENT_SEG_DEMUXER_STOP, // 结束播放分段
             };
 
-            _tEvent(
-                _eEventType type, SegmentPositionEx seg, boost::system::error_code ec)
-                : evt_type( type )
-                , seg_info( seg )
-                , ec( ec )
+            enum PositionType
+            {
+                READ,
+                WRITE,
+            };
+
+            Event(
+                EventType type,
+                PositionType position_type,
+                SegmentPositionEx seg,
+                boost::system::error_code ec)
+                : evt_type(type)
+                , pos_type(position_type)
+                , seg_info(seg)
+                , ec(ec)
             {
             }
 
-            _eEventType evt_type;
+            EventType evt_type;
+            PositionType pos_type;
             SegmentPositionEx seg_info;
             boost::system::error_code ec;
         };
@@ -262,7 +273,7 @@ namespace ppbox
 
             // 处理事件通知
             virtual void on_event(
-                _tEvent const & evt);
+                Event const & evt);
 
         public:
             virtual bool next_segment(

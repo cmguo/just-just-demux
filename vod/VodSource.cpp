@@ -381,12 +381,12 @@ namespace ppbox
                     url_.host(server_host_.host());
                     url_.svc(server_host_.svc());
                     if (vod_port_) {
-                        set_time_out(0, ec);
+                        HttpSource::set_time_out(0, ec);
                         addr.host("127.0.0.1");
                         addr.port(vod_port_);
                         head.host.reset(addr_host(addr));
                     } else {
-                        set_time_out(5 * 1000, ec);
+                        HttpSource::set_time_out(5 * 1000, ec);
                         if (proxy_addr_.host().empty()) {
                             addr = server_host_;
                         } else {

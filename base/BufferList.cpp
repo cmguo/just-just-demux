@@ -62,6 +62,8 @@ namespace ppbox
                 *this, read_);
             write_bytesstream_ = new BytesStream(
                 *this, write_);
+
+            source_init();
         }
 
         BufferList::~BufferList()
@@ -295,6 +297,8 @@ namespace ppbox
                 move_front(write_, bytes_transferred);
                 if (data_end_ < write_.offset)
                     data_end_ = write_.offset;
+                read_bytesstream_->update_new(read_);
+                write_bytesstream_->update_new(write_);
                 if (amount_ <= bytes_transferred) {
                     response(ec);
                     return;
@@ -1113,12 +1117,12 @@ namespace ppbox
                 " end: " << write_hole_.this_end - write_.size_beg);
 
             // 分段打开事件通知
-            _tEvent evt(_tEvent::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
+            Event evt(Event::EVENT_SEG_DL_OPEN, Event::WRITE, write_, boost::system::error_code());
             write_.source->on_event(evt);
             demuxer_->on_event(evt);
 
             write_.source->on_seg_beg(write_.segment);
-            demuxer_->segment_write_beg(write_);
+            //demuxer_->segment_write_beg(write_);
 
             source_closed_ = false;
 
@@ -1168,7 +1172,7 @@ namespace ppbox
                     " end: " << write_hole_.this_end - write_.size_beg);
 
                 // 下载结束事件通知
-                _tEvent evt(_tEvent::EVENT_SEG_DL_END, write_, boost::system::error_code());
+                Event evt(Event::EVENT_SEG_DL_END, Event::WRITE, write_, boost::system::error_code());
                 write_.source->on_event(evt);
                 demuxer_->on_event(evt);
 

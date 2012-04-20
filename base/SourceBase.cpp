@@ -52,14 +52,14 @@ namespace ppbox
         }
 
         void SourceBase::on_event(
-            _tEvent const & evt)
+            Event const & evt)
         {
             switch ( evt.evt_type )
             {
-            case _tEvent::EVENT_SEG_DL_OPEN:
+            case Event::EVENT_SEG_DL_OPEN:
                 // 更新插入状态
                 break;
-            case _tEvent::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
+            case Event::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
                 // 更新插入状态
                 break;
             default:

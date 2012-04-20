@@ -170,7 +170,7 @@ namespace ppbox
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec)
             {
-                buffer()->set_time_out(time_out);
+                //buffer()->set_time_out(time_out);
                 return http_.set_time_out(time_out, ec);
             }
 
