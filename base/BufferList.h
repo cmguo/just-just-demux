@@ -188,6 +188,9 @@ namespace ppbox
             void response(
                 boost::system::error_code const & ec);
 
+            boost::system::error_code prepare_at_least_no_ec(
+                boost::uint32_t amount = 0);
+
             boost::system::error_code prepare_at_least(
                 boost::uint32_t amount, 
                 boost::system::error_code & ec);
@@ -240,6 +243,8 @@ namespace ppbox
                 std::vector<unsigned char> & data, 
                 boost::system::error_code & ec);
 
+            boost::system::error_code drop_no_ec();
+
             boost::system::error_code drop(
                 boost::uint32_t size, 
                 boost::system::error_code & ec);
@@ -247,6 +252,8 @@ namespace ppbox
             boost::system::error_code drop_to(
                 boost::uint64_t offset, 
                 boost::system::error_code & ec);
+
+            boost::system::error_code drop_all_no_ec();
 
             /**
                 drop_all 

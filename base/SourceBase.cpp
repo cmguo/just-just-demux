@@ -67,6 +67,19 @@ namespace ppbox
             }
         }
 
+        // 判断本分段是否有插入源
+        bool SourceBase::has_children(
+            SegmentPositionEx const & position)
+        {
+            if (position.source->first_child()
+                &&
+                ((SourceBase*)position.source->first_child())->insert_segment() == position.segment)
+            {
+                return true;
+            }
+            return false;
+        }
+
         bool SourceBase::next_segment(
             SegmentPositionEx & segment)
         {
@@ -126,20 +139,42 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             boost::uint64_t time2 = time;
+            bool abs_flag = false, stop_flag = false;
             SegmentPositionEx position2 = position, tmp_pos;
-
 
             if (position2.size_end == (boost::uint64_t)-1)
                 next_segment(position2);
 
             do
             {
-                if (position2.size_end == (boost::uint64_t)-1)
+                if (abs_flag || stop_flag)
                 {
-                    tmp_pos = position2;
+                    // 更新相对起始分段
+                    stop_flag = true;
                 }
 
-                if (position2.time_end > time2) break; // 找到了
+                if (position2.size_end == (boost::uint64_t)-1)
+                {
+                    tmp_pos = position2;// 需要更新相对起始分段
+                    tmp_pos.size_end = 0;
+                    abs_flag = true;
+                }
+                else
+                {
+                    abs_flag = false;
+                }
+
+                if (position2.time_end == (boost::uint64_t)-1
+                    ||
+                    position2.time_end >= time2)
+                {
+                    if (position2.time_end == (boost::uint64_t)-1)
+                    {
+                        position2.total_state = SegmentPositionEx::unknown_time;
+                    }
+                    break;
+                }
+
                 position2.segment++;
             } while ( !next_segment(position2) );
             position = position2;
@@ -216,8 +251,15 @@ namespace ppbox
             SegmentPositionEx position2 = position;
             do
             {
-                if ( position2.shard_end >= size2 )
+                if (position2.size_end == (boost::uint64_t)-1
+                    ||
+                    position2.shard_end >= size2)
+                {
+                    if (position2.size_end == (boost::uint64_t)-1)
+                        position2.total_state = SegmentPositionEx::unknown_size;
                     break;
+                }
+
                 position2.segment++;
             } while ( next_segment(position2) );
 

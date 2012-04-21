@@ -144,8 +144,9 @@ namespace ppbox
                 handle_events();
             }
             tick_on();
-            StreamPointer write_point = write_demuxer_.stream;
-            write_point->write_more(0);
+            //StreamPointer write_point = write_demuxer_.stream;
+            //write_point->write_more(0);
+            buffer_->prepare_at_least_no_ec();
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -254,7 +255,8 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            read_demuxer_.stream->read_more(0);
+            //read_demuxer_.stream->read_more(0);
+            buffer_->prepare_at_least_no_ec();
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     block_on();
@@ -262,14 +264,16 @@ namespace ppbox
                 return ec;
             }
 
-            read_demuxer_.stream->drop();
+            //read_demuxer_.stream->drop();
+            buffer_->drop_no_ec();
             while (read_demuxer_.demuxer->get_sample(sample, ec)) {
                 if (ec == ppbox::demux::error::file_stream_error
                     || ec == error::no_more_sample) {
                     if (buffer_->read_segment() != buffer_->write_segment()) {
                         std::cout << "finish segment " << buffer_->read_segment().segment << std::endl;
                         boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
-                        read_demuxer_.stream->drop_all();
+                        //read_demuxer_.stream->drop_all();
+                        buffer_->drop_all_no_ec();
                         if (buffer_->read_segment().source) {
                             size_t insert_time = read_demuxer_.segment.source->insert_time();
                             change_source(const_cast<SegmentPositionEx &>(buffer_->read_segment()), 

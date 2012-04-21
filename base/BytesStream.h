@@ -223,14 +223,21 @@ namespace ppbox
             }
 
         private:
+            boost::uint32_t get_current_off()
+            {
+                pos_type pos = pos_ + off_type(gptr() - eback());
+                off_type off = pos + off_type(size_) - end_;
+                return off;
+            }
+
             void do_drop()
             {
                 Checker ck(*this);
                 pos_type pos = pos_ + off_type(gptr() - eback());
                 off_type off = pos + off_type(size_) - end_;
                 assert(off >= 0);
-                buffer_.drop(off, ec_);
-                assert(!ec_);
+                //buffer_.drop(off, ec_);
+                //assert(!ec_);
 
                 update(buffer_.read_segment());
 
@@ -462,13 +469,13 @@ namespace ppbox
             {
                 assert(position != pos_type(-1));
                 if (mode != std::ios_base::in) {
-                    return pos_type(-1);
+                    return pos_type(-1);// 模式错误
                 }
                 if (position < end_ - off_type(size_)) {
-                    return pos_type(-1);
+                    return pos_type(-1);// 有效位置之前
                 }
                 Checker ck(*this);
-                if (position > end_) {
+                if (position > end_) {// 位置之后
                     if (!ec_) {
                         //TODO:?
                         read_more(position - end_);

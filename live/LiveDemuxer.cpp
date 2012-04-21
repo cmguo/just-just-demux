@@ -36,7 +36,7 @@ namespace ppbox
             boost::uint16_t live_port, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size)
-            : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new LiveSegments(io_svc, live_port))
+            : PptvDemuxer(io_svc, buffer_size, prepare_size/*, segments_ = new LiveSegments(io_svc, live_port)*/)
             , jump_(new PptvJump(io_svc, JumpType::live))
             , open_step_(StepType::not_open)
         {

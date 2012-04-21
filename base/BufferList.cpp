@@ -246,16 +246,11 @@ namespace ppbox
                 }
             }
             // ¸üÐÂ¶ÁÐ´·Ö¶Î
-            //read_bytesstream_->update_new(read_);
+            read_bytesstream_->update_new(read_);
             //if (write_seg == write_)
             //{
             //    write_bytesstream_->update_new(write_);
             //}
-            read_bytesstream_->update_new(read_);
-            if (write_seg == write_)
-            {
-                write_bytesstream_->update_new(write_);
-            }
 
             return ec;
         }
@@ -358,6 +353,13 @@ namespace ppbox
             open_response_type resp;
             resp.swap(resp_);
             resp(ec, 0);
+        }
+
+        boost::system::error_code BufferList::prepare_at_least_no_ec(
+            boost::uint32_t amount)
+        {
+            boost::system::error_code ec;
+            return prepare_at_least(amount, ec);
         }
 
         boost::system::error_code BufferList::prepare_at_least(
@@ -482,6 +484,15 @@ namespace ppbox
             return read(read_.offset - read_.size_beg, size, data, ec);
         }
 
+        boost::system::error_code BufferList::drop_no_ec()
+        {
+            boost::system::error_code ec;
+            boost::uint32_t off = read_bytesstream_->get_current_off();
+            drop(off, ec);
+            read_bytesstream_->do_drop();
+            return ec;
+        }
+
         boost::system::error_code BufferList::drop(
             boost::uint32_t size, 
             boost::system::error_code & ec)
@@ -500,6 +511,12 @@ namespace ppbox
             } else {
                 return read_seek_to(read_.size_beg + offset, ec);
             }
+        }
+
+        boost::system::error_code BufferList::drop_all_no_ec()
+        {
+            boost::system::error_code ec;
+            return drop_all(ec);
         }
 
         /**
@@ -529,7 +546,7 @@ namespace ppbox
             }
 
             // ¶Á»º³åDropAll
-            //read_bytesstream_->do_drop_all();
+            read_bytesstream_->do_drop_all();
 
             return ec;
         }

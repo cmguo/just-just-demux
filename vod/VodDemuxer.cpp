@@ -52,7 +52,7 @@ namespace ppbox
             boost::uint16_t ppap_port, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size)
-            : PptvDemuxer(io_svc, buffer_size, prepare_size, segments_ = new VodSegments(io_svc, ppap_port))
+            : PptvDemuxer(io_svc, buffer_size, prepare_size/*, segments_ = new VodSegments(io_svc, ppap_port)*/)
             , video_(NULL)
             , jump_(new PptvJump(io_svc, JumpType::vod))
             , drag_(new PptvDrag(io_svc))

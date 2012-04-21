@@ -276,6 +276,9 @@ namespace ppbox
                 Event const & evt);
 
         public:
+            bool has_children(
+                SegmentPositionEx const & position);
+
             virtual bool next_segment(
                 SegmentPositionEx & position);
 
