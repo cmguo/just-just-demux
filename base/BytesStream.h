@@ -53,63 +53,63 @@ namespace ppbox
                 return ec_;
             }
 
-            void read_more(
-                boost::uint32_t amount = 0)
-            {
-                prepare(amount);
+            //void read_more(
+            //    boost::uint32_t amount = 0)
+            //{
+            //    prepare(amount);
 
-                update_new(buffer_.read_segment());
-            }
+            //    update_new(buffer_.read_segment());
+            //}
 
-            void write_more(
-                boost::uint32_t amount = 0)
-            {
-                SegmentPositionEx write_seg = buffer_.write_segment();
-                prepare(amount);
-                if (write_seg == buffer_.write_segment()) {// 下载前后，没有切换写分段时更新写分段信息
-                    update_new(buffer_.write_segment());
-                }
-                ec_ = boost::asio::error::would_block;
-            }
+            //void write_more(
+            //    boost::uint32_t amount = 0)
+            //{
+            //    SegmentPositionEx write_seg = buffer_.write_segment();
+            //    prepare(amount);
+            //    if (write_seg == buffer_.write_segment()) {// 下载前后，没有切换写分段时更新写分段信息
+            //        update_new(buffer_.write_segment());
+            //    }
+            //    ec_ = boost::asio::error::would_block;
+            //}
 
-            void drop()
-            {
-                Checker ck(*this);
-                pos_type pos = pos_ + off_type(gptr() - eback());
-                off_type off = pos + off_type(size_) - end_;
-                assert(off >= 0);
-                buffer_.drop(off, ec_);
-                assert(!ec_);
+            //void drop()
+            //{
+            //    Checker ck(*this);
+            //    pos_type pos = pos_ + off_type(gptr() - eback());
+            //    off_type off = pos + off_type(size_) - end_;
+            //    assert(off >= 0);
+            //    buffer_.drop(off, ec_);
+            //    assert(!ec_);
 
-                update(buffer_.read_segment());
+            //    update(buffer_.read_segment());
 
-                iter_ = buffers_.begin();
-                assert(gptr() == egptr() 
-                    || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
-                if (iter_ != buffers_.end()) {
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
-                pos_ = pos;
-            }
+            //    iter_ = buffers_.begin();
+            //    assert(gptr() == egptr() 
+            //        || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
+            //    if (iter_ != buffers_.end()) {
+            //        buf_ = *iter_;
+            //    } else {
+            //        setg(NULL, NULL, NULL);
+            //    }
+            //    pos_ = pos;
+            //}
 
-            void drop_all()
-            {
-                Checker ck(*this);
-                buffer_.drop_all(ec_);
-                assert(!ec_);
-                update(buffer_.read_segment());
+            //void drop_all()
+            //{
+            //    Checker ck(*this);
+            //    buffer_.drop_all(ec_);
+            //    assert(!ec_);
+            //    update(buffer_.read_segment());
 
-                iter_ = buffers_.begin();
-                if (iter_ != buffers_.end()) {
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
-                pos_ = 0;
-                end_ = size_;
-            }
+            //    iter_ = buffers_.begin();
+            //    if (iter_ != buffers_.end()) {
+            //        buf_ = *iter_;
+            //    } else {
+            //        setg(NULL, NULL, NULL);
+            //    }
+            //    pos_ = 0;
+            //    end_ = size_;
+            //}
 
             void unchecked_update(
                 SegmentPositionEx const & segment)
@@ -426,7 +426,8 @@ namespace ppbox
                     return traits_type::eof();
                 }
                 //TODO:?
-                read_more(1);
+                //read_more(1);
+                buffer_.prepare_at_least_no_ec();
                 if (pos < end_) {
                     if (gptr() == egptr()) {
                         pos_ += boost::asio::buffer_size(*iter_);
@@ -478,7 +479,8 @@ namespace ppbox
                 if (position > end_) {// 位置之后
                     if (!ec_) {
                         //TODO:?
-                        read_more(position - end_);
+                        //read_more(position - end_);
+                        buffer_.prepare_at_least_no_ec();
                     }
                     if (position > end_) {
                         return pos_type(-1);
