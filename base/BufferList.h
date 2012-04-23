@@ -188,9 +188,6 @@ namespace ppbox
             void response(
                 boost::system::error_code const & ec);
 
-            boost::system::error_code prepare_at_least_no_ec(
-                boost::uint32_t amount = 0);
-
             boost::system::error_code prepare_at_least(
                 boost::uint32_t amount, 
                 boost::system::error_code & ec);
@@ -243,17 +240,12 @@ namespace ppbox
                 std::vector<unsigned char> & data, 
                 boost::system::error_code & ec);
 
-            boost::system::error_code drop_no_ec();
-
             boost::system::error_code drop(
-                boost::uint32_t size, 
                 boost::system::error_code & ec);
 
             boost::system::error_code drop_to(
                 boost::uint64_t offset, 
                 boost::system::error_code & ec);
-
-            boost::system::error_code drop_all_no_ec();
 
             /**
                 drop_all 
@@ -379,6 +371,12 @@ namespace ppbox
                 SourceBase * source, 
                 boost::uint64_t size,
                 boost::system::error_code & ec);
+
+            // 获取最后一次错误的错误码
+            boost::system::error_code last_error() const
+            {
+                return last_ec_;
+            }
 
         private:
             // 返回false表示不能再继续了
@@ -584,6 +582,7 @@ namespace ppbox
             void clear_error()
             {
                 source_error_ = boost::system::error_code();
+                last_ec_ = boost::system::error_code();
             }
 
         private:
@@ -620,6 +619,7 @@ namespace ppbox
 
             size_t total_req_;
             size_t sended_req_;
+            boost::system::error_code last_ec_;
         };
 
     } // namespace demux

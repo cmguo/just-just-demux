@@ -252,6 +252,8 @@ namespace ppbox
             //    write_bytesstream_->update_new(write_);
             //}
 
+            last_ec_ = ec;
+
             return ec;
         }
 
@@ -339,6 +341,7 @@ namespace ppbox
                     boost::bind(&BufferList::handle_async, this, _1, _2));
                 return;
             }
+
             response(ec);
         }
 
@@ -352,14 +355,9 @@ namespace ppbox
             open_request(true, ecc);
             open_response_type resp;
             resp.swap(resp_);
-            resp(ec, 0);
-        }
 
-        boost::system::error_code BufferList::prepare_at_least_no_ec(
-            boost::uint32_t amount)
-        {
-            boost::system::error_code ec;
-            return prepare_at_least(amount, ec);
+            last_ec_ = ec;
+            resp(ec, 0);
         }
 
         boost::system::error_code BufferList::prepare_at_least(
@@ -400,6 +398,8 @@ namespace ppbox
                     ec = boost::system::error_code();
                 }
             }
+
+            last_ec_ = ec;
             return ec;
         }
 
@@ -445,6 +445,7 @@ namespace ppbox
                     ec = boost::system::error_code();
                 }
             }
+            last_ec_ = ec;
             return ec;
         }
 
@@ -484,21 +485,13 @@ namespace ppbox
             return read(read_.offset - read_.size_beg, size, data, ec);
         }
 
-        boost::system::error_code BufferList::drop_no_ec()
-        {
-            boost::system::error_code ec;
-            boost::uint32_t off = read_bytesstream_->get_current_off();
-            drop(off, ec);
-            read_bytesstream_->do_drop();
-            return ec;
-        }
-
         boost::system::error_code BufferList::drop(
-            boost::uint32_t size, 
             boost::system::error_code & ec)
         {
-            boost::system::error_code ret_ec = read_seek_to(read_.offset + size, ec);
-            //read_bytesstream_->do_drop();
+            boost::uint32_t off = read_bytesstream_->get_current_off();
+            boost::system::error_code ret_ec = read_seek_to(read_.offset + off, ec);
+            read_bytesstream_->do_drop();
+            last_ec_ = ret_ec;
             return ret_ec;
         }
 
@@ -507,16 +500,12 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (read_.size_beg + offset < read_.offset) {
-                return ec = framework::system::logic_error::invalid_argument;
+                ec = framework::system::logic_error::invalid_argument;
             } else {
-                return read_seek_to(read_.size_beg + offset, ec);
+                read_seek_to(read_.size_beg + offset, ec);
             }
-        }
-
-        boost::system::error_code BufferList::drop_all_no_ec()
-        {
-            boost::system::error_code ec;
-            return drop_all(ec);
+            last_ec_ = ec;
+            return ec;
         }
 
         /**
@@ -548,6 +537,7 @@ namespace ppbox
             // ¶Á»º³åDropAll
             read_bytesstream_->do_drop_all();
 
+            last_ec_ = ec;
             return ec;
         }
 

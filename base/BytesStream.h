@@ -234,8 +234,8 @@ namespace ppbox
             {
                 Checker ck(*this);
                 pos_type pos = pos_ + off_type(gptr() - eback());
-                off_type off = pos + off_type(size_) - end_;
-                assert(off >= 0);
+                //off_type off = pos + off_type(size_) - end_;
+                //assert(off >= 0);
                 //buffer_.drop(off, ec_);
                 //assert(!ec_);
 
@@ -427,7 +427,8 @@ namespace ppbox
                 }
                 //TODO:?
                 //read_more(1);
-                buffer_.prepare_at_least_no_ec();
+                boost::system::error_code ec__;
+                buffer_.prepare_at_least(0, ec__);
                 if (pos < end_) {
                     if (gptr() == egptr()) {
                         pos_ += boost::asio::buffer_size(*iter_);
@@ -480,7 +481,8 @@ namespace ppbox
                     if (!ec_) {
                         //TODO:?
                         //read_more(position - end_);
-                        buffer_.prepare_at_least_no_ec();
+                        boost::system::error_code ec__;
+                        buffer_.prepare_at_least(0, ec__);
                     }
                     if (position > end_) {
                         return pos_type(-1);
