@@ -565,5 +565,10 @@ namespace ppbox
             return seek_offset;
         }
 
+        void Mp4DemuxerBase::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
+        {
+            is_.rdbuf(&buf);
+        }
+
     } // namespace demux
 } // namespace ppbox

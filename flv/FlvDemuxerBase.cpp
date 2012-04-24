@@ -339,5 +339,9 @@ namespace ppbox
             ec = error::not_support;
             return 0;
         }
+
+        void FlvDemuxerBase::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
+        {
+        }
     }
 }

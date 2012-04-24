@@ -379,6 +379,10 @@ namespace ppbox
             return 0;
         }
 
+        void AsfDemuxerBase::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
+        {
+        }
+
         error_code AsfDemuxerBase::next_packet(
             ParseStatus & parse_status,  
             error_code & ec)

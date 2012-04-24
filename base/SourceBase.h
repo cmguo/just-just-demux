@@ -84,7 +84,7 @@ namespace ppbox
 
         struct DemuxerInfo
         {
-            StreamPointer stream;
+            bool is_read_stream; // true: read stream, false: write stream
             DemuxerPointer demuxer;
             SegmentPosition segment;
         };

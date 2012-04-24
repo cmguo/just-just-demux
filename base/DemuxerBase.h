@@ -195,6 +195,8 @@ namespace ppbox
                 boost::uint32_t & time, 
                 boost::uint32_t & delta, // 要重复下载的数据量 
                 boost::system::error_code & ec) = 0;
+
+            virtual void set_stream(std::basic_streambuf<boost::uint8_t> & buf) = 0;
         };
 
     } // namespace demux

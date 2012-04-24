@@ -124,6 +124,8 @@ namespace ppbox
                 boost::uint32_t & delta, 
                 boost::system::error_code & ec);
 
+            void set_stream(std::basic_streambuf<boost::uint8_t> & buf);
+
         private:
             std::basic_istream<boost::uint8_t> is_;
             boost::uint32_t head_size_;

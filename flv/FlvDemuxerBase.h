@@ -72,6 +72,8 @@ namespace ppbox
                 boost::uint32_t & delta, 
                 boost::system::error_code & ec);
 
+            void set_stream(std::basic_streambuf<boost::uint8_t> & buf);
+
         private:
             //boost::system::error_code parse_stream(
             //    boost::system::error_code & ec);
