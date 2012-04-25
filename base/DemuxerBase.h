@@ -153,14 +153,17 @@ namespace ppbox
             {
             }
 
-            virtual DemuxerBase * clone(
-                std::basic_streambuf<boost::uint8_t> & buf)
-            {
-                return this;
-            }
+            //virtual DemuxerBase * clone(
+            //    std::basic_streambuf<boost::uint8_t> & buf)
+            //{
+            //    return this;
+            //}
 
         public:
             virtual boost::system::error_code open(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code close(
                 boost::system::error_code & ec) = 0;
 
             virtual bool is_open(

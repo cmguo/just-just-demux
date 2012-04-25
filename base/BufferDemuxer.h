@@ -98,6 +98,7 @@ namespace ppbox
                 source_open,
                 demuxer_open,
                 open_finished,
+                cancel,
             };
         };
 
@@ -151,8 +152,6 @@ namespace ppbox
             virtual void on_error(
                 boost::system::error_code & ec);
 
-            //virtual void on_event(
-            //    _tEvent const & evt) {}
             virtual void on_event(
                 Event const & event);
 
@@ -198,9 +197,6 @@ namespace ppbox
             boost::uint32_t get_buffer_time(
                 boost::system::error_code & ec, 
                 boost::system::error_code & ec_buf);
-
-            //void segment_write_beg(
-            //    SegmentPositionEx & segment);
 
             void on_extern_error(
                 boost::system::error_code const & ec);
@@ -275,6 +271,8 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             void update_stat();
+
+            void more(boost::uint32_t size);
 
         protected:
             boost::asio::io_service & io_svc_;

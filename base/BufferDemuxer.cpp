@@ -100,6 +100,7 @@ namespace ppbox
             boost::system::error_code ec;
             root_source_ = SourceBase::create(io_svc_, name);
             open_state_ = OpenState::source_open;
+            DemuxerStatistic::open_beg();
             root_source_->async_open(boost::bind(&BufferDemuxer::handle_async_open, this, _1));
         }
 
@@ -109,8 +110,7 @@ namespace ppbox
             //if (!events_->events.empty()) {
             //    handle_events();
             //}
-            boost::system::error_code ec1;
-            buffer_->prepare_at_least(0, ec1);
+            more(0);
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -125,7 +125,7 @@ namespace ppbox
                 }
             }
 
-            last_error(ec);
+            DemuxerStatistic::last_error(ec);
             return time;
         }
 
@@ -137,8 +137,7 @@ namespace ppbox
             //    handle_events();
             //}
             //tick_on();
-            boost::system::error_code ec1;
-            buffer_->prepare_at_least(0, ec1);
+            more(0);
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -179,10 +178,11 @@ namespace ppbox
                         assert((time - position.time_beg) >= 0 && (position.time_end - time) >= 0);
                         boost::uint32_t time_t = time - boost::uint32_t(position.time_beg);
                         boost::uint64_t offset = read_demuxer_.demuxer->seek(time_t, ec);
-                        boost::system::error_code ec1;
-                        buffer_->prepare_at_least(0, ec1);
+                        more(0);
                         if (!ec) {
-                            buffer_->seek(position, offset, ec);
+                            if (!buffer_->seek(position, offset, ec)) {
+                                seek_time_ = 0;
+                            }
                         }
                     }
                 }
@@ -285,8 +285,7 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            boost::system::error_code ec1;
-            buffer_->prepare_at_least(0, ec1);
+            more(0);
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     block_on();
@@ -294,6 +293,7 @@ namespace ppbox
                 return ec;
             }
 
+            boost::system::error_code ec1;
             buffer_->drop(ec1);
             while (read_demuxer_.demuxer->get_sample(sample, ec)) {
                 if (ec == ppbox::demux::error::file_stream_error
@@ -392,12 +392,32 @@ namespace ppbox
         boost::system::error_code BufferDemuxer::cancel(
             boost::system::error_code & ec)
         {
+            if (OpenState::source_open == open_state_) {
+                root_source_->cancel(ec);
+            } else if (OpenState::demuxer_open == open_state_) {
+                root_source_->close(ec); // source opened
+                buffer_->cancel(ec);
+            }
+            open_state_ = OpenState::cancel;
             return ec;
         }
 
         boost::system::error_code BufferDemuxer::close(
             boost::system::error_code & ec)
         {
+            cancel(ec);
+            seek_time_ = 0;
+            segment_time_ = 0;
+            segment_ustime_ = 0;
+
+            read_demuxer_.demuxer.reset(NULL);
+            write_demuxer_.demuxer.reset(NULL);
+
+            media_time_scales_.clear();
+            dts_offset_.clear();
+            stream_infos_.clear();
+
+            open_state_ = OpenState::not_open;
             return ec;
         }
 
@@ -483,6 +503,7 @@ namespace ppbox
         {
             boost::system::error_code ec = ecc;
             if (ec) {
+                last_error(ec);
                 resp_(ec);
             } else {
                 boost::system::error_code ec1;
@@ -691,6 +712,12 @@ namespace ppbox
             DemuxerStatistic::last_error(ec);
         }
 
+        void BufferDemuxer::more(boost::uint32_t size)
+        {
+            boost::system::error_code ec;
+            buffer_->prepare_at_least(size, ec);
+        }
+
         boost::system::error_code BufferDemuxer::get_sample_buffered(
             Sample & sample, 
             boost::system::error_code & ec)
@@ -700,9 +727,6 @@ namespace ppbox
                 boost::uint32_t time = get_buffer_time(ec, ec_buf);
                 if (ec && ec != boost::asio::error::would_block) {
                 } else {
-                    //if (time < 2000 && ec_buf != boost::asio::error::eof) {
-                    //    ec = ec_buf;s
-                    //}
                     if (ec_buf
                         && ec_buf != boost::asio::error::would_block
                         && ec_buf != boost::asio::error::eof) {
