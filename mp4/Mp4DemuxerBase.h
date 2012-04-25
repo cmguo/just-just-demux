@@ -53,17 +53,20 @@ namespace ppbox
             Mp4DemuxerBase(
                 std::basic_streambuf<boost::uint8_t> & buf);
 
-            Mp4DemuxerBase(
-                Mp4DemuxerBase * from, 
-                std::basic_streambuf<boost::uint8_t> & buf);
+            //Mp4DemuxerBase(
+            //    Mp4DemuxerBase * from, 
+            //    std::basic_streambuf<boost::uint8_t> & buf);
 
             ~Mp4DemuxerBase();
-            
-            Mp4DemuxerBase * clone(
-                std::basic_streambuf<boost::uint8_t> & buf);
+
+            //Mp4DemuxerBase * clone(
+            //    std::basic_streambuf<boost::uint8_t> & buf);
 
         public:
             boost::system::error_code open(
+                boost::system::error_code & ec);
+
+            boost::system::error_code close(
                 boost::system::error_code & ec);
 
             bool is_open(
@@ -136,7 +139,7 @@ namespace ppbox
             SampleList * sample_list_;
             bool sample_put_back_;
             boost::uint64_t min_offset_;
-            const_pointer copy_from_;
+            //const_pointer copy_from_;
         };
 
     } // namespace demux

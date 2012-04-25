@@ -40,42 +40,46 @@ namespace ppbox
         {
         }
 
-        Mp4DemuxerBase::Mp4DemuxerBase(
-            Mp4DemuxerBase * from, 
-            std::basic_streambuf<boost::uint8_t> & buf)
-            : DemuxerBase(buf)
-            , is_(& buf)
-            , head_size_(from->head_size_)
-            , open_step_(from->open_step_)
-            , file_(from->file_)
-            , tracks_(from->tracks_)
-            , bitrate_(from->bitrate_)
-            , sample_list_(from->sample_list_)
-            , sample_put_back_(from->sample_put_back_)
-            , min_offset_(from->min_offset_)
-        {
-            copy_from_.reset(from);
-        }
+        //Mp4DemuxerBase::Mp4DemuxerBase(
+        //    Mp4DemuxerBase * from, 
+        //    std::basic_streambuf<boost::uint8_t> & buf)
+        //    : DemuxerBase(buf)
+        //    , is_(& buf)
+        //    , head_size_(from->head_size_)
+        //    , open_step_(from->open_step_)
+        //    , file_(from->file_)
+        //    , tracks_(from->tracks_)
+        //    , bitrate_(from->bitrate_)
+        //    , sample_list_(from->sample_list_)
+        //    , sample_put_back_(from->sample_put_back_)
+        //    , min_offset_(from->min_offset_)
+        //{
+        //    copy_from_.reset(from);
+        //}
 
         Mp4DemuxerBase::~Mp4DemuxerBase()
         {
-            if (copy_from_)
-                return;
-            if (sample_list_)
+            //if (copy_from_)
+            //    return;
+            if (sample_list_) {
                 delete sample_list_;
+                sample_list_ = NULL;
+            }
             for (size_t i = 0; i < tracks_.size(); ++i) {
                 delete tracks_[i];
             }
-            if (file_)
+            if (file_) {
                 delete file_;
+                file_ = NULL;
+            }
         }
 
-        Mp4DemuxerBase * Mp4DemuxerBase::clone(
-            std::basic_streambuf<boost::uint8_t> & buf)
-        {
-            Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf);
-            return demuxer;
-        }
+        //Mp4DemuxerBase * Mp4DemuxerBase::clone(
+        //    std::basic_streambuf<boost::uint8_t> & buf)
+        //{
+        //    Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf);
+        //    return demuxer;
+        //}
 
         error_code Mp4DemuxerBase::open(
             error_code & ec)
@@ -83,6 +87,24 @@ namespace ppbox
             open_step_ = 0;
             ec.clear();
             is_open(ec);
+            return ec;
+        }
+
+        error_code Mp4DemuxerBase::close(error_code & ec)
+        {
+            open_step_ = boost::uint32_t(-1);
+            if (sample_list_) {
+                delete sample_list_;
+                sample_list_ = NULL;
+            }
+            for (size_t i = 0; i < tracks_.size(); ++i) {
+                delete tracks_[i];
+                tracks_.clear();
+            }
+            if (file_) {
+                delete file_;
+                file_ = NULL;
+            }
             return ec;
         }
 
