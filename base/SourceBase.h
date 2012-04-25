@@ -233,10 +233,10 @@ namespace ppbox
                 response_type const & resp){}
 
             virtual boost::system::error_code cancel(
-                boost::system::error_code & ec){}
+                boost::system::error_code & ec){ return ec;}
 
             virtual boost::system::error_code close(
-                boost::system::error_code & ec){}
+                boost::system::error_code & ec){return ec;}
 
             virtual bool is_open()
             {
