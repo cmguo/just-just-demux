@@ -4,7 +4,6 @@
 #define _PPBOX_DEMUX_LIVE2_SOURCE_H_
 
 #include "ppbox/demux/source/HttpSource.h"
-#include "ppbox/demux/vod/VodInfo.h"
 
 #include <ppbox/common/Serialize.h>
 
@@ -18,6 +17,32 @@ namespace ppbox
     namespace demux
     {
         class PptvJump;
+
+        struct Live2JumpInfo
+        {
+            framework::network::NetName server_host;
+            std::vector<framework::network::NetName> server_hosts;
+            util::serialization::UtcTime server_time;
+            boost::uint16_t delay_play_time;
+            std::string channelGUID;
+            std::string server_limit;
+            std::vector<std::string> server_limits;
+
+            template <
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar & SERIALIZATION_NVP(server_host)
+                    & SERIALIZATION_NVP(server_time)
+                    & SERIALIZATION_NVP(delay_play_time)
+                    & SERIALIZATION_NVP(server_limit)
+                    & SERIALIZATION_NVP(channelGUID)
+                    & SERIALIZATION_NVP(server_hosts)
+                    & SERIALIZATION_NVP(server_limits);
+            }
+        };
 
         class Live2Source
             : public HttpSource
