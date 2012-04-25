@@ -232,6 +232,12 @@ namespace ppbox
             virtual void async_open(
                 response_type const & resp){}
 
+            virtual boost::system::error_code cancel(
+                boost::system::error_code & ec){}
+
+            virtual boost::system::error_code close(
+                boost::system::error_code & ec){}
+
             virtual bool is_open()
             {
                 return true;
