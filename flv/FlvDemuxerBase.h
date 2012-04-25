@@ -91,7 +91,7 @@ namespace ppbox
             FlvHeader flv_header_;
             FlvMetadata     metadata_;
             std::vector<FlvStream> streams_;
-            std::vector<size_t> stream_map_; // Map index to AsfStream
+            std::vector<size_t> stream_map_; // Map index to FlvStream
             FlvTag flv_tag_;
 
             boost::uint32_t open_step_;
