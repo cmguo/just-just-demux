@@ -88,6 +88,28 @@ namespace ppbox
             handle_async_open(boost::system::error_code());
         }
 
+        boost::system::error_code VodSource::cancel(
+            boost::system::error_code & ec)
+        {
+            assert(NULL != jump_);
+            assert(NULL != drag_);
+            jump_->cancel();
+            drag_->cancel();
+            ec.clear();
+            return ec;
+        }
+
+        boost::system::error_code VodSource::close(
+            boost::system::error_code & ec)
+        {
+            if (drag_)
+            {
+                drag_->cancel();
+            }
+            ec.clear();
+            return ec;
+        }
+
         framework::string::Url  VodSource::get_jump_url() const
         {
             framework::string::Url url("http://localhost/");
@@ -316,7 +338,33 @@ namespace ppbox
 
         bool VodSource::is_open()
         {
-            return (open_step_ > StepType::status);
+            bool ret = false;
+            switch (open_step_)
+            {
+            case StepType::finish:
+                {
+                    if (jump_) 
+                    {
+                        delete jump_;
+                        jump_ = NULL;
+                    }
+                    drag_.reset();
+                    open_step_ = StepType::finish2;
+                    ret = true;
+                }
+                break;
+            case StepType::finish2:
+            case StepType::drag:
+                {
+                    ret = true;
+                }
+                break;
+            default:
+                {
+                }
+                break;
+            }
+            return ret;
         }
 
         void VodSource::update_segment(size_t segment)

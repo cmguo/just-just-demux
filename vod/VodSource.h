@@ -35,6 +35,12 @@ namespace ppbox
 
             virtual bool is_open();
 
+            virtual boost::system::error_code cancel(
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code close(
+                boost::system::error_code & ec);
+
         public:
 
             boost::system::error_code segment_open(
