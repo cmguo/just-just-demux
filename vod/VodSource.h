@@ -61,7 +61,7 @@ namespace ppbox
 
             virtual boost::system::error_code reset(size_t& segment);
 
-            virtual boost::uint32_t get_duration();
+            virtual boost::system::error_code get_duration(DurationInfo & info);
 
             virtual void update_segment_duration(size_t segment,boost::uint32_t time);
             virtual void update_segment_file_size(size_t segment,boost::uint64_t fsize);

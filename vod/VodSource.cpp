@@ -527,16 +527,21 @@ namespace ppbox
             return boost::system::error_code();
         }
 
-        boost::uint32_t VodSource::get_duration()
+        boost::system::error_code VodSource::get_duration(DurationInfo & info)
         {
+            boost::system::error_code ec;
             if (NULL != video_)
             {
-                return video_->duration;
+                info.total = video_->duration;
+                info.begin = 0;
+                info.end = video_->duration;
+                info.redundancy = 0; 
             }
             else
             {
-                return boost::uint32_t(-1);
+                ec = error::not_open;
             }
+            return ec;
         }
 
         size_t VodSource::segment_count() const
