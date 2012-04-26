@@ -31,7 +31,7 @@ namespace ppbox
        
         static const  framework::network::NetName dns_live2_jump_server(PPBOX_DNS_LIVE2_JUMP);
 
-        static const boost::uint32_t SEGMENT_BEG = 360;
+        static const boost::uint32_t CACHE_T = 1800;
 
         static inline std::string addr_host(
             framework::network::NetName const & addr)
@@ -48,7 +48,8 @@ namespace ppbox
              , live_port_(0)
              , server_time_(0)
              , file_time_(0)
-             , old_file_time_(0)
+             , begin_time_(0)
+             , vaule_time_(0)
              , seek_time_(0)
              , bwtype_(2)
              , index_(0)
@@ -109,14 +110,14 @@ namespace ppbox
             jump_info_ = jump_info;
             local_time_ = Time::now();
             server_time_ = jump_info_.server_time.to_time_t();
-            file_time_ = server_time_ - jump_info_.delay_play_time;
-            file_time_ = file_time_ / interval_ * interval_;
-            old_file_time_ = file_time_;
+            file_time_ = server_time_ - jump_info_.delay_play_time;//end time
+            begin_time_ = server_time_ - CACHE_T;
+            vaule_time_ = file_time_ = file_time_ / interval_ * interval_;
         }
 
         boost::system::error_code Live2Source::reset(size_t& segment)
         {//5秒一个分段  1800  360分段
-            segment = 1800/interval_; //计算当前的segment count
+            segment = (file_time_ - begin_time_)/interval_;
             return boost::system::error_code();
         }
 
@@ -362,49 +363,46 @@ namespace ppbox
             }
         }
 
-        boost::uint32_t Live2Source::get_duration()
+        boost::system::error_code Live2Source::get_duration(DurationInfo & info)
         {
-            return boost::uint32_t(-1);
+            info.total = 0;
+            if (live_port_)
+            {
+                info.begin = 0;
+                info.end = 0;
+                info.redundancy = 0;
+            }
+            else
+            {
+                info.begin = file_time_ - vaule_time_;
+                info.end = file_time_;
+                info.redundancy = jump_info_.delay_play_time;
+            }
+
+            return boost::system::error_code();
         }
 
         boost::system::error_code Live2Source::time_seek (
-            boost::uint64_t time, // 微妙
+            boost::uint64_t time, // 毫妙
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
             ec.clear();
-            if (0 == time_)
+            if (live_port_)
             {
-                time_ = time;
-                position.segment = SEGMENT_BEG;
+                ec = error::not_support;
             }
             else
             {
                 boost::uint64_t iTime = 0;
 
-                file_time_ = server_time_ - jump_info_.delay_play_time;
+                //file_time_ = server_time_ - jump_info_.delay_play_time;
 
-                if (time > time_) //往后拖
-                {
-                    iTime = time-time_;
-                    file_time_+=iTime/1000;
-                }
-                else  //往前拖
-                {
-                    iTime = time_ - time;
-                    file_time_-=iTime/1000;
-                }
+                file_time_ = time/1000 + begin_time_;
+
                 file_time_ = file_time_ / interval_ * interval_;
 
-                if (file_time_ > old_file_time_)
-                {
-                    position.segment = SEGMENT_BEG + (file_time_-old_file_time_)/5;
-                }
-                else
-                {
-                    position.segment = SEGMENT_BEG - (old_file_time_- file_time_)/5;
-                }
-
+                position.segment = time/5000;
             }
             return ec;
         }
@@ -412,9 +410,17 @@ namespace ppbox
         bool Live2Source::next_segment(
             SegmentPositionEx & position)
         {
-            position.segment++;
-            file_time_ += interval_;
-            return true;
+            if (live_port_)
+            {
+                return false;
+            }
+            else
+            {
+                position.segment++;
+                file_time_ += interval_;
+                return true;
+            }
+            
         }
 
         size_t Live2Source::segment_count() const

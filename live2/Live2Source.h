@@ -78,7 +78,7 @@ namespace ppbox
 
             virtual boost::system::error_code reset(size_t& segment);
 
-            virtual boost::uint32_t get_duration();
+            virtual boost::system::error_code get_duration(DurationInfo & info);
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // ОўГо
@@ -147,7 +147,8 @@ namespace ppbox
             Time local_time_;
             time_t server_time_;
             time_t file_time_;
-            time_t old_file_time_;
+            time_t begin_time_;
+            time_t vaule_time_;
             boost::uint32_t seek_time_;
             boost::int32_t bwtype_;
             boost::int32_t live_port_;
