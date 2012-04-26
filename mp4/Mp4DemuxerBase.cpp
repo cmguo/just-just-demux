@@ -82,8 +82,10 @@ namespace ppbox
         //}
 
         error_code Mp4DemuxerBase::open(
-            error_code & ec)
+            error_code & ec,
+            open_response_type const & resp)
         {
+            resp_ = resp;
             open_step_ = 0;
             ec.clear();
             is_open(ec);
@@ -158,6 +160,9 @@ namespace ppbox
                     return false;
                 } else {
                     open_step_ = 1;
+                    boost::uint64_t duration = file_->GetMovie()->GetDurationMs();
+                    boost::uint64_t filesize = boost::uint64_t(-1);
+                    resp_(duration, filesize, ec);
                     return true;
                 }
             }

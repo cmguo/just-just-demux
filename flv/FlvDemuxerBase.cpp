@@ -22,7 +22,8 @@ namespace ppbox
     {
 
         error_code FlvDemuxerBase::open(
-            error_code & ec)
+            error_code & ec,
+            open_response_type const & resp)
         {
             open_step_ = 0;
             parse_offset_ = 0;

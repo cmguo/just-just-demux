@@ -26,8 +26,7 @@ namespace ppbox
                 boost::uint32_t prepare_size, 
                 SourceBase * source, 
                 std::string const & url_str )
-                //: BufferDemuxer(io_svc, buffer_size, prepare_size, source)
-                : BufferDemuxer(io_svc, buffer_size, prepare_size)
+                : BufferDemuxer(io_svc, buffer_size, prepare_size, source)
                 , source_(source)
                 , url_str_(url_str)
             {

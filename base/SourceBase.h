@@ -128,6 +128,22 @@ namespace ppbox
             boost::system::error_code ec;
         };
 
+        struct DurationInfo
+        {
+            DurationInfo()
+                : redundancy(0)
+                , begin(0)
+                , end(0)
+                , total(0)
+            {
+            }
+
+            boost::uint32_t redundancy;
+            boost::uint32_t begin;
+            boost::uint32_t end;
+            boost::uint32_t total;
+        };
+
         class BufferList;
         class BufferDemuxer;
 
@@ -163,7 +179,6 @@ namespace ppbox
             typedef boost::function<void (
                 boost::system::error_code const &)
             > response_type;
-
 
             static SourceBase * create(
                 boost::asio::io_service & io_svc, std::string const & playlink);
@@ -262,9 +277,8 @@ namespace ppbox
                 return boost::system::error_code();
             }
 
-            virtual boost::uint32_t get_duration()
+            virtual void get_duration(DurationInfo & info)
             {
-                return 0;
             }
 
         public:

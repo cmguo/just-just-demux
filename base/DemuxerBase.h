@@ -143,6 +143,14 @@ namespace ppbox
         class DemuxerBase
             : public util::smart_ptr::RefenceFromThis<DemuxerBase>
         {
+
+        public:
+            typedef boost::function<void (
+                boost::uint64_t,
+                boost::uint64_t,
+                boost::system::error_code const &)
+            > open_response_type;
+
         public:
             DemuxerBase(
                 std::basic_streambuf<boost::uint8_t> & buf)
@@ -161,7 +169,8 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code open(
-                boost::system::error_code & ec) = 0;
+                boost::system::error_code & ec,
+                open_response_type const & resp) = 0;
 
             virtual boost::system::error_code close(
                 boost::system::error_code & ec) = 0;

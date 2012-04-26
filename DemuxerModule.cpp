@@ -312,24 +312,9 @@ namespace ppbox
             std::string const & play_link, 
             open_response_type const & resp, 
             error_code & ec)
-        {
-            //std::string::size_type pos_colon = play_link.find("://");
-            //std::string proto = "ppvod";
-            //if (pos_colon == std::string::npos) {
-            //    pos_colon = 0;
-            //} else {
-            //    proto = play_link.substr(0, pos_colon);
-            //    pos_colon += 3;
-            //}
-            //std::string::size_type pos_param = play_link.find('?');
-            //if (pos_param == std::string::npos) {
-            //    pos_param = play_link.length() - pos_colon;
-            //} else {
-            //    pos_param -= pos_colon;
-            //}
-
-            // BufferDemuxer * demuxer = CommonDemuxer::create(get_daemon(), play_link, buffer_size_, prepare_size_);
-            BufferDemuxer * demuxer = create(buffer_size_, prepare_size_);
+        { 
+            SourceBase * root_source = SourceBase::create(get_daemon().io_svc(), play_link);
+            BufferDemuxer * demuxer = create(buffer_size_, prepare_size_, root_source);
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_statÐèÒª¼ÓËø
             DemuxInfo * info = new DemuxInfo(demuxer);
@@ -342,9 +327,10 @@ namespace ppbox
 
         BufferDemuxer * DemuxerModule::create(
             boost::uint32_t buffer_size,
-            boost::uint32_t prepare_size)
+            boost::uint32_t prepare_size,
+            SourceBase * source)
         {
-            return new BufferDemuxer(get_daemon().io_svc(), buffer_size, prepare_size);
+            return new BufferDemuxer(get_daemon().io_svc(), buffer_size, prepare_size, source);
         }
 
         void DemuxerModule::async_open(
@@ -380,13 +366,13 @@ namespace ppbox
 #endif
                 || demuxer->set_time_out(5 * 1000, ec) // 5 seconds
                 /*|| (demuxer && !http_proxy_.host().empty() && demuxer->set_http_proxy(http_proxy_, ec))*/;
-
             if (!ec) {
                 std::string play_link;
                 play_link.swap(info->play_link);
                 demuxer->async_open(
                     key + "|" + play_link, 
                     boost::bind(&DemuxerModule::handle_open, this, _1, info));
+                
             } else {
                 io_svc().post(boost::bind(&DemuxerModule::handle_open, this, ec, info));
             }

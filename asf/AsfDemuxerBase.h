@@ -38,7 +38,8 @@ namespace ppbox
             }
 
             boost::system::error_code open(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec,
+                open_response_type const & resp);
 
             bool is_open(
                 boost::system::error_code & ec);

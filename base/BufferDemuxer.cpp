@@ -13,6 +13,7 @@
 
 #include <framework/timer/Ticker.h>
 using namespace framework::logger;
+using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("BufferDemuxer", 0);
 
@@ -24,9 +25,10 @@ namespace ppbox
         BufferDemuxer::BufferDemuxer(
             boost::asio::io_service & io_svc, 
             boost::uint32_t buffer_size, 
-            boost::uint32_t prepare_size)
+            boost::uint32_t prepare_size,
+            SourceBase * source)
             : io_svc_(io_svc)
-            , root_source_(NULL)
+            , root_source_(source)
             , buffer_(NULL)
             , seek_time_(0)
             , segment_time_(0)
@@ -201,86 +203,6 @@ namespace ppbox
             return ec;
         }
 
-        //boost::system::error_code BufferDemuxer::seek(
-        //    boost::uint32_t & time, 
-        //    boost::system::error_code & ec)
-        //{
-        //    // 如果找不到对应的分段，错误码就是source_error::no_more_segment
-        //    //ec = source_error::no_more_segment;
-        //    //ec.clear();
-        //    SegmentPositionEx position;
-        //    boost::uint32_t seg_time = 0;
-        //    root_source_->time_seek(time, position, ec);
-        //    //if (!ec) {
-        //    //    SourceBase * first_src = NULL;
-        //    //    SourceBase * near_src = NULL;
-        //    //    bool is_prev = false;
-        //    //    SourceBase * item = (SourceBase *)position.source->first_child();
-        //    //    while (item) { // 处理插入分段
-        //    //        if (item->insert_segment() == position.segment) {
-        //    //            if (!first_src) {
-        //    //                near_src = first_src = item;
-        //    //            }
-        //    //            boost::uint64_t total_time = root_source_->total_time_before(item);
-        //    //            if (time > total_time) {
-        //    //                near_src = item;
-        //    //            }
-        //    //        }
-        //    //        item = (SourceBase *)item->next_sibling();
-        //    //        if (item && item->insert_segment() > position.segment) {
-        //    //            break;
-        //    //        }
-        //    //    }
-        //    //    if (first_src) {
-        //    //        boost::uint64_t total_time = root_source_->total_time_before(first_src);
-        //    //        if (time > total_time) {
-        //    //            is_prev = true;
-        //    //            read_demuxer_ = first_src->insert_demuxer();
-        //    //        } else {
-        //    //            create_demuxer(position, read_demuxer_, ec);
-        //    //        }
-        //    //    } else {
-        //    //        create_demuxer(position, read_demuxer_, ec);
-        //    //    }
-        //    //    seg_time = time - position.time_beg; // 相对于开头的时间
-        //    //    boost::uint64_t offset = read_demuxer_.demuxer->seek(seg_time, ec);// 计算分段位置
-        //    //    segment_time_ = position.time_beg; // 当前分段开始时间（绝对位置）
-        //    //    segment_ustime_ = segment_time_ * 1000;
-        //    //    for (size_t i = 0; i < media_time_scales_.size(); i++) {
-        //    //        dts_offset_[i] = 
-        //    //            segment_time_ * media_time_scales_[i] / 1000;
-        //    //    }
-        //    //    if (!ec) {
-        //    //        seek_time_ = 0;
-        //    //        if (is_prev) {
-        //    //            reload_demuxer(read_demuxer_.demuxer, position, read_demuxer_, 0, false, ec);
-        //    //        }
-        //    //        read_demuxer_.stream->seek(position, offset);
-        //    //    } else {
-        //    //        boost::uint64_t head_length = position.source->segment_head_size(position.segment);
-        //    //        if (head_length && time) {
-        //    //            read_demuxer_.stream->seek(position, 0, head_length);
-        //    //        } else {
-        //    //            read_demuxer_.stream->seek(position, 0);
-        //    //        }
-        //    //    }
-        //    //    boost::system::error_code ec1;
-        //    //    create_demuxer(buffer_->write_segment(), write_demuxer_, ec1);
-        //    //}
-        //    if (&time != &seek_time_) {
-        //        DemuxerStatistic::seek(ec, time);
-        //    }
-        //    if (ec) {
-        //        seek_time_ = time; // 用户连续seek，以最后一次为准
-        //        if (ec == error::file_stream_error) {
-        //            ec = boost::asio::error::would_block;
-        //        }
-        //    }
-        //    root_source_->on_error(ec);
-        //    last_error(ec);
-        //    return ec;
-        //}
-
         boost::system::error_code BufferDemuxer::get_sample(
             Sample & sample, 
             boost::system::error_code & ec)
@@ -341,13 +263,13 @@ namespace ppbox
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     buffer_->peek(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {
-                        last_error(ec);
+                        DemuxerStatistic::last_error(ec);
                         break;
                     }
                 }
             } else {
                 if (ec == boost::asio::error::would_block) {
-                    block_on();
+                    DemuxerStatistic::block_on();
                 }
                 last_error(ec);
             }
@@ -379,14 +301,14 @@ namespace ppbox
             return ec;
         }
 
-        boost::uint32_t BufferDemuxer::get_duration(
+        boost::system::error_code BufferDemuxer::get_duration(
+            DurationInfo & info,
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
-                return root_source_->get_duration(); // ms
-            } else {
-                return 0;
+                root_source_->get_duration(info); // ms
             }
+            return ec;
         }
 
         boost::system::error_code BufferDemuxer::cancel(
@@ -474,7 +396,7 @@ namespace ppbox
             if (old_source != new_segment.source) {
                 if (old_source->parent() == new_segment.source) {  //子切父
                     if (old_source->insert_demuxer().demuxer) {
-                        reload_demuxer(old_source->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
+                        //reload_demuxer(old_source->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
                     } else {
                         SourceBase * prev_sibling = old_source->prev_sibling();
                         bool flag = false;
@@ -482,7 +404,7 @@ namespace ppbox
                             if (prev_sibling->insert_demuxer().demuxer
                                 && prev_sibling->insert_segment() == old_source->insert_segment()) {
                                     flag = true;
-                                    reload_demuxer(prev_sibling->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
+                                    //reload_demuxer(prev_sibling->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
                                     break;
                             }
                             prev_sibling = prev_sibling->prev_sibling();
@@ -544,6 +466,23 @@ namespace ppbox
             }
         }
 
+        void BufferDemuxer::handle_segment_open_event(
+            boost::uint64_t duration,
+            boost::uint64_t filesize,
+            error_code const & ec)
+        {
+            SegmentPositionEx position;
+            position.segment = write_demuxer_.segment.segment;
+            position.time_beg = 0;
+            position.time_end = duration;
+            position.size_beg = 0;
+            position.size_end = filesize;
+            position.shard_beg = 0;
+            position.shard_end = position.size_end;
+            Event evt(Event::EVENT_SEG_DEMUXER_OPEN, Event::WRITE, position, boost::system::error_code());
+            root_source_->on_event(evt);
+        }
+
         bool BufferDemuxer::is_open(boost::system::error_code & ec)
         {
             if (open_state_ == OpenState::open_finished) {
@@ -581,33 +520,33 @@ namespace ppbox
                 demuxer.segment = segment;
                 demuxer.demuxer.reset(
                     new Mp4DemuxerBase(demuxer.is_read_stream ? *buffer_->get_read_bytesstream() : *buffer_->get_write_bytesstream()));
-                demuxer.demuxer->open(ec);
+                demuxer.demuxer->open(ec, boost::bind(&BufferDemuxer::handle_segment_open_event, this, _1, _2, _3));
             }
         }
 
-        void BufferDemuxer::reload_demuxer(
-            DemuxerPointer & demuxer, 
-            SegmentPositionEx & segment, 
-            DemuxerInfo & demuxer_info, 
-            boost::uint32_t time, 
-            bool is_seek, 
-            boost::system::error_code & ec)
-        {
-            if (segment == read_demuxer_.segment) {
-                //demuxer_info.stream = read_demuxer_.stream;
-            } else if (segment == write_demuxer_.segment) {
-                //demuxer_info.stream = write_demuxer_.stream;
-            } else {
-                BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
-                stream->update_new(segment);
-                //demuxer_info.stream.reset(stream);
-            }
-            //demuxer_info.demuxer.reset(demuxer->clone(* demuxer_info.stream));
-            demuxer_info.segment = segment;
-            if (is_seek) {
-                demuxer_info.demuxer->seek(time, ec);
-            }
-        }
+        //void BufferDemuxer::reload_demuxer(
+        //    DemuxerPointer & demuxer, 
+        //    SegmentPositionEx & segment, 
+        //    DemuxerInfo & demuxer_info, 
+        //    boost::uint32_t time, 
+        //    bool is_seek, 
+        //    boost::system::error_code & ec)
+        //{
+        //    if (segment == read_demuxer_.segment) {
+        //        //demuxer_info.stream = read_demuxer_.stream;
+        //    } else if (segment == write_demuxer_.segment) {
+        //        //demuxer_info.stream = write_demuxer_.stream;
+        //    } else {
+        //        BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
+        //        stream->update_new(segment);
+        //        //demuxer_info.stream.reset(stream);
+        //    }
+        //    //demuxer_info.demuxer.reset(demuxer->clone(* demuxer_info.stream));
+        //    demuxer_info.segment = segment;
+        //    if (is_seek) {
+        //        demuxer_info.demuxer->seek(time, ec);
+        //    }
+        //}
 
         BufferDemuxer::post_event_func BufferDemuxer::get_poster()
         {
@@ -780,7 +719,7 @@ namespace ppbox
             boost::uint32_t time_out, 
             boost::system::error_code & ec)
         {
-            //return root_source_->set_time_out(time_out, ec);
+            return root_source_->set_time_out(time_out, ec);
             return ec;
         }
 

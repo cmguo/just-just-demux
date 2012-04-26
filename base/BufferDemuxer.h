@@ -119,7 +119,8 @@ namespace ppbox
             BufferDemuxer(
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
-                boost::uint32_t prepare_size);
+                boost::uint32_t prepare_size, 
+                SourceBase * source);
 
             virtual ~BufferDemuxer();
 
@@ -166,7 +167,8 @@ namespace ppbox
                 MediaInfo & info, 
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_duration(
+            boost::system::error_code get_duration(
+                DurationInfo & info,
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
@@ -248,6 +250,11 @@ namespace ppbox
             void handle_async_open(
                 boost::system::error_code const & ecc);
 
+            void handle_segment_open_event(
+                boost::uint64_t duration,
+                boost::uint64_t filesize,
+                boost::system::error_code const & ec);
+
             void response(
                 boost::system::error_code const & ec);
 
@@ -256,13 +263,13 @@ namespace ppbox
                 DemuxerInfo & demuxer, 
                 boost::system::error_code & ec);
 
-            void reload_demuxer(
-                DemuxerPointer & demuxer,
-                SegmentPositionEx & segment, 
-                DemuxerInfo & demuxer_info, 
-                boost::uint32_t time, 
-                bool is_seek, 
-                boost::system::error_code & ec);
+            //void reload_demuxer(
+            //    DemuxerPointer & demuxer,
+            //    SegmentPositionEx & segment, 
+            //    DemuxerInfo & demuxer_info, 
+            //    boost::uint32_t time, 
+            //    bool is_seek, 
+            //    boost::system::error_code & ec);
 
             void change_source(
                 SegmentPositionEx & new_segment, 

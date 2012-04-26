@@ -64,7 +64,8 @@ namespace ppbox
 
         public:
             boost::system::error_code open(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec,
+                open_response_type const & resp);
 
             boost::system::error_code close(
                 boost::system::error_code & ec);
@@ -139,6 +140,7 @@ namespace ppbox
             SampleList * sample_list_;
             bool sample_put_back_;
             boost::uint64_t min_offset_;
+            open_response_type resp_;
             //const_pointer copy_from_;
         };
 
