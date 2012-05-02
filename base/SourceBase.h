@@ -5,10 +5,13 @@
 
 #include "ppbox/demux/base/DemuxerType.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
+#include "ppbox/demux/base/SourcePrefix.h"
 
 #include <util/buffers/Buffers.h>
 
 #include <boost/asio/buffer.hpp>
+
+#include <map>
 
 namespace ppbox
 {
@@ -76,17 +79,11 @@ namespace ppbox
             boost::uint64_t shard_end; //碎片的结束
         };
 
-        typedef boost::intrusive_ptr<
-            BytesStream> StreamPointer;
-
-        typedef boost::intrusive_ptr<
-            DemuxerBase> DemuxerPointer;
-
         struct DemuxerInfo
         {
-            bool is_read_stream; // true: read stream, false: write stream
-            DemuxerPointer demuxer;
             SegmentPosition segment;
+            DemuxerBase * demuxer;
+            boost::uint32_t ref;
         };
 
         struct Event
@@ -272,13 +269,16 @@ namespace ppbox
             virtual void set_url(std::string const &url){}
 
             virtual boost::system::error_code reset(
-                size_t& segment)
+                SegmentPositionEx & segment)
             {
                 return boost::system::error_code();
             }
 
-            virtual void get_duration(DurationInfo & info)
+            virtual boost::system::error_code get_duration(
+                DurationInfo & info,
+                boost::system::error_code & ec)
             {
+                return ec;
             }
 
             virtual std::string get_type() const
@@ -529,6 +529,7 @@ namespace ppbox
             boost::uint64_t insert_delta_; // 需要重复下载的数据量
             boost::uint64_t insert_time_; // 插入在分段上的时间位置，相对于分段起始位置，单位：微妙
             boost::uint64_t insert_input_time_;
+            std::map<std::string, SourcePrefix::Enum> type_map_;
         };
 
     } // namespace demux
