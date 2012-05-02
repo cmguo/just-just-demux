@@ -48,6 +48,11 @@ namespace ppbox
             }
 
         public:
+            const SegmentPositionEx & segment() const
+            {
+                return segment_;
+            }
+
             boost::system::error_code error() const
             {
                 return ec_;
@@ -374,6 +379,7 @@ namespace ppbox
 
             void update(SegmentPositionEx const & segment)
             {
+                segment_ = segment_;
                 buffers_ = buffer_.segment_read_buffer(segment);
                 size_ = util::buffers::buffer_size(buffers_);
             }
