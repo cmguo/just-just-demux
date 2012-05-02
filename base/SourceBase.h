@@ -281,6 +281,11 @@ namespace ppbox
             {
             }
 
+            virtual std::string get_type() const
+            {
+                return "source_base";
+            }
+
         public:
             virtual void on_error(
                 boost::system::error_code & ec) {}
