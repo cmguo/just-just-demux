@@ -151,7 +151,7 @@ namespace ppbox
             time_t server_time_;
             time_t file_time_;
             time_t begin_time_;
-            time_t vaule_time_;
+            time_t value_time_;
             boost::uint32_t seek_time_;
             boost::int32_t bwtype_;
             boost::int32_t live_port_;

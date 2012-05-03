@@ -64,6 +64,7 @@ namespace ppbox
                     http_.bind_host(addr_, ec);
                     http_.open(request_, ec);
                     //LOG_STR(framework::logger::logger::kLevelDebug1, http_.response().head().heAD)
+                    http_.request().head().get_content(std::cout);
                 }
 
                 return ec;

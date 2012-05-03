@@ -551,7 +551,7 @@ namespace ppbox
                         }
                     }
                 }
-                assert(demuxer_infos_.size() < max_demuxer_infos_);
+                //assert(demuxer_infos_.size() < max_demuxer_infos_);
                 demuxer_infos_.push_back(demuxer_info);
             }
             
