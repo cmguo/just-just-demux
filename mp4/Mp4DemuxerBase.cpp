@@ -40,27 +40,8 @@ namespace ppbox
         {
         }
 
-        //Mp4DemuxerBase::Mp4DemuxerBase(
-        //    Mp4DemuxerBase * from, 
-        //    std::basic_streambuf<boost::uint8_t> & buf)
-        //    : DemuxerBase(buf)
-        //    , is_(& buf)
-        //    , head_size_(from->head_size_)
-        //    , open_step_(from->open_step_)
-        //    , file_(from->file_)
-        //    , tracks_(from->tracks_)
-        //    , bitrate_(from->bitrate_)
-        //    , sample_list_(from->sample_list_)
-        //    , sample_put_back_(from->sample_put_back_)
-        //    , min_offset_(from->min_offset_)
-        //{
-        //    copy_from_.reset(from);
-        //}
-
         Mp4DemuxerBase::~Mp4DemuxerBase()
         {
-            //if (copy_from_)
-            //    return;
             if (sample_list_) {
                 delete sample_list_;
                 sample_list_ = NULL;
@@ -73,13 +54,6 @@ namespace ppbox
                 file_ = NULL;
             }
         }
-
-        //Mp4DemuxerBase * Mp4DemuxerBase::clone(
-        //    std::basic_streambuf<boost::uint8_t> & buf)
-        //{
-        //    Mp4DemuxerBase * demuxer = new Mp4DemuxerBase(this, buf);
-        //    return demuxer;
-        //}
 
         error_code Mp4DemuxerBase::open(
             error_code & ec,

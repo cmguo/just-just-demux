@@ -85,10 +85,10 @@ namespace ppbox
         {
             resp_ = resp;
             open_step_ = StepType::opening;
-            handle_async_open(boost::system::error_code());
+            handle_async_open(error_code());
         }
 
-        boost::system::error_code VodSource::cancel(
+        error_code VodSource::cancel(
             boost::system::error_code & ec)
         {
             assert(NULL != jump_);
@@ -99,8 +99,8 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code VodSource::close(
-            boost::system::error_code & ec)
+        error_code VodSource::close(
+            error_code & ec)
         {
             if (drag_)
             {
@@ -110,7 +110,7 @@ namespace ppbox
             return ec;
         }
 
-        framework::string::Url  VodSource::get_jump_url() const
+        framework::string::Url VodSource::get_jump_url() const
         {
             framework::string::Url url("http://localhost/");
             url.host(dns_vod_jump_server.host());
@@ -119,7 +119,7 @@ namespace ppbox
 
             return url;
         }
-        framework::string::Url  VodSource::get_drag_url() const
+        framework::string::Url VodSource::get_drag_url() const
         {
             framework::string::Url url("http://localhost/");
             url.host(dns_vod_drag_server.host());
@@ -132,7 +132,7 @@ namespace ppbox
         void VodSource::parse_drag(
             VodDragInfoNew & drag_info, 
             boost::asio::streambuf & buf, 
-            boost::system::error_code const & ec)
+            error_code const & ec)
         {
             if (ec) {
                 drag_info.ec = ec;
@@ -164,7 +164,7 @@ namespace ppbox
         void VodSource::parse_jump(
             VodJumpInfoNoDrag & jump_info, 
             boost::asio::streambuf & buf, 
-            boost::system::error_code & ec)
+            error_code & ec)
         {
             std::string buffer = boost::asio::buffer_cast<char const *>(buf.data());
             LOG_S(Logger::kLevelDebug2, "[handle_jump] jump buffer: " << buffer);
@@ -237,7 +237,7 @@ namespace ppbox
 
 
         void VodSource::handle_async_open(
-            boost::system::error_code const & ecc)
+            error_code const & ecc)
         {
             error_code ec = ecc;
             if (ec) 
@@ -327,7 +327,7 @@ namespace ppbox
         }
 
         void VodSource::response(
-            boost::system::error_code const & ec)
+            error_code const & ec)
         {
             SourceBase::response_type resp;
             resp.swap(resp_);
@@ -387,11 +387,11 @@ namespace ppbox
             }
         }
 
-        boost::system::error_code VodSource::segment_open(
+        error_code VodSource::segment_open(
             size_t segment, 
             boost::uint64_t beg, 
             boost::uint64_t end, 
-            boost::system::error_code & ec)
+            error_code & ec)
         {
             update_segment(segment);
             return HttpSource::segment_open(segment,beg,end,ec);
@@ -407,7 +407,7 @@ namespace ppbox
             HttpSource::segment_async_open(segment,beg,end,resp);
         }
 
-        boost::system::error_code VodSource::get_request(
+        error_code VodSource::get_request(
             size_t segment, 
             boost::uint64_t & beg, 
             boost::uint64_t & end, 
@@ -484,7 +484,7 @@ namespace ppbox
 
         void VodSource::set_url(std::string const &url)
         {
-            boost::system::error_code ec;
+            error_code ec;
             //name_ = name;
             std::string::size_type slash = url.find('|');
 
@@ -521,15 +521,24 @@ namespace ppbox
             name_ = playlink;
         }
 
-        boost::system::error_code VodSource::reset(size_t& segment)
+        error_code VodSource::reset(
+            SegmentPositionEx & segment)
         {
-            segment = 0;
-            return boost::system::error_code();
+            segment.segment = 0;
+            segment.shard_beg = segment.size_beg;
+            boost::uint64_t seg_size = segment_size(segment.segment);
+            segment.shard_end = segment.size_end = (seg_size == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.size_beg + seg_size);
+            segment.time_beg = segment.time_beg;
+            boost::uint64_t seg_time = segment_time(segment.segment);
+            segment.time_end = (seg_time == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.time_beg + seg_time );
+            return error_code();
         }
 
-        boost::system::error_code VodSource::get_duration(DurationInfo & info)
+        error_code VodSource::get_duration(
+            DurationInfo & info,
+            error_code & ec)
         {
-            boost::system::error_code ec;
+            ec.clear();
             if (NULL != video_)
             {
                 info.total = video_->duration;

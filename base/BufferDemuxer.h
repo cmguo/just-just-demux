@@ -260,7 +260,7 @@ namespace ppbox
 
             void create_demuxer(
                 SegmentPositionEx const & segment, 
-                DemuxerInfo & demuxer, 
+                DemuxerInfo & demuxer_info, 
                 boost::system::error_code & ec);
 
             //void reload_demuxer(
@@ -299,6 +299,8 @@ namespace ppbox
 
             DemuxerInfo read_demuxer_;
             DemuxerInfo write_demuxer_;
+            std::vector<DemuxerInfo> demuxer_infos_;
+            boost::uint32_t max_demuxer_infos_;
 
             std::vector<boost::uint32_t> media_time_scales_;
             std::vector<boost::uint64_t> dts_offset_;

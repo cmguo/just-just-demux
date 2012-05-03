@@ -247,6 +247,7 @@ namespace ppbox
             }
             // 更新读写分段
             read_bytesstream_->update_new(read_);
+            //write_bytesstream_->update_new(write_);
             //if (write_seg == write_)
             //{
             //    write_bytesstream_->update_new(write_);
@@ -667,8 +668,9 @@ namespace ppbox
 
         void BufferList::source_init()
         {
-            root_source_->next_segment(write_);
+            root_source_->reset(write_);
             write_hole_.this_end = write_hole_.next_beg = write_.size_end;
+            write_.source = root_source_;
             read_ = write_;
         }
 
@@ -1128,7 +1130,7 @@ namespace ppbox
                 " end: " << write_hole_.this_end - write_.size_beg);
 
             // 分段打开事件通知
-            Event evt(Event::EVENT_SEG_DL_OPEN, Event::WRITE, write_, boost::system::error_code());
+            Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
             write_.source->on_event(evt);
             demuxer_->on_event(evt);
 
@@ -1165,7 +1167,7 @@ namespace ppbox
             ++num_try_;
 
             // 分段打开事件通知
-            Event evt(Event::EVENT_SEG_DL_OPEN, Event::WRITE, write_, boost::system::error_code());
+            Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
             write_.source->on_event(evt);
 
             write_.source->on_seg_beg(write_.segment);
@@ -1187,7 +1189,7 @@ namespace ppbox
                     " end: " << write_hole_.this_end - write_.size_beg);
 
                 // 下载结束事件通知
-                Event evt(Event::EVENT_SEG_DL_END, Event::WRITE, write_, boost::system::error_code());
+                Event evt(Event::EVENT_SEG_DL_END, write_, boost::system::error_code());
                 write_.source->on_event(evt);
                 demuxer_->on_event(evt);
 

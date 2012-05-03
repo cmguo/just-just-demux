@@ -141,7 +141,6 @@ namespace ppbox
         };
 
         class DemuxerBase
-            : public util::smart_ptr::RefenceFromThis<DemuxerBase>
         {
 
         public:

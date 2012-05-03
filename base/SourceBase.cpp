@@ -5,6 +5,7 @@
 #include "ppbox/demux/base/BytesStream.h"
 
 #include "ppbox/demux/vod/VodSource.h"
+#include "ppbox/demux/live2/Live2Source.h"
 
 #include <framework/system/LogicError.h>
 
@@ -19,13 +20,20 @@ namespace ppbox
             SourceBase* source = NULL;
             std::string::size_type pos_colon = playlink.find("://");
             std::string proto = "ppvod";
-            if (pos_colon != std::string::npos)
-            {
+            if (pos_colon == std::string::npos) {
+                pos_colon = 0;
+            } else {
                 proto = playlink.substr(0, pos_colon);
+                pos_colon += 3;
             }
 
-            source = new VodSource(io_svc);
-            source->set_url(playlink);
+            if (proto == "ppvod") {
+                source = new VodSource(io_svc);
+            } else if (proto == "pplive2") {
+                source = new Live2Source(io_svc);
+            } else {
+                source = new VodSource(io_svc);
+            }
             return source;
         }
 
@@ -45,6 +53,20 @@ namespace ppbox
             , insert_time_(0)
             , insert_input_time_(0)
         {
+            type_map_["ppvod"] = SourcePrefix::vod;
+            type_map_["pplive"] = SourcePrefix::live;
+            type_map_["pplive2"] = SourcePrefix::live2;
+            type_map_["ppfile-mp4"] = SourcePrefix::file_mp4;
+            type_map_["ppfile-asf"] = SourcePrefix::file_asf;
+            type_map_["ppfile-flv"] = SourcePrefix::file_flv;
+            type_map_["pphttp-mp4"] = SourcePrefix::http_mp4;
+            type_map_["pphttp-asf"] = SourcePrefix::http_asf;
+            type_map_["pphttp-flv"] = SourcePrefix::http_flv;
+            type_map_["ppdesc-mp4"] = SourcePrefix::desc_mp4;
+            type_map_["ppdesc-asf"] = SourcePrefix::desc_asf;
+            type_map_["ppdesc-flv"] = SourcePrefix::desc_flv;
+            type_map_["pprecord"] = SourcePrefix::record;
+
         }
 
         SourceBase::~SourceBase()
@@ -61,6 +83,9 @@ namespace ppbox
                 break;
             case Event::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
                 // 更新插入状态
+                break;
+            case Event::EVENT_SEG_DEMUXER_STOP:
+                
                 break;
             default:
                 break;

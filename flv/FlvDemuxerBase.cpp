@@ -25,6 +25,7 @@ namespace ppbox
             error_code & ec,
             open_response_type const & resp)
         {
+            resp_ = resp;
             open_step_ = 0;
             parse_offset_ = 0;
             ec.clear();
@@ -130,6 +131,18 @@ namespace ppbox
                 archive_.clear();
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 return false;
+            } else {
+                if (3 == open_step_) {
+                    boost::uint64_t duration = 0;
+                    boost::uint64_t filesize = 0;
+                    if (metadata_.duration != 0) {
+                        duration = metadata_.duration * 1000; // ms
+                    }
+                    if (metadata_.filesize != 0) {
+                        filesize = metadata_.filesize;
+                    }
+                    resp_(duration, filesize, ec);
+                }
             }
 
             return true;
@@ -343,6 +356,7 @@ namespace ppbox
 
         void FlvDemuxerBase::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
         {
+            archive_.rdbuf(&buf);
         }
     }
 }

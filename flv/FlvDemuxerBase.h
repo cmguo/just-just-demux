@@ -102,6 +102,7 @@ namespace ppbox
             boost::uint32_t timestamp_offset_ms_;
             framework::system::LimitNumber<32> timestamp_;
 
+            open_response_type resp_;
         };
 
     } // namespace demux

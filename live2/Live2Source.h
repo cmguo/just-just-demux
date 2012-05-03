@@ -76,9 +76,12 @@ namespace ppbox
 
             virtual void set_url(std::string const &url);
 
-            virtual boost::system::error_code reset(size_t& segment);
+            virtual boost::system::error_code reset(
+                SegmentPositionEx & segment);
 
-            virtual boost::system::error_code get_duration(DurationInfo & info);
+            virtual boost::system::error_code get_duration(
+                DurationInfo & info, 
+                boost::system::error_code & ec);
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // ОўГо
@@ -86,7 +89,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual bool next_segment(
-                SegmentPositionEx & position);
+                SegmentPositionEx & segment);
         private:
             virtual size_t segment_count() const;
             virtual boost::uint64_t segment_size(size_t segment);

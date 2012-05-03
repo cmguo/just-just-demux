@@ -12,8 +12,8 @@
 
 #include <framework/string/Format.h>
 #include <framework/timer/Timer.h>
-
 #include <framework/logger/LoggerStreamRecord.h>
+using namespace boost::system;
 using namespace framework::logger;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Live2Source", 0);
@@ -115,10 +115,17 @@ namespace ppbox
             vaule_time_ = file_time_ = file_time_ / interval_ * interval_;
         }
 
-        boost::system::error_code Live2Source::reset(size_t& segment)
-        {//5秒一个分段  1800  360分段
-            segment = (file_time_ - begin_time_)/interval_;
-            return boost::system::error_code();
+        boost::system::error_code Live2Source::reset(
+            SegmentPositionEx & segment)
+        {
+            //5秒一个分段  1800  360分段
+            //segment.segment = (file_time_ - begin_time_) / interval_;
+            //segment.time_beg = segment.segment * 5000;
+            //segment.time_end = segment.time_beg + 5000;
+            segment.segment = 0;
+            segment.time_beg = boost::uint64_t(-1);
+            segment.time_end = boost::uint64_t(-1);
+            return error_code();
         }
 
         void Live2Source::handle_async_open(
@@ -293,6 +300,8 @@ namespace ppbox
                     end += P2P_HEAD_LENGTH;
                 }
                 head.path = "/live/" + stream_id_ + "/" + format(file_time_) + ".block";
+                addr = jump_info_.server_host;
+                //head.host.reset(addr_host(jump_info_.server_host));
             }
 
             return ec;
@@ -363,8 +372,11 @@ namespace ppbox
             }
         }
 
-        boost::system::error_code Live2Source::get_duration(DurationInfo & info)
+        boost::system::error_code Live2Source::get_duration(
+            DurationInfo & info,
+            boost::system::error_code & ec)
         {
+            ec.clear();
             info.total = 0;
             if (live_port_)
             {
@@ -379,7 +391,7 @@ namespace ppbox
                 info.redundancy = jump_info_.delay_play_time;
             }
 
-            return boost::system::error_code();
+           return ec;
         }
 
         boost::system::error_code Live2Source::time_seek (
@@ -408,16 +420,40 @@ namespace ppbox
         }
 
         bool Live2Source::next_segment(
-            SegmentPositionEx & position)
+            SegmentPositionEx & segment)
         {
+            
             if (live_port_)
             {
                 return false;
             }
             else
             {
-                position.segment++;
-                file_time_ += interval_;
+                if (!segment.source) {// 开始分段
+                    segment.segment = 0;
+                    segment.source = this;
+                    segment.shard_beg = segment.size_beg = segment.size_beg;
+                    boost::uint64_t seg_size = segment_size(segment.segment);
+                    segment.shard_end = segment.size_end = (seg_size == (boost::uint64_t)-1 ? -1: segment.size_beg + seg_size);
+                    segment.time_beg = segment.time_beg;
+                    boost::uint64_t seg_time = segment_time(segment.segment);
+                    segment.time_end = ( seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.time_beg + segment_time(segment.segment) );
+                } else {
+                    segment.segment++;
+                    file_time_ += interval_;
+                    segment.size_beg = segment.size_end;
+                    boost::uint64_t seg_size = segment_size(segment.segment);
+                    segment.size_end = (seg_size == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.size_beg + segment_size(segment.segment));
+                    segment.shard_beg = segment.size_beg;
+                    segment.shard_end = segment.size_end;
+                    segment.time_beg = segment.time_end;
+                    boost::uint64_t seg_time = segment_time(segment.segment);
+                    segment.time_end = (seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.time_beg + segment_time(segment.segment));
+                }
+                if (segment.size_end != (boost::uint64_t)-1) {
+                    segment.total_state = SegmentPositionEx::is_valid;
+                }
+
                 return true;
             }
             
@@ -437,7 +473,8 @@ namespace ppbox
 
         boost::uint64_t Live2Source::segment_time(size_t segment)
         {
-            boost::uint64_t ret = 5000; //5 seconds
+            // boost::uint64_t ret = 5000; //5 seconds
+            boost::uint64_t ret = boost::uint64_t(-1);
             return ret;
         }
 

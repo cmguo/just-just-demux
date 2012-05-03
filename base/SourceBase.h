@@ -101,26 +101,17 @@ namespace ppbox
                 EVENT_SEG_DEMUXER_STOP, // ½áÊø²¥·Å·Ö¶Î
             };
 
-            enum PositionType
-            {
-                READ,
-                WRITE,
-            };
-
             Event(
                 EventType type,
-                PositionType position_type,
                 SegmentPositionEx seg,
                 boost::system::error_code ec)
                 : evt_type(type)
-                , pos_type(position_type)
                 , seg_info(seg)
                 , ec(ec)
             {
             }
 
             EventType evt_type;
-            PositionType pos_type;
             SegmentPositionEx seg_info;
             boost::system::error_code ec;
         };
@@ -279,11 +270,6 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 return ec;
-            }
-
-            virtual std::string get_type() const
-            {
-                return "source_base";
             }
 
         public:
