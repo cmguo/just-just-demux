@@ -458,6 +458,7 @@ namespace ppbox
                         if (ec2) {
                             buffer_->async_prepare_at_least(0, boost::bind(&BufferDemuxer::handle_async_open, this, _1));
                         } else {
+                            root_source_->set_buffer_list(buffer_);
                             stream_count = read_demuxer_.demuxer->get_media_count(ec2);
                             if (!ec2) {
                                 MediaInfo info;
@@ -529,12 +530,11 @@ namespace ppbox
                     demuxer_info.segment = demuxer_infos_[i].segment;
                     demuxer_info.demuxer = demuxer_infos_[i].demuxer;
                     demuxer_infos_[i].ref++;
-                    if (i != 0 && demuxer_infos_[i-1].ref != 0) {
-                        // refine: 需要考虑拖动的情况
-                        demuxer_infos_[i-1].ref--;
-                    }
                     find = true;
                 }
+                demuxer_infos_[i].segment == demuxer_info.segment 
+                    && demuxer_infos_[i].ref != 0 
+                    && demuxer_infos_[i].ref--;
             }
 
             if (!find) {
@@ -545,13 +545,13 @@ namespace ppbox
                 if (demuxer_infos_.size() >= max_demuxer_infos_) {
                     for (std::vector<DemuxerInfo>::const_iterator iter = demuxer_infos_.begin(); iter != demuxer_infos_.end(); ++iter) {
                         if ((*iter).ref == 0) {
-                            demuxer_infos_.erase(iter);
                             delete (*iter).demuxer;
+                            demuxer_infos_.erase(iter);
                             break;
                         }
                     }
                 }
-                //assert(demuxer_infos_.size() < max_demuxer_infos_);
+                assert(demuxer_infos_.size() < max_demuxer_infos_);
                 demuxer_infos_.push_back(demuxer_info);
             }
             

@@ -14,6 +14,7 @@ namespace ppbox
             {
                 no_more_segment = 1, 
                 at_end_point = 2, 
+                need_reopen,
             };
 
             namespace detail {
@@ -38,6 +39,8 @@ namespace ppbox
                             return "source: has no more segments";
                         if (value == source_error::at_end_point)
                             return "source: at end point, write complete";
+                        if (value == source_error::need_reopen)
+                            return "source: need reopen";
                         return "source: unknown error";
                     }
                 };

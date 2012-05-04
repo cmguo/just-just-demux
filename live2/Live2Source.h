@@ -59,7 +59,6 @@ namespace ppbox
             virtual bool is_open();
 
         public:
-
             boost::system::error_code segment_open(
                 size_t segment, 
                 boost::uint64_t beg, 
@@ -70,7 +69,7 @@ namespace ppbox
                 size_t segment, 
                 boost::uint64_t beg, 
                 boost::uint64_t end, 
-                SourceBase::response_type const & resp) ;
+                SourceBase::response_type const & resp);
 
             virtual DemuxerType::Enum demuxer_type() const;
 
@@ -90,13 +89,16 @@ namespace ppbox
 
             virtual bool next_segment(
                 SegmentPositionEx & segment);
+
+            void on_error(
+                boost::system::error_code & ec);
+
         private:
             virtual size_t segment_count() const;
             virtual boost::uint64_t segment_size(size_t segment);
             virtual boost::uint64_t segment_time(size_t segment);
 
         private:
-
             virtual boost::system::error_code get_request(
                 size_t segment, 
                 boost::uint64_t & beg, 
@@ -104,6 +106,8 @@ namespace ppbox
                 framework::network::NetName & addr, 
                 util::protocol::HttpRequest & request, 
                 boost::system::error_code & ec);
+
+            void add_segment(SegmentPositionEx const & segment);
 
             void handle_async_open(
                 boost::system::error_code const & ecc);
@@ -118,17 +122,22 @@ namespace ppbox
                 boost::asio::streambuf & buf, 
                 boost::system::error_code & ec);
 
-
             void set_info_by_jump(
                 Live2JumpInfo & jump_info);
-
 
             std::string get_key() const;
 
             void update_segment(size_t segment);
-        private:
-            
 
+            void update_segment_duration(
+                size_t segment,
+                boost::uint32_t time);
+
+            void update_segment_file_size(
+                size_t segment,
+                boost::uint64_t filesize);
+
+        private:
             struct StepType
             {
                 enum Enum
@@ -159,7 +168,9 @@ namespace ppbox
             std::vector<std::string> rid_;
             std::vector<boost::uint32_t> rate_;
 
-            std::deque<boost::uint64_t> segments_;
+            std::deque<SegmentPositionEx> segments_;
+            boost::uint32_t max_segment_size_;
+            boost::uint32_t segment_duration_;
 
             boost::uint16_t interval_;
             boost::uint32_t seq_;

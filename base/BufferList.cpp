@@ -178,7 +178,6 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             SegmentPositionEx write_seg = write_;
-
             ec = source_error_;
             while (1) {
                 if (ec) {
@@ -223,6 +222,7 @@ namespace ppbox
                         increase_download_byte(0);
                     }
                 }
+
                 if (source_error_) {
                     ec = source_error_;
                 }
@@ -250,9 +250,7 @@ namespace ppbox
             //{
             //    write_bytesstream_->update_new(write_);
             //}
-
             last_ec_ = ec;
-
             return ec;
         }
 
@@ -774,7 +772,11 @@ namespace ppbox
             }
             if (ec)
                 source_error_ = ec;
-            return !ec;
+            if (ec == source_error::need_reopen) {
+                return true;
+            } else {
+                return !ec;
+            }
         }
 
         void BufferList::seek_to(
@@ -1095,7 +1097,7 @@ namespace ppbox
                 close_all_request(ec);
             }
 
-            if (Time::now() <= expire_pause_time_) {
+            if (Time::now() < expire_pause_time_) {
                 ec = boost::asio::error::would_block;
                 return ec;
             }
