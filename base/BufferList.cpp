@@ -191,12 +191,10 @@ namespace ppbox
                 } else if (write_.source->segment_is_open(ec)) {
                     // 请求的分段打开成功，更新 (*segments_) 信息
                     update_segments(ec);
-
                     framework::timer::TimeCounter tc;
                     size_t bytes_transferred = write_.source->segment_read(
                         write_buffer(amount),
-                        ec
-                        );
+                        ec);
                     if (tc.elapse() > 10) {
                         LOG_S(framework::logger::Logger::kLevelDebug, 
                             "[prepare] read elapse: " << tc.elapse() 
@@ -492,7 +490,6 @@ namespace ppbox
             boost::uint32_t off = read_bytesstream_->get_current_off();
             boost::system::error_code ret_ec = read_seek_to(read_.offset + off, ec);
             read_bytesstream_->do_drop();
-            last_ec_ = ret_ec;
             return ret_ec;
         }
 
@@ -505,7 +502,6 @@ namespace ppbox
             } else {
                 read_seek_to(read_.size_beg + offset, ec);
             }
-            last_ec_ = ec;
             return ec;
         }
 
@@ -538,7 +534,6 @@ namespace ppbox
             // 读缓冲DropAll
             read_bytesstream_->do_drop_all();
 
-            last_ec_ = ec;
             return ec;
         }
 
@@ -975,7 +970,7 @@ namespace ppbox
         void BufferList::update_segments(
             boost::system::error_code & ec)
         {
-            if (write_.total_state == SegmentPositionEx::not_init) {
+            if (write_.total_state != SegmentPositionEx::is_valid) {
                 boost::uint64_t file_length = write_.source->total(ec);
                 if (ec) {
                     file_length = boost::uint64_t(-1);
