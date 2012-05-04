@@ -9,6 +9,10 @@
 
 #include <framework/system/LogicError.h>
 
+using namespace framework::logger;
+
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("SourceBase", 0);
+
 namespace ppbox
 {
     namespace demux
@@ -80,12 +84,32 @@ namespace ppbox
             {
             case Event::EVENT_SEG_DL_OPEN:
                 // 更新插入状态
+                LOG_S(0, "EVENT_SEG_DL_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                    " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
+                    evt.seg_info.time_end);
+                break;
+            case Event::EVENT_SEG_DL_END:
+                LOG_S(0, "EVENT_SEG_DL_END: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                    " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
+                    evt.seg_info.time_end);
+
+                update_segment_file_size(
+                    evt.seg_info.segment, evt.seg_info.size_end - evt.seg_info.size_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
                 // 更新插入状态
+                LOG_S(0, "EVENT_SEG_DEMUXER_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                    " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
+                    evt.seg_info.time_end);
+
+                update_segment_duration(
+                    evt.seg_info.segment, evt.seg_info.time_end - evt.seg_info.time_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_STOP:
-                
+                LOG_S(0, "EVENT_SEG_DEMUXER_STOP: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                    " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
+                    evt.seg_info.time_end);
+
                 break;
             default:
                 break;
