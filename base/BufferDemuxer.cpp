@@ -167,41 +167,42 @@ namespace ppbox
             boost::uint32_t & time, 
             boost::system::error_code & ec)
         {
-            //ec.clear();
-            //SegmentPositionEx position;
-            //position.segment = 0;
-            //boost::uint32_t seg_time = 0;
-            //root_source_->time_seek(time, position, ec);
-            //if (ec == source_error::no_more_segment) { // 找不到对应的段
-            //}
-            //if (!ec) {
-            //    if (!buffer_->seek(position, 0, ec)) {
-            //        create_demuxer(position, read_demuxer_, ec);
-            //        if (!ec) {
-            //            create_demuxer(position, write_demuxer_, ec);
-            //            assert((time - position.time_beg) >= 0 && (position.time_end - time) >= 0);
-            //            boost::uint32_t time_t = time - boost::uint32_t(position.time_beg);
-            //            boost::uint64_t offset = read_demuxer_.demuxer->seek(time_t, ec);
-            //            more(0);
-            //            if (!ec) {
-            //                if (!buffer_->seek(position, offset, ec)) {
-            //                    seek_time_ = 0;
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
-            //if (&time != &seek_time_) {
-            //    DemuxerStatistic::seek(ec, time);
-            //}
-            //if (ec) {
-            //    seek_time_ = time; // 用户连续seek，以最后一次为准
-            //    if (ec == error::file_stream_error) {
-            //        ec = boost::asio::error::would_block;
-            //    }
-            //}
-            //root_source_->on_error(ec);
-            //last_error(ec);
+            ec.clear();
+            SegmentPositionEx position;
+            position.segment = 0;
+            boost::uint32_t seg_time = 0;
+            root_source_->time_seek(time, position, ec);
+            if (!ec) {
+                if (!buffer_->seek(position, 0, ec)) {
+                    create_demuxer(position, read_demuxer_, ec);
+                    if (!ec) {
+                        create_demuxer(position, write_demuxer_, ec);
+                        assert((time - position.time_beg) >= 0 && (position.time_end - time) >= 0);
+                        boost::uint32_t time_t = time - boost::uint32_t(position.time_beg);
+                        boost::uint64_t offset = read_demuxer_.demuxer->seek(time_t, ec);
+                        more(0);
+                        if (!ec) {
+                            if (!buffer_->seek(position, offset, ec)) {
+                                seek_time_ = 0;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (ec == source_error::no_more_segment) {
+                }
+            }
+            if (&time != &seek_time_) {
+                DemuxerStatistic::seek(ec, time);
+            }
+            if (ec) {
+                seek_time_ = time; // 用户连续seek，以最后一次为准
+                if (ec == error::file_stream_error) {
+                    ec = boost::asio::error::would_block;
+                }
+            }
+            root_source_->on_error(ec);
+            last_error(ec);
             return ec;
         }
 
@@ -402,7 +403,7 @@ namespace ppbox
 
         void BufferDemuxer::change_source(
             SegmentPositionEx & new_segment, 
-            DemuxerInfo & demuxer,
+            DemuxerInfo & demuxer, 
             bool is_seek, 
             boost::system::error_code & ec)
         {
@@ -525,6 +526,7 @@ namespace ppbox
             // demuxer_info.ref 只在该函数可见
             ec.clear();
             bool find = false;
+            SegmentPosition unref_segment = demuxer_info.segment;
             for (boost::uint32_t i = 0; i < demuxer_infos_.size(); ++i) {
                 if (demuxer_infos_[i].segment == segment) {
                     demuxer_info.segment = demuxer_infos_[i].segment;
@@ -532,7 +534,7 @@ namespace ppbox
                     demuxer_infos_[i].ref++;
                     find = true;
                 }
-                demuxer_infos_[i].segment == demuxer_info.segment 
+                demuxer_infos_[i].segment == unref_segment 
                     && demuxer_infos_[i].ref != 0 
                     && demuxer_infos_[i].ref--;
             }

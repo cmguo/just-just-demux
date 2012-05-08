@@ -53,8 +53,7 @@ namespace ppbox
              , seek_time_(0)
              , bwtype_(2)
              , index_(0)
-             , segment_duration_(5)
-             , interval_(10)
+             , interval_(5)
         {
         }
 
@@ -111,20 +110,19 @@ namespace ppbox
             jump_info_ = jump_info;
             local_time_ = Time::now();
             server_time_ = jump_info_.server_time.to_time_t();
-            server_time_ = server_time_ / segment_duration_ * segment_duration_;
-            file_time_ = server_time_ - jump_info_.delay_play_time;
+            server_time_ = server_time_ / interval_ * interval_;
+            file_time_ = server_time_;
             begin_time_ = server_time_ - CACHE_T;
-            value_time_ = file_time_ - begin_time_;
-            max_segment_size_ = CACHE_T / segment_duration_;
+            value_time_ = CACHE_T - jump_info_.delay_play_time;
+            max_segment_size_ = CACHE_T / interval_;
+            tc_.reset();
         }
 
         boost::system::error_code Live2Source::reset(
             SegmentPositionEx & segment)
         {
-            //假设5秒一个分段  1800  360分段
-            segment.segment = (file_time_ - begin_time_) / interval_;
-            segment.time_beg = boost::uint64_t(-1);
-            segment.time_end = boost::uint64_t(-1);
+            segment.segment = (value_time_+(tc_.elapsed()/1000))/interval_;
+            file_time_ = begin_time_ + (segment.segment * interval_);
             add_segment(segment);
             return error_code();
         }
@@ -246,7 +244,7 @@ namespace ppbox
                     find = true;
                     segments_[i].size_end = filesize;
                     segments_[i].shard_end = segments_[i].size_end;
-                    if (segments_[i].size_end != (boost::uint64_t)-1) {
+                    if (segments_[i].shard_end != (boost::uint64_t)-1) {
                         segments_[i].total_state = SegmentPositionEx::is_valid;
                     } else {
                         segments_[i].total_state = SegmentPositionEx::not_exist;
@@ -271,7 +269,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (ec.value() == 404) {
-                ec = boost::asio::error::would_block;
+                ec.clear();
                 buffer()->pause(5000);
             }
         }
@@ -335,11 +333,8 @@ namespace ppbox
                 head.connection = util::protocol::http_field::Connection::keep_alive;
             }
 
-            if (live_port_)
-            {
-            }
-            else
-            {
+            if (live_port_) {
+            } else {
                 beg += P2P_HEAD_LENGTH;
                 if (end != (boost::uint64_t)-1) {
                     end += P2P_HEAD_LENGTH;
@@ -356,7 +351,7 @@ namespace ppbox
         {
             assert(segments_.size() <= max_segment_size_);
             if (segments_.size() == max_segment_size_) {
-                segments_.pop_back();
+                segments_.pop_front();
             }
             bool find = false;
             for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
@@ -443,19 +438,16 @@ namespace ppbox
         {
             ec.clear();
             info.total = 0;
-            if (live_port_)
-            {
+            if (live_port_) {
                 info.begin = 0;
                 info.end = 0;
                 info.redundancy = 0;
-            }
-            else
-            {
-                info.begin = file_time_ - value_time_;
-                info.end = file_time_;
+            } else {
+                info.total = 0;
+                info.begin = begin_time_ + (tc_.elapsed() / 1000);
+                info.end = info.begin + value_time_;
                 info.redundancy = jump_info_.delay_play_time;
             }
-
            return ec;
         }
 
@@ -494,7 +486,7 @@ namespace ppbox
                     segment.time_end = ( seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.time_beg + segment_time(segment.segment));
                 } else {
                     segment.segment++;
-                    file_time_ += interval_;
+                    file_time_ = begin_time_ + (segment.segment * interval_);
                     segment.size_beg = segment.size_end;
                     boost::uint64_t seg_size = segment_size(segment.segment);
                     segment.size_end = (seg_size == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.size_beg + segment_size(segment.segment));

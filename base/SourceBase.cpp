@@ -84,7 +84,7 @@ namespace ppbox
             {
             case Event::EVENT_SEG_DL_OPEN:
                 // 更新插入状态
-                LOG_S(0, "EVENT_SEG_DL_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                //LOG_S(0, "EVENT_SEG_DL_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
                 break;
@@ -98,7 +98,7 @@ namespace ppbox
                 break;
             case Event::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
                 // 更新插入状态
-                LOG_S(0, "EVENT_SEG_DEMUXER_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                //LOG_S(0, "EVENT_SEG_DEMUXER_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
 
@@ -106,7 +106,7 @@ namespace ppbox
                     evt.seg_info.segment, evt.seg_info.time_end - evt.seg_info.time_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_STOP:
-                LOG_S(0, "EVENT_SEG_DEMUXER_STOP: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
+                //LOG_S(0, "EVENT_SEG_DEMUXER_STOP: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
 
@@ -187,47 +187,6 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
-            //boost::uint64_t time2 = time;
-            //bool abs_flag = false, stop_flag = false;
-            //SegmentPositionEx position2 = position, tmp_pos;
-
-            //if (position2.size_end == (boost::uint64_t)-1)
-            //    next_segment(position2);
-
-            //do
-            //{
-            //    if (abs_flag || stop_flag)
-            //    {
-            //        // 更新相对起始分段
-            //        stop_flag = true;
-            //    }
-
-            //    if (position2.size_end == (boost::uint64_t)-1)
-            //    {
-            //        tmp_pos = position2;// 需要更新相对起始分段
-            //        tmp_pos.size_end = 0;
-            //        abs_flag = true;
-            //    }
-            //    else
-            //    {
-            //        abs_flag = false;
-            //    }
-
-            //    if (position2.time_end == (boost::uint64_t)-1
-            //        ||
-            //        position2.time_end >= time2)
-            //    {
-            //        if (position2.time_end == (boost::uint64_t)-1)
-            //        {
-            //            position2.total_state = SegmentPositionEx::unknown_time;
-            //        }
-            //        break;
-            //    }
-
-            //    position2.segment++;
-            //} while ( !next_segment(position2) );
-            //position = position2;
-
             boost::uint64_t time2 = time;
             boost::uint64_t skip_size = 0;
             SourceBase * next_item = (SourceBase *)first_child_;
@@ -369,8 +328,6 @@ namespace ppbox
             } else {
                 position.total_state = SegmentPositionEx::not_exist;
             }
-            
-
             return ec;
         }
 

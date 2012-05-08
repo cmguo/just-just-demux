@@ -7,6 +7,8 @@
 
 #include <ppbox/common/Serialize.h>
 
+#include <framework/timer/TickCounter.h>
+
 #include <util/protocol/pptv/Base64.h>
 #include <util/serialization/NVPair.h>
 #include <util/serialization/stl/vector.h>
@@ -161,6 +163,7 @@ namespace ppbox
             time_t file_time_;
             time_t begin_time_;
             time_t value_time_;
+            framework::timer::TickCounter tc_;
             boost::uint32_t seek_time_;
             boost::int32_t bwtype_;
             boost::int32_t live_port_;
@@ -170,7 +173,6 @@ namespace ppbox
 
             std::deque<SegmentPositionEx> segments_;
             boost::uint32_t max_segment_size_;
-            boost::uint32_t segment_duration_;
 
             boost::uint16_t interval_;
             boost::uint32_t seq_;

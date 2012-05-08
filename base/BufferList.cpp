@@ -214,15 +214,16 @@ namespace ppbox
                     if (data_end_ < write_.offset)
                         data_end_ = write_.offset;
                 } else {
+                    // 打开失败
                     if (!write_.source->continuable(ec)) {
                         LOG_S(framework::logger::Logger::kLevelAlarm, 
                             "[prepare] open_segment: " << ec.message() << 
                             " --- failed " << num_try_ << " times");
+                        //close_segment(ec);
                     } else {
                         increase_download_byte(0);
                     }
                 }
-
                 if (source_error_) {
                     ec = source_error_;
                 }
@@ -512,11 +513,19 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (read_.total_state < SegmentPositionEx::is_valid) {
-                assert(read_.segment == write_.segment);
                 write_.shard_end = write_.size_end = write_.offset;
-                read_.shard_end = read_.size_end = write_.offset;
-                read_.total_state = SegmentPositionEx::by_guess;
-                LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
+                if (read_.segment == write_.segment) {
+                    read_.shard_end = read_.size_end = write_.offset;
+                    read_.total_state = SegmentPositionEx::by_guess;
+                    LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
+                } else {
+                    assert(read_.segment < write_.segment);
+                    boost::uint64_t size = read_.source->segment_size(read_.segment);
+                    if (size != boost::uint64_t(-1)) {
+                        read_.shard_end = read_.size_end = read_.size_beg + size;
+                        read_.total_state = SegmentPositionEx::is_valid;
+                    }
+                }
             }
             read_seek_to(read_.shard_end, ec);
             if (!ec) {
@@ -772,11 +781,7 @@ namespace ppbox
             }
             if (ec)
                 source_error_ = ec;
-            if (ec == source_error::need_reopen) {
-                return true;
-            } else {
-                return !ec;
-            }
+            return !ec;
         }
 
         void BufferList::seek_to(
@@ -1186,6 +1191,7 @@ namespace ppbox
                     " end: " << write_hole_.this_end - write_.size_beg);
 
                 // 下载结束事件通知
+                // write_.size_end = write_.offset;
                 Event evt(Event::EVENT_SEG_DL_END, write_, boost::system::error_code());
                 write_.source->on_event(evt);
                 demuxer_->on_event(evt);

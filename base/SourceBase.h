@@ -397,7 +397,7 @@ namespace ppbox
                 return insert_demuxer_;
             }
 
-        private:
+        public:
             //************************************
             // Method:    segment_count ·Ö¶Î¸öÊý
             // FullName:  ppbox::demux::SourceBase::segment_count
