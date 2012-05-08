@@ -84,6 +84,12 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             ec.clear();
+            if (position.total_state < SegmentPositionEx::is_valid)
+            {
+                clear();
+                return ec;
+            }
+
             offset += position.size_beg;// ¾ø¶ÔÆ«ÒÆÁ¿
             if (end != (boost::uint64_t)-1)
                 end += position.size_beg;
@@ -129,7 +135,6 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             boost::system::error_code ret_ec = seek(position, offset, (boost::uint64_t)-1, ec);
-            read_bytesstream_->do_seek(position, offset);
             return ret_ec;
         }
 
