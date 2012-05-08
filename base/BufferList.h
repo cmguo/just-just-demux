@@ -259,6 +259,8 @@ namespace ppbox
 
             void clear();
 
+            void reset(SegmentPositionEx const & seg);
+
         public:
 
             // 当前读分段读指针之前的大小

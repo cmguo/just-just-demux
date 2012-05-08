@@ -88,35 +88,7 @@ namespace ppbox
             if ( abs_position != abs_position_ )
             {
                 abs_position_ = abs_position;
-
-                close(ec);
-                clear();
-
-                seek_to(offset);
-
-                SegmentPositionEx & read = read_, & write = write_;
-                write = read = position;
-                source_init();
-
-                root_source_->size_seek(write_.offset, abs_position_, write_, ec);
-
-                if (!ec) {
-                    if (offset >= seek_end_)
-                        seek_end_ = (boost::uint64_t)-1;
-                    if (end < seek_end_)
-                        seek_end_ = end;
-                }
-
-                if (source_closed_ || seek_end_ == (boost::uint64_t)-1) {
-                    update_hole(write_, write_hole_);
-                    write_tmp_ = write_;
-                    write_tmp_.buffer = NULL;
-                    write_hole_tmp_ = write_hole_;
-                }
-
-                read_bytesstream_->do_seek(position, offset);
-
-                return ec;
+                reset(position);
             }
 
             offset += position.size_beg;// 绝对偏移量
@@ -605,6 +577,32 @@ namespace ppbox
 
             read_bytesstream_->do_close();
             write_bytesstream_->do_close();
+        }
+
+        void BufferList::reset(SegmentPositionEx const & seg)
+        {
+            read_ = PositionEx();
+            read_.buffer = buffer_beg();
+            read_.offset = seg.size_beg;
+            write_tmp_ = write_ = read_;
+            write_tmp_.buffer = NULL;
+
+            read_hole_.this_end = read_hole_.next_beg = seg.size_beg;
+            write_hole_.this_end = write_hole_.next_beg = seg.shard_end;
+
+            write_hole_tmp_ = write_hole_;
+
+            time_block_ = 0;
+            time_out_ = 0;
+
+            source_closed_ = true;
+            data_beg_ = 0;
+            data_end_ = 0;
+            seek_end_ = (boost::uint64_t)-1;
+            amount_ = 0;
+            expire_pause_time_ = Time::now();
+            sended_req_ = 0;
+            clear_error();
         }
 
         // 当前读分段读指针之前的大小
