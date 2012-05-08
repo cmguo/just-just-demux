@@ -116,42 +116,42 @@ namespace ppbox
             //    end_ = size_;
             //}
 
-            void unchecked_update(
-                SegmentPositionEx const & segment)
-            {
-                std::size_t iter_dist = std::distance(buffers_.begin(), iter_);
-                std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-                boost::uint32_t size = size_;
+            //void unchecked_update(
+            //    SegmentPositionEx const & segment)
+            //{
+            //    std::size_t iter_dist = std::distance(buffers_.begin(), iter_);
+            //    std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
+            //    boost::uint32_t size = size_;
 
-                update(segment);
+            //    update(segment);
 
-                if ( size_ > size )
-                {
-                    end_ += (size_ - size);
-                }
-                else 
-                {
-                    end_ -= (size - size_);
-                }
+            //    if ( size_ > size )
+            //    {
+            //        end_ += (size_ - size);
+            //    }
+            //    else 
+            //    {
+            //        end_ -= (size - size_);
+            //    }
 
-                iter_ = buffers_.begin();
-                std::advance(iter_, iter_dist);
-                std::size_t buf_size2 = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
+            //    iter_ = buffers_.begin();
+            //    std::advance(iter_, iter_dist);
+            //    std::size_t buf_size2 = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
 
-                if (buf_size) {
-                    if (buf_size2 > buf_size) {
-                        buf_.commit(buf_size2 - buf_size);
-                    }
-                    if (buf_size > buf_size2)
-                    {
-                        //buf_.rewind(buf_size - buf_size2);
-                    }
-                } else {
-                    // 原先是空BufferList，Buffer是在后面追加的假定不成立
-                    if (iter_ != buffers_.end())
-                        buf_ = *iter_;
-                }
-            }
+            //    if (buf_size) {
+            //        if (buf_size2 > buf_size) {
+            //            buf_.commit(buf_size2 - buf_size);
+            //        }
+            //        if (buf_size > buf_size2)
+            //        {
+            //            //buf_.rewind(buf_size - buf_size2);
+            //        }
+            //    } else {
+            //        // 原先是空BufferList，Buffer是在后面追加的假定不成立
+            //        if (iter_ != buffers_.end())
+            //            buf_ = *iter_;
+            //    }
+            //}
 
             void update_new(
                 SegmentPositionEx const & segment)
@@ -182,38 +182,38 @@ namespace ppbox
                 }
             }
 
-            void seek(
-                SegmentPositionEx & segment,
-                boost::uint64_t offset)
-            {
-                buffer_.seek(segment, offset, ec_);
-                update(buffer_.read_segment());
-                pos_ = offset;
-                end_ = offset + size_;
-                if (size_ > 0) {
-                    iter_ = buffers_.begin();
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
-            }
+            //void seek(
+            //    SegmentPositionEx & segment,
+            //    boost::uint64_t offset)
+            //{
+            //    buffer_.seek(segment, offset, ec_);
+            //    update(buffer_.read_segment());
+            //    pos_ = offset;
+            //    end_ = offset + size_;
+            //    if (size_ > 0) {
+            //        iter_ = buffers_.begin();
+            //        buf_ = *iter_;
+            //    } else {
+            //        setg(NULL, NULL, NULL);
+            //    }
+            //}
 
-            void seek(
-                SegmentPositionEx & segment,
-                boost::uint64_t offset,
-                boost::uint64_t head_length)
-            {
-                buffer_.seek(segment, offset, head_length, ec_);
-                update(buffer_.read_segment());
-                pos_ = offset;
-                end_ = offset + size_;
-                if (size_ > 0) {
-                    iter_ = buffers_.begin();
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
-            }
+            //void seek(
+            //    SegmentPositionEx & segment,
+            //    boost::uint64_t offset,
+            //    boost::uint64_t head_length)
+            //{
+            //    buffer_.seek(segment, offset, head_length, ec_);
+            //    update(buffer_.read_segment());
+            //    pos_ = offset;
+            //    end_ = offset + size_;
+            //    if (size_ > 0) {
+            //        iter_ = buffers_.begin();
+            //        buf_ = *iter_;
+            //    } else {
+            //        setg(NULL, NULL, NULL);
+            //    }
+            //}
 
             void close()
             {

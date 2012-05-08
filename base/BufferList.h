@@ -137,6 +137,7 @@ namespace ppbox
             // 此时size为head_size_头部数据大小
             // TO BE FIXED
             boost::system::error_code seek(
+                SegmentPositionEx const & abs_position,
                 SegmentPositionEx & position,
                 boost::uint64_t offset, 
                 boost::uint64_t end, 
@@ -145,6 +146,7 @@ namespace ppbox
             // seek到分段的具体位置offset
             // TO BE FIXED
             boost::system::error_code seek(
+                SegmentPositionEx const & abs_position,
                 SegmentPositionEx & position, 
                 boost::uint64_t offset, 
                 boost::system::error_code & ec);
@@ -607,6 +609,8 @@ namespace ppbox
 
             PositionEx write_tmp_;
             Hole write_hole_tmp_;
+
+            SegmentPositionEx abs_position_;
 
             BytesStream * read_bytesstream_;    // 读Buffer
             BytesStream * write_bytesstream_;   // 写Buffer

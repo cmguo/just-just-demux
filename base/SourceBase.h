@@ -295,11 +295,13 @@ namespace ppbox
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // ОўГо
+                SegmentPositionEx & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code size_seek (
                 boost::uint64_t size,  
+                SegmentPositionEx const & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 

@@ -184,6 +184,7 @@ namespace ppbox
 
         boost::system::error_code SourceBase::time_seek (
             boost::uint64_t time, 
+            SegmentPositionEx & abs_position,
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
@@ -202,7 +203,7 @@ namespace ppbox
                 } else if (time2 < insert_time + next_item->tree_time()) {
                     boost::uint64_t insert_size = source_size_before(next_item->insert_segment_) 
                         + skip_size + next_item->insert_size_;
-                    next_item->time_seek(time - insert_time, position, ec);
+                    next_item->time_seek(time - insert_time, abs_position, position, ec);
                     position.size_beg += insert_size;
                     position.size_end += insert_size;
                     position.shard_beg += insert_size;
@@ -250,6 +251,7 @@ namespace ppbox
 
         boost::system::error_code SourceBase::size_seek (
             boost::uint64_t size, 
+            SegmentPositionEx const & abs_position,
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
@@ -286,7 +288,7 @@ namespace ppbox
                 } else if (size2 < insert_size + next_item->tree_size()) {
                     boost::uint64_t insert_time = source_time_before(next_item->insert_segment_) 
                         + skip_time + next_item->insert_time_;
-                    next_item->size_seek(size - insert_size, position, ec);
+                    next_item->size_seek(size - insert_size, abs_position, position, ec);
                     position.size_beg += insert_size;
                     position.size_end += insert_size;
                     position.shard_beg += insert_size;
@@ -337,7 +339,8 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
-            time_seek(time, position, ec);
+            SegmentPositionEx abs_pos;
+            time_seek(time, abs_pos, position, ec);
             if (!ec) {
                 source->skip_ = true;// 假插入
                 source->insert_segment_ = position.segment;// 指向父分段

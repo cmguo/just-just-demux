@@ -78,15 +78,44 @@ namespace ppbox
         // 此时size为head_size_头部数据大小
         // TO BE FIXED
         boost::system::error_code BufferList::seek(
+            SegmentPositionEx const & abs_position,
             SegmentPositionEx & position,
             boost::uint64_t offset, 
             boost::uint64_t end, 
             boost::system::error_code & ec)
         {
             ec.clear();
-            if (position.total_state < SegmentPositionEx::is_valid)
+            if ( abs_position != abs_position_ )
             {
+                abs_position_ = abs_position;
+
+                close(ec);
                 clear();
+
+                seek_to(offset);
+
+                SegmentPositionEx & read = read_, & write = write_;
+                write = read = position;
+                source_init();
+
+                root_source_->size_seek(write_.offset, abs_position_, write_, ec);
+
+                if (!ec) {
+                    if (offset >= seek_end_)
+                        seek_end_ = (boost::uint64_t)-1;
+                    if (end < seek_end_)
+                        seek_end_ = end;
+                }
+
+                if (source_closed_ || seek_end_ == (boost::uint64_t)-1) {
+                    update_hole(write_, write_hole_);
+                    write_tmp_ = write_;
+                    write_tmp_.buffer = NULL;
+                    write_hole_tmp_ = write_hole_;
+                }
+
+                read_bytesstream_->do_seek(position, offset);
+
                 return ec;
             }
 
@@ -104,7 +133,7 @@ namespace ppbox
             seek_to(offset);
             SegmentPositionEx & read = read_;
             read = position;
-            root_source_->size_seek(write_.offset, write_, ec);
+            root_source_->size_seek(write_.offset, abs_position_, write_, ec);
             if (!ec) {
                 if (offset >= seek_end_)
                     seek_end_ = (boost::uint64_t)-1;
@@ -130,11 +159,12 @@ namespace ppbox
         // seek到分段的具体位置offset
         // TO BE FIXED
         boost::system::error_code BufferList::seek(
+            SegmentPositionEx const & abs_position,
             SegmentPositionEx & position, 
             boost::uint64_t offset, 
             boost::system::error_code & ec)
         {
-            boost::system::error_code ret_ec = seek(position, offset, (boost::uint64_t)-1, ec);
+            boost::system::error_code ret_ec = seek(abs_position, position, offset, (boost::uint64_t)-1, ec);
             return ret_ec;
         }
 
@@ -730,8 +760,8 @@ namespace ppbox
                     data_end_ = abs_offset;
             }
             // 更新读写分段
-            read_.source->size_seek(read_.offset, read_, ec);
-            write_.source->size_seek(write_.offset, write_, ec);
+            read_.source->size_seek(read_.offset, abs_position_, read_, ec);
+            write_.source->size_seek(write_.offset, abs_position_, write_, ec);
             write_tmp_ = write_;
             write_tmp_.buffer = NULL;
         }
