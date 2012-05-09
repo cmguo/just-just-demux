@@ -85,10 +85,17 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             ec.clear();
-            if ( abs_position != abs_position_ )
-            {
+            if (abs_position_.segment == boost::uint32_t(-1)) {
                 abs_position_ = abs_position;
-                reset(position);
+            }
+            if ( abs_position != abs_position_ ) {
+                abs_position_ = abs_position;
+                boost::system::error_code ec1;
+                close_segment(ec1);
+                close_all_request(ec1);
+
+                reset(position, offset);
+                return ec;
             }
 
             offset += position.size_beg;// ¾ø¶ÔÆ«ÒÆÁ¿
@@ -105,7 +112,7 @@ namespace ppbox
             seek_to(offset);
             SegmentPositionEx & read = read_;
             read = position;
-            root_source_->size_seek(write_.offset, abs_position_, write_, ec);
+            //root_source_->size_seek(write_.offset, abs_position_, write_, ec);
             if (!ec) {
                 if (offset >= seek_end_)
                     seek_end_ = (boost::uint64_t)-1;
@@ -579,29 +586,22 @@ namespace ppbox
             write_bytesstream_->do_close();
         }
 
-        void BufferList::reset(SegmentPositionEx const & seg)
+        void BufferList::reset(SegmentPositionEx const & seg, boost::uint32_t offset)
         {
-            read_ = PositionEx();
-            read_.buffer = buffer_beg();
-            read_.offset = seg.size_beg;
-            write_tmp_ = write_ = read_;
-            write_tmp_.buffer = NULL;
+            offset += seg.size_beg;
 
-            read_hole_.this_end = read_hole_.next_beg = seg.size_beg;
-            write_hole_.this_end = write_hole_.next_beg = seg.shard_end;
+            read_.offset = offset;
+            read_.buffer = buffer_beg();
+            write_.offset = offset;
+            write_.buffer = buffer_beg();
+            data_beg_ = data_end_ = offset;
+            write_hole_.this_end = write_.offset;
+            write_hole_.next_beg = boost::uint64_t(-1);
+            read_hole_.next_beg = offset;
+            read_.segment = seg.segment;
 
             write_hole_tmp_ = write_hole_;
 
-            time_block_ = 0;
-            time_out_ = 0;
-
-            source_closed_ = true;
-            data_beg_ = 0;
-            data_end_ = 0;
-            seek_end_ = (boost::uint64_t)-1;
-            amount_ = 0;
-            expire_pause_time_ = Time::now();
-            sended_req_ = 0;
             clear_error();
         }
 

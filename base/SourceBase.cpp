@@ -109,7 +109,6 @@ namespace ppbox
                 //LOG_S(0, "EVENT_SEG_DEMUXER_STOP: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
-
                 break;
             default:
                 break;
@@ -188,6 +187,9 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
+            // vod : 相对开起分段为0
+            abs_position.segment = 0;
+
             boost::uint64_t time2 = time;
             boost::uint64_t skip_size = 0;
             SourceBase * next_item = (SourceBase *)first_child_;

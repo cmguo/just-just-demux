@@ -259,7 +259,8 @@ namespace ppbox
 
             void clear();
 
-            void reset(SegmentPositionEx const & seg);
+            void reset(
+                SegmentPositionEx const & seg, boost::uint32_t offset);
 
         public:
 
