@@ -593,6 +593,8 @@ namespace ppbox
             read_.segment = seg.segment;
 
             write_hole_tmp_ = write_hole_;
+            read_bytesstream_->do_update_new(seg);
+            write_bytesstream_->do_update_new(seg);
 
             clear_error();
         }
