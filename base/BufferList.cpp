@@ -91,7 +91,7 @@ namespace ppbox
             if ( abs_position != abs_position_ ) {
                 abs_position_ = abs_position;
                 boost::system::error_code ec1;
-                close_segment(ec1);
+                close_segment(ec1, false);
                 close_all_request(ec1);
 
                 reset(position, offset);
@@ -106,7 +106,7 @@ namespace ppbox
                 || end < write_hole_.this_end) {// 读指针之前，或写指针之后，或当前写空洞之间
                     // close source for open from new offset
                     boost::system::error_code ec1;
-                    close_segment(ec1);
+                    close_segment(ec1, false);
                     close_all_request(ec1);
             }
             seek_to(offset);
@@ -726,7 +726,7 @@ namespace ppbox
                 write_hole_tmp_.next_beg += size;
                 write_hole_tmp_.this_end += size;
             } else if (abs_offset <= write_.offset) {// 插入分段在当前写位置之前
-                close_segment(ec);
+                close_segment(ec, false);
                 close_all_request(ec);
                 move_back_to(write_, abs_offset);
                 write_tmp_ = write_;
@@ -736,7 +736,7 @@ namespace ppbox
                 data_end_ = abs_offset;
             } else if (abs_offset < write_hole_.this_end) {// 插入位置在当前写空洞之前
                 if (sended_req_ > 1) {
-                    close_segment(ec);
+                    close_segment(ec, false);
                     close_all_request(ec);
                 }
                 write_hole_.next_beg = write_hole_.this_end = abs_offset;
@@ -744,7 +744,7 @@ namespace ppbox
                 data_end_ = write_.offset;
             } else {
                 if (abs_offset < write_hole_tmp_.this_end) {
-                    close_segment(ec);
+                    close_segment(ec, false);
                     close_all_request(ec);
                 }
                 if (abs_offset < data_end_)
@@ -1117,7 +1117,7 @@ namespace ppbox
             bool is_next_segment, 
             boost::system::error_code & ec)
         {
-            close_segment(ec);
+            close_segment(ec, is_next_segment);
 
             if (is_next_segment) {
                 reset_zero_interval();
@@ -1183,7 +1183,7 @@ namespace ppbox
         {
             boost::system::error_code ec;
 
-            close_segment(ec);
+            close_segment(ec, is_next_segment);
 
             if (is_next_segment) {
                 close_request(ec);
@@ -1215,7 +1215,7 @@ namespace ppbox
         }
 
         boost::system::error_code BufferList::close_segment(
-            boost::system::error_code & ec)
+            boost::system::error_code & ec, bool need_update)
         {
             if (!source_closed_) {
                 LOG_S(framework::logger::Logger::kLevelDebug, 
@@ -1225,9 +1225,12 @@ namespace ppbox
 
                 // 下载结束事件通知
                 // write_.size_end = write_.offset;
-                Event evt(Event::EVENT_SEG_DL_END, write_, boost::system::error_code());
-                write_.source->on_event(evt);
-                demuxer_->on_event(evt);
+                if (need_update)
+                {
+                    Event evt(Event::EVENT_SEG_DL_END, write_, boost::system::error_code());
+                    write_.source->on_event(evt);
+                    demuxer_->on_event(evt);
+                }
 
                 write_.source->on_seg_end(write_.segment);
                 source_closed_ = true;

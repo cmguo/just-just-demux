@@ -436,7 +436,7 @@ namespace ppbox
                 open_response_type const & resp);
 
             boost::system::error_code close_segment(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec, bool need_update = true);
 
             void dump();
 
