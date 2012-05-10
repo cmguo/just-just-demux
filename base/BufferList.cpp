@@ -580,21 +580,60 @@ namespace ppbox
 
         void BufferList::reset(SegmentPositionEx const & seg, boost::uint32_t offset)
         {
-            offset += seg.size_beg;
+            num_try_ = 0;
+            time_block_ = 0;
+            time_out_ = 0;
+            source_closed_ = true;
+            data_beg_ = 0;
+            data_end_ = 0;
+            seek_end_ = boost::uint64_t(-1);
+            amount_ = 0;
+            expire_pause_time_ = Time::now();
+            sended_req_ = 0;
 
-            read_.offset = offset;
-            read_.buffer = buffer_beg();
-            write_.offset = offset;
             write_.buffer = buffer_beg();
-            data_beg_ = data_end_ = offset;
-            write_hole_.this_end = write_.offset;
-            write_hole_.next_beg = boost::uint64_t(-1);
-            read_hole_.next_beg = offset;
-            read_.segment = seg.segment;
+            write_.offset = seg.size_beg + offset;
+            write_.segment = seg.segment;
+            write_.size_beg = 0;
+            write_.size_end = seg.size_end;
+            write_.total_state = seg.total_state;
+            write_hole_.this_end = write_hole_.next_beg = boost::uint64_t(-1);
+            write_.source = root_source_;
 
-            write_hole_tmp_ = write_hole_;
-            read_bytesstream_->do_update_new(seg);
-            write_bytesstream_->do_update_new(seg);
+            write_tmp_ = read_ = write_;
+            write_tmp_.buffer = NULL;
+
+
+            delete read_bytesstream_;
+            read_bytesstream_ = new BytesStream(
+                *this, read_);
+            delete write_bytesstream_;
+            write_bytesstream_ = new BytesStream(
+                *this, write_);
+
+
+
+            //read_.offset = offset;
+            //read_.buffer = buffer_beg();
+            //write_.offset = offset;
+            //write_.buffer = buffer_beg();
+            //data_beg_ = data_end_ = offset;
+            //write_hole_.this_end = write_.offset;
+            //write_hole_.next_beg = boost::uint64_t(-1);
+            //read_hole_.next_beg = offset;
+            //read_.segment = seg.segment;
+            //write_.segment = seg.segment;
+
+            //write_hole_tmp_ = write_hole_;
+
+            ////read_bytesstream_->do_close();
+            ////read_bytesstream_->do_update_new(read_);
+            ////write_bytesstream_->do_close();
+            ////write_bytesstream_->do_update_new(write_);
+            //delete read_bytesstream_;
+            //read_bytesstream_ = new BytesStream(*this, read_);
+            //delete write_bytesstream_;
+            //write_bytesstream_ = new BytesStream(*this, write_);
 
             clear_error();
         }
@@ -1148,12 +1187,10 @@ namespace ppbox
             }
 
             if (is_next_segment) {
-                std::cout << "offset " << write_.offset << "begin: " << write_.size_beg << "end: " << write_.size_end << std::endl;
                 if (next_write_hole(write_, write_hole_, ec)) {
                     assert(0);
                     return ec;
                 }
-                std::cout << "offset " << write_.offset << "begin: " << write_.size_beg << "end: " << write_.size_end << std::endl;
             }
 
             LOG_S(framework::logger::Logger::kLevelAlarm, 

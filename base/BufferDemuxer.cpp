@@ -169,6 +169,8 @@ namespace ppbox
             if (!ec) {
                 if (!buffer_->seek(abs_position, position, 0, ec)) {
                     create_demuxer(position, read_demuxer_, ec);
+                    read_demuxer_.demuxer->set_stream(*buffer_->get_read_bytesstream());
+                    more(0);
                     read_demuxer_.demuxer->is_open(ec);
                     if (!ec) {
                         create_demuxer(position, write_demuxer_, ec);
@@ -176,7 +178,6 @@ namespace ppbox
                         boost::uint32_t time_t = time - boost::uint32_t(position.time_beg);
                         boost::uint64_t offset = read_demuxer_.demuxer->seek(time_t, ec);
                         if (!ec) {
-                            more(0);
                             if (!buffer_->seek(abs_position, position, offset, ec)) {
                                 seek_time_ = 0;
                             }
