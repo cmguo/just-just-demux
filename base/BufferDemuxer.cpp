@@ -409,7 +409,7 @@ namespace ppbox
             error_code const & ec)
         {
             SegmentPositionEx position;
-            position.segment = write_demuxer_.segment.segment;
+            position.segment = read_demuxer_.segment.segment;
             position.time_beg = 0;
             position.time_end = duration;
             position.size_beg = 0;

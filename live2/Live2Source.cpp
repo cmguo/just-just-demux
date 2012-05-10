@@ -123,6 +123,7 @@ namespace ppbox
             segment.segment = (value_time_+(tc_.elapsed()/1000))/interval_ - 1;
             file_time_ = begin_time_ + (segment.segment * interval_);
             segment.source = this;
+            segments_.clear();
             add_segment(segment);
             begin_segment_ = segment;
             return error_code();
@@ -229,10 +230,11 @@ namespace ppbox
             size_t segment,
             boost::uint64_t filesize)
         {
-            bool find = false;
+            boost::uint32_t find_this_segment = boost::uint32_t(-1);
+            boost::uint32_t find_next_segment = boost::uint32_t(-1);
             for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
                 if (segments_[i].segment == segment) {
-                    find = true;
+                    find_this_segment = i;
                     if (0 == i) {
                         assert(segments_[i].total_state != SegmentPositionEx::is_valid);
                         // 只有第一段才进入这里
@@ -241,9 +243,11 @@ namespace ppbox
                         segments_[i].shard_end = segments_[i].size_end;
                     } else {
                         assert(segments_[i-1].total_state == SegmentPositionEx::is_valid);
+                        assert(segments_[i].total_state < SegmentPositionEx::is_valid);
                         segments_[i].size_beg = segments_[i].shard_beg = segments_[i-1].size_end;
                         segments_[i].size_end = segments_[i].size_beg + filesize;
                         segments_[i].shard_end = segments_[i].size_end;
+                        assert(segments_[i].size_beg != segments_[i].size_end);
                     }
                     if (segments_[i].shard_end != (boost::uint64_t)-1) {
                         segments_[i].total_state = SegmentPositionEx::is_valid;
@@ -251,8 +255,19 @@ namespace ppbox
                         segments_[i].total_state = SegmentPositionEx::not_exist;
                     }
                 }
+                if (segments_[i].segment == (segment + 1)) {
+                    find_next_segment = i;
+                }
             }
-            // assert(find);
+            assert(find_this_segment != boost::uint32_t(-1));
+            assert(find_this_segment != find_next_segment);
+
+            if (find_this_segment != boost::uint32_t(-1) 
+                && find_next_segment == boost::uint32_t(-1)) {
+                SegmentPositionEx seg;
+                seg.segment = segment + 1;
+                add_segment(seg);
+            }
         }
 
         boost::system::error_code Live2Source::segment_open(
@@ -471,6 +486,7 @@ namespace ppbox
                 bool find = false;
                 for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
                     if (segments_[i].segment == position.segment) {
+                        position.source = this;
                         position.total_state = segments_[i].total_state;
                         position.size_beg = segments_[i].size_beg;
                         position.size_end = segments_[i].size_end;
@@ -486,9 +502,9 @@ namespace ppbox
                     segments_.clear();
                     begin_segment_ = position;
                     abs_position.segment = position.segment;
+                    add_segment(position);
                 }
-                position.source = this;
-                add_segment(position);
+
             }
             return ec;
         }
@@ -528,22 +544,6 @@ namespace ppbox
                 } else {
                     segment.total_state = SegmentPositionEx::not_exist;
                 }
-                SegmentPositionEx seg;
-                seg.segment = segment.segment;
-                seg.time_beg = 0;
-                seg.size_beg = 0;
-                seg.shard_beg = 0;
-                seg.total_state = segment.total_state;
-                if (segment.time_end != boost::uint64_t(-1)) {
-                    seg.time_end = segment.time_end - segment.time_beg;
-                }
-                if (segment.size_end != boost::uint64_t(-1)) {
-                    seg.size_end = segment.size_end - segment.size_beg;
-                }
-                if (segment.shard_end != boost::uint64_t(-1)) {
-                    seg.shard_end = segment.shard_end - segment.shard_beg;
-                }
-                add_segment(seg);
                 return true;
             }
         }

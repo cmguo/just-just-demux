@@ -92,7 +92,6 @@ namespace ppbox
                 LOG_S(0, "EVENT_SEG_DL_END: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
-
                 update_segment_file_size(
                     evt.seg_info.segment, evt.seg_info.size_end - evt.seg_info.size_beg);
                 break;
