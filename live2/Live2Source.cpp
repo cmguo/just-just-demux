@@ -28,7 +28,6 @@ namespace ppbox
 {
     namespace demux
     {
-       
         static const  framework::network::NetName dns_live2_jump_server(PPBOX_DNS_LIVE2_JUMP);
 
         static const boost::uint32_t CACHE_T = 1800;
@@ -121,9 +120,11 @@ namespace ppbox
         boost::system::error_code Live2Source::reset(
             SegmentPositionEx & segment)
         {
-            segment.segment = (value_time_+(tc_.elapsed()/1000))/interval_;
+            segment.segment = (value_time_+(tc_.elapsed()/1000))/interval_ - 1;
             file_time_ = begin_time_ + (segment.segment * interval_);
+            segment.source = this;
             add_segment(segment);
+            begin_segment_ = segment;
             return error_code();
         }
 
@@ -131,15 +132,12 @@ namespace ppbox
             boost::system::error_code const & ecc)
         {
             boost::system::error_code ec = ecc;
-            if (ec) 
-            {
-                if (ec != boost::asio::error::would_block) 
-                {
-                    if (open_step_ == StepType::jump) 
-                    {
+            if (ec) {
+                if (ec != boost::asio::error::would_block) {
+                    if (open_step_ == StepType::jump) {
                         LOG_S(Logger::kLevelAlarm, "jump: failure");
                         response(ec);
-                    } 
+                    }
                 }
                 return;
             }
@@ -148,7 +146,6 @@ namespace ppbox
             {
             case StepType::opening:
                 {
-
                     if (!ec) 
                     {
                         open_step_ = StepType::jump;
@@ -190,7 +187,6 @@ namespace ppbox
         {
             SourceBase::response_type resp;
             resp.swap(resp_);
-
             ios_service().post(boost::bind(resp, ec));
         }
 
@@ -202,20 +198,15 @@ namespace ppbox
 
         void Live2Source::update_segment(size_t segment)
         {
-            if (segments_.size() == segment )
-            {
+            if (segments_.size() == segment ) {
                 /*VodSegmentNew newSegment;
                 newSegment.duration = boost::uint32_t(-1);
                 newSegment.file_length = boost::uint64_t(-1);
                 newSegment.head_length = boost::uint64_t(-1);
                 segments_.push_back(newSegment);*/
-            }
-            else if (segments_.size() > segment)
-            {
+            } else if (segments_.size() > segment) {
                 //正常情况
-            }
-            else
-            {
+            } else {
                 //assert(false);
             }
         }
@@ -242,8 +233,18 @@ namespace ppbox
             for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
                 if (segments_[i].segment == segment) {
                     find = true;
-                    segments_[i].size_end = filesize;
-                    segments_[i].shard_end = segments_[i].size_end;
+                    if (0 == i) {
+                        assert(segments_[i].total_state != SegmentPositionEx::is_valid);
+                        // 只有第一段才进入这里
+                        segments_[i].size_beg = segments_[i].shard_beg = 0;
+                        segments_[i].size_end = filesize;
+                        segments_[i].shard_end = segments_[i].size_end;
+                    } else {
+                        assert(segments_[i-1].total_state == SegmentPositionEx::is_valid);
+                        segments_[i].size_beg = segments_[i].shard_beg = segments_[i-1].size_end;
+                        segments_[i].size_end = segments_[i].size_beg + filesize;
+                        segments_[i].shard_end = segments_[i].size_end;
+                    }
                     if (segments_[i].shard_end != (boost::uint64_t)-1) {
                         segments_[i].total_state = SegmentPositionEx::is_valid;
                     } else {
@@ -251,7 +252,7 @@ namespace ppbox
                     }
                 }
             }
-            assert(find);
+            // assert(find);
         }
 
         boost::system::error_code Live2Source::segment_open(
@@ -347,7 +348,7 @@ namespace ppbox
             return ec;
         }
 
-        void Live2Source::add_segment(SegmentPositionEx const & segment)
+        void Live2Source::add_segment(SegmentPositionEx & segment)
         {
             assert(segments_.size() <= max_segment_size_);
             if (segments_.size() == max_segment_size_) {
@@ -362,6 +363,7 @@ namespace ppbox
             if (!find) {
                 if (!segments_.empty()) {
                      assert(segment.segment == (segments_[segments_.size()-1].segment + 1));
+                     segment.size_beg = segment.shard_beg = segments_[segments_.size()-1].size_end;
                 }
                 segments_.push_back(segment);
             }
@@ -375,14 +377,12 @@ namespace ppbox
         void Live2Source::set_url(std::string const &url)
         {
             std::string::size_type slash = url.find('|');
-            if (slash == std::string::npos) 
-            {
+            if (slash == std::string::npos) {
                 return;
             }
 
             key_ = url.substr(0, slash);
             std::string playlink = url.substr(slash + 1);
-            //std::string tmp = "e9301e073cf94732a380b765c8b9573d-5";
 
             playlink = framework::string::Url::decode(playlink);
             framework::string::Url request_url(playlink);
@@ -453,6 +453,7 @@ namespace ppbox
 
         boost::system::error_code Live2Source::time_seek (
             boost::uint64_t time, // 毫妙
+            SegmentPositionEx & abs_position,
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
@@ -461,10 +462,33 @@ namespace ppbox
                 ec = error::not_support;
             } else {
                 boost::uint64_t iTime = 0;
-                //file_time_ = server_time_ - jump_info_.delay_play_time;
                 file_time_ = time/1000 + begin_time_;
                 file_time_ = file_time_ / interval_ * interval_;
-                position.segment = time/5000;
+                position.segment = time / (interval_ * 1000);
+                position.time_beg = position.segment * interval_ * 1000;
+                position.time_end = position.time_beg + (interval_ * 1000);
+
+                bool find = false;
+                for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
+                    if (segments_[i].segment == position.segment) {
+                        position.total_state = segments_[i].total_state;
+                        position.size_beg = segments_[i].size_beg;
+                        position.size_end = segments_[i].size_end;
+                        // position.time_beg = segments_[i].time_beg;
+                        // position.time_end = segments_[i].time_end; 拖动的时候不用时间的相关设置
+                        position.shard_beg = segments_[i].shard_beg;
+                        position.shard_end = segments_[i].shard_end;
+                        find = true;
+                        break;
+                    }
+                }
+                if (!find || position.total_state < SegmentPositionEx::is_valid) {
+                    segments_.clear();
+                    begin_segment_ = position;
+                    abs_position.segment = position.segment;
+                }
+                position.source = this;
+                add_segment(position);
             }
             return ec;
         }
@@ -483,18 +507,21 @@ namespace ppbox
                     segment.shard_end = segment.size_end = (seg_size == (boost::uint64_t)-1 ? -1: segment.size_beg + seg_size);
                     segment.time_beg = segment.time_beg;
                     boost::uint64_t seg_time = segment_time(segment.segment);
-                    segment.time_end = ( seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.time_beg + segment_time(segment.segment));
+                    segment.time_end = 
+                        ( seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1: segment.time_beg + segment_time(segment.segment));
                 } else {
                     segment.segment++;
                     file_time_ = begin_time_ + (segment.segment * interval_);
                     segment.size_beg = segment.size_end;
                     boost::uint64_t seg_size = segment_size(segment.segment);
-                    segment.size_end = (seg_size == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.size_beg + segment_size(segment.segment));
+                    segment.size_end = 
+                        (seg_size == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.size_beg + segment_size(segment.segment));
                     segment.shard_beg = segment.size_beg;
                     segment.shard_end = segment.size_end;
                     segment.time_beg = segment.time_end;
                     boost::uint64_t seg_time = segment_time(segment.segment);
-                    segment.time_end = (seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.time_beg + segment_time(segment.segment));
+                    segment.time_end = 
+                        (seg_time == (boost::uint64_t)-1 ? (boost::uint64_t)-1 : segment.time_beg + segment_time(segment.segment));
                 }
                 if (segment.size_end != (boost::uint64_t)-1) {
                     segment.total_state = SegmentPositionEx::is_valid;
@@ -519,7 +546,6 @@ namespace ppbox
                 add_segment(seg);
                 return true;
             }
-            
         }
 
         size_t Live2Source::segment_count() const
@@ -533,7 +559,7 @@ namespace ppbox
             boost::uint64_t ret = (boost::uint64_t)-1;
             for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
                 if (segments_[i].segment == segment) {
-                    ret = segments_[i].size_end;
+                    ret = segments_[i].size_end - segments_[i].size_beg;
                     break;
                 }
             }
@@ -543,12 +569,12 @@ namespace ppbox
         boost::uint64_t Live2Source::segment_time(size_t segment)
         {
             boost::uint64_t ret = boost::uint64_t(-1);
-            for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
-                if (segments_[i].segment == segment) {
-                    ret = segments_[i].time_end;
-                    break;
-                }
-            }
+            //for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
+            //    if (segments_[i].segment == segment) {
+            //        ret = segments_[i].time_end;
+            //        break;
+            //    }
+            //}
             return ret;
         }
 

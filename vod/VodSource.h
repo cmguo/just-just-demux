@@ -69,6 +69,8 @@ namespace ppbox
             virtual void update_segment_duration(size_t segment,boost::uint32_t time);
             virtual void update_segment_file_size(size_t segment,boost::uint64_t fsize);
             virtual void update_segment_head_size(size_t segment,boost::uint64_t hsize);
+
+            
         private:
             virtual size_t segment_count() const;
             virtual boost::uint64_t segment_size(size_t segment);

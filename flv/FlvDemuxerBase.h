@@ -25,6 +25,7 @@ namespace ppbox
                 , header_offset_(0)
                 , parse_offset_(0)
                 , timestamp_offset_ms_(0)
+                , current_time_(0)
             {
                 streams_.resize(2);
             }
@@ -101,6 +102,8 @@ namespace ppbox
             boost::uint64_t parse_offset_;
             boost::uint32_t timestamp_offset_ms_;
             framework::system::LimitNumber<32> timestamp_;
+
+            boost::uint32_t current_time_;
 
             open_response_type resp_;
         };

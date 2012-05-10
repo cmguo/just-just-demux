@@ -527,19 +527,11 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (read_.total_state < SegmentPositionEx::is_valid) {
+                assert(read_.segment == write_.segment);
                 write_.shard_end = write_.size_end = write_.offset;
-                if (read_.segment == write_.segment) {
-                    read_.shard_end = read_.size_end = write_.offset;
-                    read_.total_state = SegmentPositionEx::by_guess;
-                    LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
-                } else {
-                    assert(read_.segment < write_.segment);
-                    boost::uint64_t size = read_.source->segment_size(read_.segment);
-                    if (size != boost::uint64_t(-1)) {
-                        read_.shard_end = read_.size_end = read_.size_beg + size;
-                        read_.total_state = SegmentPositionEx::is_valid;
-                    }
-                }
+                read_.shard_end = read_.size_end = write_.offset;
+                read_.total_state = SegmentPositionEx::by_guess;
+                LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
             }
             read_seek_to(read_.shard_end, ec);
             if (!ec) {
@@ -707,6 +699,7 @@ namespace ppbox
             write_hole_.this_end = write_hole_.next_beg = write_.size_end;
             write_.source = root_source_;
             read_ = write_;
+            abs_position_ = read_;
         }
 
         void BufferList::insert_source(
@@ -972,6 +965,7 @@ namespace ppbox
             }
 
             if (next_offset >= pos.shard_end) {
+                std::cout << "pos.size_end = " << pos.size_end << std::endl;
                 pos.source->next_segment(pos);
                 if (!pos.source) {
                     return ec = source_error::no_more_segment;
@@ -1152,10 +1146,12 @@ namespace ppbox
             }
 
             if (is_next_segment) {
+                std::cout << "offset " << write_.offset << "begin: " << write_.size_beg << "end: " << write_.size_end << std::endl;
                 if (next_write_hole(write_, write_hole_, ec)) {
                     assert(0);
                     return ec;
                 }
+                std::cout << "offset " << write_.offset << "begin: " << write_.size_beg << "end: " << write_.size_end << std::endl;
             }
 
             LOG_S(framework::logger::Logger::kLevelAlarm, 
@@ -1163,6 +1159,10 @@ namespace ppbox
                 " write_.offset: " << write_.offset << 
                 " begin: " << write_.offset - write_.size_beg << 
                 " end: " << write_hole_.this_end - write_.size_beg);
+
+            if (write_.offset - write_.size_beg) {
+                root_source_->segment_size(write_.segment);
+            }
 
             // 分段打开事件通知
             Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());

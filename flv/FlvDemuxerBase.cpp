@@ -219,6 +219,7 @@ namespace ppbox
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 return ec;
             }
+            current_time_ = flv_tag_.Timestamp;
             if (tc.elapsed() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_tag], elapse " << tc.elapsed());
             }
@@ -326,7 +327,8 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
-                return flv_tag_.Timestamp - timestamp_offset_ms_;
+                // return flv_tag_.Timestamp - timestamp_offset_ms_;
+                 return current_time_ - timestamp_offset_ms_;
             }
             return 0;
         }

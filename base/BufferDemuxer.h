@@ -210,16 +210,6 @@ namespace ppbox
             }
 
         protected:
-            boost::system::error_code insert_source(
-                boost::uint32_t & time,
-                SourceBase * source, 
-                boost::system::error_code & ec);
-
-            boost::system::error_code remove_source(
-                SourceBase * source, 
-                boost::system::error_code & ec);
-
-        protected:
             void tick_on();
 
             virtual void process_insert_media(){}
@@ -261,20 +251,6 @@ namespace ppbox
             void create_demuxer(
                 SegmentPositionEx const & segment, 
                 DemuxerInfo & demuxer_info, 
-                boost::system::error_code & ec);
-
-            //void reload_demuxer(
-            //    DemuxerPointer & demuxer,
-            //    SegmentPositionEx & segment, 
-            //    DemuxerInfo & demuxer_info, 
-            //    boost::uint32_t time, 
-            //    bool is_seek, 
-            //    boost::system::error_code & ec);
-
-            void change_source(
-                SegmentPositionEx & new_segment, 
-                DemuxerInfo & demuxer,
-                bool is_seek, 
                 boost::system::error_code & ec);
 
             void update_stat();

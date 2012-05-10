@@ -86,6 +86,7 @@ namespace ppbox
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // ОўГо
+                SegmentPositionEx & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
@@ -109,7 +110,7 @@ namespace ppbox
                 util::protocol::HttpRequest & request, 
                 boost::system::error_code & ec);
 
-            void add_segment(SegmentPositionEx const & segment);
+            void add_segment(SegmentPositionEx & segment);
 
             void handle_async_open(
                 boost::system::error_code const & ecc);
@@ -173,6 +174,7 @@ namespace ppbox
 
             std::deque<SegmentPositionEx> segments_;
             boost::uint32_t max_segment_size_;
+            SegmentPositionEx begin_segment_;
 
             boost::uint16_t interval_;
             boost::uint32_t seq_;

@@ -35,7 +35,7 @@ namespace ppbox
             , segment_ustime_(0)
             , buffer_size_(buffer_size)
             , prepare_size_(prepare_size)
-            , max_demuxer_infos_(5)
+            , max_demuxer_infos_(50)
             , open_state_(OpenState::not_open)
         {
             ticker_ = new framework::timer::Ticker(1000);
@@ -110,9 +110,6 @@ namespace ppbox
         boost::uint32_t BufferDemuxer::get_cur_time(
             boost::system::error_code & ec)
         {
-            //if (!events_->events.empty()) {
-            //    handle_events();
-            //}
             more(0);
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
@@ -136,10 +133,6 @@ namespace ppbox
             boost::system::error_code & ec, 
             boost::system::error_code & ec_buf)
         {
-            //if (!events_->events.empty()) {
-            //    handle_events();
-            //}
-            //tick_on();
             more(0);
             boost::uint32_t time = 0;
             if (seek_time_ && seek(seek_time_, ec)) {
@@ -176,6 +169,7 @@ namespace ppbox
             if (!ec) {
                 if (!buffer_->seek(abs_position, position, 0, ec)) {
                     create_demuxer(position, read_demuxer_, ec);
+                    read_demuxer_.demuxer->is_open(ec);
                     if (!ec) {
                         create_demuxer(position, write_demuxer_, ec);
                         assert((time - position.time_beg) >= 0 && (position.time_end - time) >= 0);
@@ -233,7 +227,7 @@ namespace ppbox
                         position.time_beg = 0;
                         position.time_end = cur_time;
                         position.size_beg = 0;
-                        position.size_end = boost::uint32_t(-1);
+                        position.size_end = boost::uint64_t(-1);
                         position.shard_beg = 0;
                         position.shard_end = position.size_end;
                         Event evt(Event::EVENT_SEG_DEMUXER_STOP, position, boost::system::error_code());
@@ -241,17 +235,19 @@ namespace ppbox
 
                         buffer_->drop_all(ec1);
                         if (buffer_->read_segment().source) {
-                            //size_t insert_time = read_demuxer_.segment.source->insert_time();
-                            change_source(const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
-                                read_demuxer_, true, ec);
+                            size_t insert_time = read_demuxer_.segment.source->insert_time();
+                            create_demuxer(const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
+                                read_demuxer_, ec);
                             read_demuxer_.demuxer->set_stream(*buffer_->get_read_bytesstream());
                             boost::uint64_t segment_time = buffer_->read_segment().time_beg;
                             if (segment_time == boost::uint64_t(-1)) {
                                 segment_time_ += cur_time;
                             } else {
-                                segment_time_ = segment_time;
+                                segment_time_ += cur_time; // live
+                                segment_time_ += 40;
+                                //segment_time_ = segment_time;
                             }
-                            //segment_time_ -= insert_time;
+                            segment_time_ -= insert_time;
                             segment_ustime_ = (boost::uint64_t)segment_time_ * 1000;
                             for (size_t i = 0; i < media_time_scales_.size(); i++) {
                                 dts_offset_[i] = 
@@ -276,6 +272,7 @@ namespace ppbox
                 }
                 play_on(sample.time);
                 sample.data.clear();
+                boost::uint32_t cur_time = read_demuxer_.demuxer->get_cur_time(ec);
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     buffer_->peek(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {
@@ -359,83 +356,6 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code BufferDemuxer::insert_source(
-            boost::uint32_t & time, 
-            SourceBase * source, 
-            boost::system::error_code & ec)
-        {
-            SegmentPositionEx position;
-            root_source_->time_insert(time, source, position, ec);
-            if (!ec) {
-                if (position.segment >= buffer_->read_segment().segment
-                    && position.segment <= buffer_->write_segment().segment) { // 插入分段在读写分段之间（即当前播放分段，则马上处理）
-                        DemuxerInfo demuxer;
-                        create_demuxer(position, demuxer, ec);
-                        if (!source->insert_demuxer().demuxer) {
-                            source->insert_demuxer() = demuxer;
-                        }
-                        boost::uint32_t delta;
-                        boost::uint64_t offset = demuxer.demuxer->get_offset(time, delta, ec);
-                        if (!ec) {
-                            source->update_insert(position, time, offset, delta);// 获取插入的具体位置，进行更新
-                            buffer_->insert_source(offset, source, source->tree_size() + delta, ec);
-                            //SegmentPositionEx read_seg = buffer_->read_segment();
-                            //SegmentPositionEx write_seg = buffer_->write_segment();
-                            //read_demuxer_.stream->unchecked_update( read_seg );
-                            //write_demuxer_.stream->unchecked_update( write_seg );
-                        }
-                } else { // 不是操作当前分段，设定截止点为当前读位置--->被插入分段的头部结束点
-                    //buffer_->seek(
-                    //    const_cast<SegmentPositionEx &>(buffer_->read_segment()), 
-                    //    buffer_->read_offset() - buffer_->read_segment().size_beg, 
-                    //    position.source->segment_head_size(position.segment) + position.size_beg 
-                    //        - buffer_->read_segment().size_beg, ec);
-                }
-            }
-            return ec;
-        }
-
-        boost::system::error_code BufferDemuxer::remove_source(
-            SourceBase * source, 
-            boost::system::error_code & ec)
-        {
-            return ec;
-        }
-
-        void BufferDemuxer::change_source(
-            SegmentPositionEx & new_segment, 
-            DemuxerInfo & demuxer, 
-            bool is_seek, 
-            boost::system::error_code & ec)
-        {
-            SourceBase * old_source = demuxer.segment.source;
-            if (old_source != new_segment.source) {
-                if (old_source->parent() == new_segment.source) {  //子切父
-                    if (old_source->insert_demuxer().demuxer) {
-                        //reload_demuxer(old_source->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
-                    } else {
-                        SourceBase * prev_sibling = old_source->prev_sibling();
-                        bool flag = false;
-                        while (prev_sibling ) {
-                            if (prev_sibling->insert_demuxer().demuxer
-                                && prev_sibling->insert_segment() == old_source->insert_segment()) {
-                                    flag = true;
-                                    //reload_demuxer(prev_sibling->insert_demuxer().demuxer, new_segment, demuxer, old_source->insert_input_time(), is_seek, ec);
-                                    break;
-                            }
-                            prev_sibling = prev_sibling->prev_sibling();
-                        }
-                        assert(flag);
-                    }
-                } else {  //父切子
-                    new_segment.source->insert_demuxer() = demuxer;
-                    create_demuxer(new_segment, demuxer, ec);
-                }
-            } else {
-                create_demuxer(new_segment, demuxer, ec);
-            }
-        }
-
         void BufferDemuxer::handle_async_open(
             boost::system::error_code const & ecc)
         {
@@ -498,7 +418,7 @@ namespace ppbox
             position.shard_end = position.size_end;
             Event evt(Event::EVENT_SEG_DEMUXER_OPEN, position, boost::system::error_code());
             root_source_->on_event(evt);
-        }
+        } 
 
         bool BufferDemuxer::is_open(boost::system::error_code & ec)
         {
@@ -533,7 +453,6 @@ namespace ppbox
                     demuxer_info.segment = demuxer_infos_[i].segment;
                     demuxer_info.demuxer = demuxer_infos_[i].demuxer;
                     demuxer_infos_[i].ref++;
-                    demuxer_infos_[i].demuxer->is_open(ec);
                     find = true;
                 }
                 demuxer_infos_[i].segment == unref_segment 
@@ -559,30 +478,6 @@ namespace ppbox
                 demuxer_infos_.push_back(demuxer_info);
             }
         }
-
-        //void BufferDemuxer::reload_demuxer(
-        //    DemuxerPointer & demuxer, 
-        //    SegmentPositionEx & segment, 
-        //    DemuxerInfo & demuxer_info, 
-        //    boost::uint32_t time, 
-        //    bool is_seek, 
-        //    boost::system::error_code & ec)
-        //{
-        //    if (segment == read_demuxer_.segment) {
-        //        //demuxer_info.stream = read_demuxer_.stream;
-        //    } else if (segment == write_demuxer_.segment) {
-        //        //demuxer_info.stream = write_demuxer_.stream;
-        //    } else {
-        //        BytesStream * stream = new BytesStream(*buffer_, const_cast<SegmentPositionEx &>(segment));
-        //        stream->update_new(segment);
-        //        //demuxer_info.stream.reset(stream);
-        //    }
-        //    //demuxer_info.demuxer.reset(demuxer->clone(* demuxer_info.stream));
-        //    demuxer_info.segment = segment;
-        //    if (is_seek) {
-        //        demuxer_info.demuxer->seek(time, ec);
-        //    }
-        //}
 
         BufferDemuxer::post_event_func BufferDemuxer::get_poster()
         {
