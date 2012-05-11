@@ -111,7 +111,7 @@ namespace ppbox
             }
             seek_to(offset);
             SegmentPositionEx & read = read_;
-            read = position;
+            //read = position;
             //root_source_->size_seek(write_.offset, abs_position_, write_, ec);
             if (!ec) {
                 if (offset >= seek_end_)
@@ -596,8 +596,11 @@ namespace ppbox
             write_.segment = seg.segment;
             write_.size_beg = 0;
             write_.size_end = seg.size_end;
+            write_.shard_beg = seg.shard_beg;
+            write_.shard_end = seg.shard_end;
             write_.total_state = seg.total_state;
             write_hole_.this_end = write_hole_.next_beg = boost::uint64_t(-1);
+            write_hole_tmp_ = write_hole_;
             write_.source = root_source_;
 
             write_tmp_ = read_ = write_;
