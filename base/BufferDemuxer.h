@@ -248,9 +248,10 @@ namespace ppbox
             void response(
                 boost::system::error_code const & ec);
 
-            void create_demuxer(
+            DemuxerInfo * create_demuxer(
+                SegmentPosition const & unref, 
                 SegmentPositionEx const & segment, 
-                DemuxerInfo & demuxer_info, 
+                bool using_read_stream, 
                 boost::system::error_code & ec);
 
             void update_stat();
@@ -273,9 +274,9 @@ namespace ppbox
             boost::uint32_t buffer_size_;
             boost::uint32_t prepare_size_;
 
-            DemuxerInfo read_demuxer_;
-            DemuxerInfo write_demuxer_;
-            std::vector<DemuxerInfo> demuxer_infos_;
+            DemuxerInfo * read_demuxer_;
+            DemuxerInfo * write_demuxer_;
+            std::vector<DemuxerInfo *> demuxer_infos_;
             boost::uint32_t max_demuxer_infos_;
 
             std::vector<boost::uint32_t> media_time_scales_;
@@ -283,6 +284,7 @@ namespace ppbox
             std::vector<MediaInfo> stream_infos_;
 
             OpenState::Enum open_state_;
+            SegmentPosition open_segment_;
             open_response_type resp_;
 
         private:

@@ -41,7 +41,6 @@ namespace ppbox
                 , pos_(segment.shard_beg - segment.size_beg)
                 , end_(pos_)
                 , buf_(*this)
-                , ec_(boost::asio::error::would_block) // 这里作用是：异步open不希望async_prepare和prepare混在一起调用
             {
                 setg(NULL, NULL, NULL);
                 // TODO: 有可能已经有数据了
@@ -51,11 +50,6 @@ namespace ppbox
             const SegmentPositionEx & segment() const
             {
                 return segment_;
-            }
-
-            boost::system::error_code error() const
-            {
-                return ec_;
             }
 
             //void read_more(
@@ -224,7 +218,6 @@ namespace ppbox
                 iter_ = buffers_.begin();
                 pos_ = 0;
                 end_ = 0;
-                ec_= boost::asio::error::would_block;
             }
 
         private:
@@ -364,19 +357,9 @@ namespace ppbox
                 iter_ = buffers_.begin();
                 pos_ = 0;
                 end_ = 0;
-                ec_= boost::asio::error::would_block;
             }
 
         private:
-            void prepare(
-                boost::uint32_t amount)
-            {
-                if (ec_ && ec_ != boost::asio::error::would_block)
-                    return;
-
-                buffer_.prepare_at_least(amount, ec_);
-            }
-
             void update(SegmentPositionEx const & segment)
             {
                 segment_ = segment_;
@@ -428,7 +411,7 @@ namespace ppbox
                     buf_ = *++iter_;
                     return *gptr();
                 }
-                if (ec_) {
+                if (buffer_.last_error()) {
                     return traits_type::eof();
                 }
                 //TODO:?
@@ -484,7 +467,7 @@ namespace ppbox
                 }
                 Checker ck(*this);
                 if (position > end_) {// 位置之后
-                    if (!ec_) {
+                    if (!buffer_.last_error()) {
                         //TODO:?
                         //read_more(position - end_);
                         boost::system::error_code ec__;
@@ -532,7 +515,6 @@ namespace ppbox
             pos_type pos_;          // 与iter_对应分段的开头
             pos_type end_;          // 有效数据的结尾
             buffer_type buf_;       // 当前的内存段
-            boost::system::error_code ec_;
         };
 
     } // namespace demux

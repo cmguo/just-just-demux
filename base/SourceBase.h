@@ -50,6 +50,7 @@ namespace ppbox
         {
             SegmentPositionEx()
                 : total_state(not_init)
+                , time_state(not_init)
                 , size_beg(0)
                 , size_end(boost::uint64_t(-1))
                 , time_beg(0)
@@ -59,7 +60,7 @@ namespace ppbox
             {
             }
 
-            enum TotalStateEnum
+            enum StateEnum
             {
                 not_init, 
                 not_exist, 
@@ -70,9 +71,10 @@ namespace ppbox
                 unknown_size,   // 未知大小
             };
 
-            TotalStateEnum total_state;
+            StateEnum total_state;
+            StateEnum time_state;  
             boost::uint64_t size_beg; // 全局的偏移
-            boost::uint64_t size_end; // 全局的偏移
+            boost::uint64_t size_end; // 全局的偏移 
             boost::uint64_t time_beg; // 全局的偏移
             boost::uint64_t time_end; // 全局的偏移
             boost::uint64_t shard_beg; //碎片的起始
@@ -83,6 +85,7 @@ namespace ppbox
         {
             SegmentPosition segment;
             DemuxerBase * demuxer;
+            bool is_read_stream;
             boost::uint32_t ref;
         };
 
@@ -130,6 +133,7 @@ namespace ppbox
             boost::uint32_t begin;
             boost::uint32_t end;
             boost::uint32_t total;
+            boost::uint32_t interval;
         };
 
         class BufferList;

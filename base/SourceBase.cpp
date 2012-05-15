@@ -188,7 +188,6 @@ namespace ppbox
         {
             // vod : 相对开起分段为0
             abs_position.segment = 0;
-
             boost::uint64_t time2 = time;
             boost::uint64_t skip_size = 0;
             SourceBase * next_item = (SourceBase *)first_child_;

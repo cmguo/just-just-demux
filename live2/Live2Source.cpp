@@ -380,6 +380,9 @@ namespace ppbox
                      assert(segment.segment == (segments_[segments_.size()-1].segment + 1));
                      segment.size_beg = segment.shard_beg = segments_[segments_.size()-1].size_end;
                 }
+                segment.time_state = SegmentPositionEx::by_guess;
+                segment.time_beg = segment.segment * interval_ * 1000;
+                segment.time_end = segment.time_beg + (interval_ * 1000);
                 segments_.push_back(segment);
             }
         }
@@ -457,11 +460,13 @@ namespace ppbox
                 info.begin = 0;
                 info.end = 0;
                 info.redundancy = 0;
+                info.interval = 0;
             } else {
                 info.total = 0;
                 info.begin = begin_time_ + (tc_.elapsed() / 1000);
                 info.end = info.begin + value_time_;
                 info.redundancy = jump_info_.delay_play_time;
+                info.interval = interval_;
             }
            return ec;
         }
@@ -482,6 +487,7 @@ namespace ppbox
                 position.segment = time / (interval_ * 1000);
                 position.time_beg = position.segment * interval_ * 1000;
                 position.time_end = position.time_beg + (interval_ * 1000);
+                position.time_state = SegmentPositionEx::by_guess;
 
                 bool find = false;
                 for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
@@ -490,8 +496,8 @@ namespace ppbox
                         position.total_state = segments_[i].total_state;
                         position.size_beg = segments_[i].size_beg;
                         position.size_end = segments_[i].size_end;
-                        // position.time_beg = segments_[i].time_beg;
-                        // position.time_end = segments_[i].time_end; 拖动的时候不用时间的相关设置
+                        position.time_beg = segments_[i].time_beg;
+                        position.time_end = segments_[i].time_end;
                         position.shard_beg = segments_[i].shard_beg;
                         position.shard_end = segments_[i].shard_end;
                         find = true;
@@ -501,7 +507,7 @@ namespace ppbox
                 if (!find || position.total_state < SegmentPositionEx::is_valid) {
                     segments_.clear();
                     begin_segment_ = position;
-                    abs_position.segment = position.segment;
+                    abs_position = position;
                     add_segment(position);
                 }
 
@@ -569,12 +575,12 @@ namespace ppbox
         boost::uint64_t Live2Source::segment_time(size_t segment)
         {
             boost::uint64_t ret = boost::uint64_t(-1);
-            //for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
-            //    if (segments_[i].segment == segment) {
-            //        ret = segments_[i].time_end;
-            //        break;
-            //    }
-            //}
+            for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
+                if (segments_[i].segment == segment) {
+                    ret = segments_[i].time_end;
+                    break;
+                }
+            }
             return ret;
         }
 

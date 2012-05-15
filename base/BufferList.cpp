@@ -261,10 +261,10 @@ namespace ppbox
             // 更新读写分段
             read_bytesstream_->update_new(read_);
             //write_bytesstream_->update_new(write_);
-            //if (write_seg == write_)
-            //{
-            //    write_bytesstream_->update_new(write_);
-            //}
+            if (write_seg == write_)
+            {
+                write_bytesstream_->update_new(write_);
+            }
             last_ec_ = ec;
             return ec;
         }
@@ -411,7 +411,7 @@ namespace ppbox
                 }
             }
 
-            last_ec_ = ec;
+            //last_ec_ = ec;
             return ec;
         }
 
@@ -457,7 +457,7 @@ namespace ppbox
                     ec = boost::system::error_code();
                 }
             }
-            last_ec_ = ec;
+            //last_ec_ = ec;
             return ec;
         }
 
@@ -594,6 +594,8 @@ namespace ppbox
             write_.buffer = buffer_beg();
             write_.offset = seg.size_beg + offset;
             write_.segment = seg.segment;
+            write_.time_beg = seg.time_beg;
+            write_.time_end = seg.time_end;
             write_.size_beg = 0;
             write_.size_end = seg.size_end;
             write_.shard_beg = seg.shard_beg;
@@ -605,7 +607,6 @@ namespace ppbox
 
             write_tmp_ = read_ = write_;
             write_tmp_.buffer = NULL;
-
 
             delete read_bytesstream_;
             read_bytesstream_ = new BytesStream(
@@ -1207,9 +1208,14 @@ namespace ppbox
             }
 
             // 分段打开事件通知
-            Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
-            write_.source->on_event(evt);
-            demuxer_->on_event(evt);
+            {
+                Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
+                boost::system::error_code last_error = last_ec_;
+                last_ec_ = boost::asio::error::would_block;
+                write_.source->on_event(evt);
+                demuxer_->on_event(evt);
+                last_ec_ = last_error;
+            }
 
             write_.source->on_seg_beg(write_.segment);
             //demuxer_->segment_write_beg(write_);
@@ -1244,8 +1250,14 @@ namespace ppbox
             ++num_try_;
 
             // 分段打开事件通知
-            Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
-            write_.source->on_event(evt);
+            {
+                Event evt(Event::EVENT_SEG_DL_OPEN, write_, boost::system::error_code());
+                boost::system::error_code last_error = last_ec_;
+                last_ec_ = boost::asio::error::would_block;
+                write_.source->on_event(evt);
+                demuxer_->on_event(evt);
+                last_ec_ = last_error;
+            }
 
             write_.source->on_seg_beg(write_.segment);
             write_.source->segment_async_open(
@@ -1270,8 +1282,11 @@ namespace ppbox
                 if (need_update)
                 {
                     Event evt(Event::EVENT_SEG_DL_END, write_, boost::system::error_code());
+                    boost::system::error_code last_error = last_ec_;
+                    last_ec_ = boost::asio::error::would_block;
                     write_.source->on_event(evt);
                     demuxer_->on_event(evt);
+                    last_ec_ = last_error;
                 }
 
                 write_.source->on_seg_end(write_.segment);

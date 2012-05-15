@@ -539,15 +539,13 @@ namespace ppbox
             error_code & ec)
         {
             ec.clear();
-            if (NULL != video_)
-            {
+            if (NULL != video_) {
                 info.total = video_->duration;
                 info.begin = 0;
                 info.end = video_->duration;
-                info.redundancy = 0; 
-            }
-            else
-            {
+                info.redundancy = 0;
+                info.interval = 0;
+            } else {
                 ec = error::not_open;
             }
             return ec;
