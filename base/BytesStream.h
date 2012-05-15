@@ -7,7 +7,6 @@
 
 #include <util/buffers/BufferSize.h>
 #include <util/buffers/StlBuffer.h>
-#include <util/smart_ptr/RefenceFromThis.h>
 
 #include <boost/asio/buffer.hpp>
 
@@ -18,7 +17,6 @@ namespace ppbox
 
         class BytesStream
             : public util::buffers::StlStream<boost::uint8_t>
-            , public util::smart_ptr::RefenceFromThis<BytesStream>
         {
         public:
             friend class BufferList;
@@ -36,10 +34,7 @@ namespace ppbox
                 SegmentPositionEx & segment)
                 : buffer_(buffer)
                 , segment_(segment)
-                , size_(0)
-                , iter_(buffers_.begin())
-                , pos_(segment.shard_beg - segment.size_beg)
-                , end_(pos_)
+                , pos_(0)
                 , buf_(*this)
             {
                 setg(NULL, NULL, NULL);
@@ -53,170 +48,61 @@ namespace ppbox
             }
 
         private:
+            bool update(
+                BufferList::PositionType::Enum type, 
+                pos_type pos)
+            {
+                boost::uint64_t pos64 = pos;
+                boost::uint32_t off32 = 0;
+                boost::asio::const_buffer buf;;
+                boost::system::error_code ec;
+                ec = buffer_.segment_buffer(segment_, type, pos64, off32, buf);
+                pos_ = pos64;
+                buf_ = buf;
+                gbump(off32);
+                return !ec;
+            }
+
             void update()
             {
-                Checker ck(*this);
-
-                std::size_t iter_dist = std::distance(buffers_.begin(), iter_);
-                std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-                boost::uint32_t size = size_;
-
-                private_update();
-
-                assert(size_ >= size);
-                end_ += (size_ - size);
-
-                iter_ = buffers_.begin();
-                std::advance(iter_, iter_dist);
-                std::size_t buf_size2 = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-                assert(buf_size2 >= buf_size);
-                if (buf_size) {
-                    if (buf_size2 > buf_size) {
-                        buf_.commit(buf_size2 - buf_size);
-                    }
-                } else {
-                    // 原先是空BufferList，Buffer是在后面追加的假定不成立
-                    if (iter_ != buffers_.end())
-                        buf_ = *iter_;
-                }
+                pos_type pos = pos_ + off_type(gptr() - eback());
+                update(BufferList::PositionType::set, pos);
             }
 
             void close()
             {
-                boost::system::error_code ec1;
-                size_ = 0;
-                buffers_ = read_buffer_t();
                 setg(NULL, NULL, NULL);
-                iter_ = buffers_.begin();
                 pos_ = 0;
-                end_ = 0;
             }
 
         private:
-            boost::uint32_t get_current_off()
+            boost::uint64_t position()
             {
                 pos_type pos = pos_ + off_type(gptr() - eback());
-                off_type off = pos + off_type(size_) - end_;
-                return off;
+                return pos;
             }
 
             void drop()
             {
-                Checker ck(*this);
-                pos_type pos = pos_ + off_type(gptr() - eback());
-                //off_type off = pos + off_type(size_) - end_;
-                //assert(off >= 0);
-                //buffer_.drop(off, ec_);
-                //assert(!ec_);
-
-                private_update(); 
-
-                iter_ = buffers_.begin();
-                //assert(gptr() == egptr() 
-                //    || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
-                if (iter_ != buffers_.end()) {
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
-                pos_ = pos;
+                update();
             }
 
             void drop_all()
             {
-                Checker ck(*this);
-                //buffer_.drop_all(ec_);
-                //assert(!ec_);
-                private_update();
-
-                iter_ = buffers_.begin();
-                if (iter_ != buffers_.end()) {
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
-                pos_ = 0;
-                end_ = size_;
+                update(BufferList::PositionType::set, 0);
             }
 
             void seek(
-                SegmentPositionEx & segment,
-                boost::uint64_t offset)
+                boost::uint64_t pos)
             {
-                private_update();
-                pos_ = offset;
-                end_ = offset + size_;
-                if (size_ > 0) {
-                    iter_ = buffers_.begin();
-                    buf_ = *iter_;
-                } else {
-                    setg(NULL, NULL, NULL);
-                }
+                update(BufferList::PositionType::set, pos);
             }
 
         private:
-            void private_update()
-            {
-                buffers_ = buffer_.segment_read_buffer(segment_);
-                size_ = util::buffers::buffer_size(buffers_);
-            }
-
-        private:
-            struct Checker
-            {
-                Checker(
-                    BytesStream const & stream)
-                    : stream_(stream)
-                {
-                    stream_.check();
-                }
-
-                ~Checker()
-                {
-                    stream_.check();
-                }
-
-            private:
-                BytesStream const & stream_;
-            };
-
-            void check() const
-            {
-                pos_type pos = end_ - off_type(size_);
-                assert(iter_ != buffers_.end() || buffers_.empty());
-                for (const_iterator i = buffers_.begin(); i != buffers_.end(); ++i) {
-                    if (i == iter_) {
-                        assert(pos == pos_);
-                        assert(eback() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*i));
-                        size_t size = boost::asio::buffer_size(*i);
-                        assert((size_t)(egptr() - eback()) == size);
-                        break;
-                    }
-                    pos += boost::asio::buffer_size(*i);
-                }
-            }
-
             virtual int_type underflow()
             {
-                Checker ck(*this);
                 pos_type pos = pos_ + gptr() - eback();
-                if (pos < end_) {
-                    pos_ += boost::asio::buffer_size(*iter_);
-                    buf_ = *++iter_;
-                    return *gptr();
-                }
-                if (buffer_.last_error()) {
-                    return traits_type::eof();
-                }
-                //TODO:?
-                //read_more(1);
-                boost::system::error_code ec__;
-                buffer_.prepare_at_least(0, ec__);
-                if (pos < end_) {
-                    if (gptr() == egptr()) {
-                        pos_ += boost::asio::buffer_size(*iter_);
-                        buf_ = *++iter_;
-                    }
+                if (update(BufferList::PositionType::set, pos)) {
                     return *gptr();
                 } else {
                     return traits_type::eof();
@@ -242,7 +128,10 @@ namespace ppbox
                     return seekpos(off, mode);
                 } else if (dir == std::ios_base::end) {
                     assert(off <= 0);
-                    return seekpos(end_ + off, mode);
+                    if (!update(BufferList::PositionType::end, pos_type(-off))) {
+                        return pos_type(-1);
+                    }
+                    return pos_ + gptr() - eback();
                 } else {
                     return pos_type(-1);
                 }
@@ -256,46 +145,8 @@ namespace ppbox
                 if (mode != std::ios_base::in) {
                     return pos_type(-1);// 模式错误
                 }
-                if (position < end_ - off_type(size_)) {
+                if (!update(BufferList::PositionType::set, position)) {
                     return pos_type(-1);// 有效位置之前
-                }
-                Checker ck(*this);
-                if (position > end_) {// 位置之后
-                    if (!buffer_.last_error()) {
-                        //TODO:?
-                        //read_more(position - end_);
-                        boost::system::error_code ec__;
-                        buffer_.prepare_at_least(0, ec__);
-                    }
-                    if (position > end_) {
-                        return pos_type(-1);
-                    }
-                }
-                size_t buf_size = iter_ == 
-                    buffers_.end() ? 0 : boost::asio::buffer_size(*iter_);
-                if (position >= pos_
-                    && position <= pos_ + (off_type)buf_size) {
-                        pos_type pos = pos_ + (off_type)(gptr() - eback());
-                        gbump(position - pos);
-                } else if (position < pos_) {
-                    while (position < pos_) {
-                        --iter_;
-                        pos_ -= boost::asio::buffer_size(*iter_);
-                    }
-                    buf_ = *iter_;
-                    if (position - pos_ > 0)
-                        buf_.consume(position - pos_type(pos_));
-                } else {
-                    pos_ += buf_size;
-                    while (position > pos_type(pos_)) {
-                        ++iter_;
-                        assert(iter_ != buffers_.end());
-                        pos_ += boost::asio::buffer_size(*iter_);
-                    }
-                    pos_ -= boost::asio::buffer_size(*iter_);
-                    buf_ = *iter_;
-                    if (position - pos_type(pos_) > 0)
-                        buf_.consume(position - pos_type(pos_));
                 }
                 return position;
             }
@@ -303,11 +154,7 @@ namespace ppbox
         private:
             BufferList & buffer_;
             SegmentPositionEx & segment_;
-            read_buffer_t buffers_; // 有效数据
-            boost::uint32_t size_;  // buffers_数据的大小
-            const_iterator iter_;   // 当前的内存段
             pos_type pos_;          // 与iter_对应分段的开头
-            pos_type end_;          // 有效数据的结尾
             buffer_type buf_;       // 当前的内存段
         };
 

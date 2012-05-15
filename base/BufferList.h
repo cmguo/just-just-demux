@@ -323,13 +323,22 @@ namespace ppbox
                 boost::asio::mutable_buffer, 2
             > write_buffer_t;
 
-            read_buffer_t read_buffer() const
+            struct PositionType
             {
-                return segment_read_buffer(read_);
-            }
+                 enum Enum
+                 {
+                     beg, 
+                     set, 
+                     end, 
+                 };
+            };
 
-            read_buffer_t segment_read_buffer(
-                SegmentPositionEx const & segment) const;
+            boost::system::error_code segment_buffer(
+                SegmentPositionEx const & segment, 
+                PositionType::Enum pos_type, 
+                boost::uint64_t & pos, 
+                boost::uint32_t & off, 
+                boost::asio::const_buffer & buffer);
 
             // 当前所有写缓冲
             write_buffer_t write_buffer();

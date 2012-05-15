@@ -130,7 +130,7 @@ namespace ppbox
                 || source_error_ == source_error::at_end_point))
                 source_error_.clear();
 
-            read_bytesstream_->seek(position, offset);
+            read_bytesstream_->seek(offset);
 
             return ec;
         }
@@ -497,8 +497,8 @@ namespace ppbox
         boost::system::error_code BufferList::drop(
             boost::system::error_code & ec)
         {
-            boost::uint32_t off = read_bytesstream_->get_current_off();
-            boost::system::error_code ret_ec = read_seek_to(read_.offset + off, ec);
+            boost::uint32_t pos = read_bytesstream_->position();
+            boost::system::error_code ret_ec = read_seek_to(read_.size_beg + pos, ec);
             read_bytesstream_->drop();
             if (write_.segment == write_.segment)
                 write_bytesstream_->drop();
@@ -679,8 +679,12 @@ namespace ppbox
             }
         }
 
-        BufferList::read_buffer_t BufferList::segment_read_buffer(
-            SegmentPositionEx const & segment) const
+        boost::system::error_code BufferList::segment_buffer(
+            SegmentPositionEx const & segment, 
+            PositionType::Enum pos_type, 
+            boost::uint64_t & pos, 
+            boost::uint32_t & off, 
+            boost::asio::const_buffer & buffer)
         {
             boost::uint64_t beg = segment.shard_beg;
             boost::uint64_t end = segment.shard_end;
@@ -690,11 +694,56 @@ namespace ppbox
             if (end > write_.offset) {
                 end = write_.offset;
             }
-            if (beg < end) {
-                return read_buffer(beg, end);
+	    boost::system::error_code ec;
+            if (pos_type == PositionType::beg) {
+                pos += beg;
+                if (pos > end) {
+                    pos = end;
+                    ec = framework::system::logic_error::out_of_range;
+                }
+            } else if (pos_type == PositionType::end) {
+                pos = end - pos;
+                if (pos < beg) {
+                    pos = beg;
+                    ec = framework::system::logic_error::out_of_range;
+                }
             } else {
-                return read_buffer_t();
+                pos += segment.size_beg;
+                if (pos < beg) {
+                   pos = beg;
+                   ec = framework::system::logic_error::out_of_range;
+                } else if (pos > end) {
+                    if (pos > segment.shard_end) {
+                        pos = segment.shard_end;
+                        ec = framework::system::logic_error::out_of_range;
+                    }
+                    if (pos > write_.offset) {
+	                boost::system::error_code ec1 = last_ec_;;
+                        ec1 || prepare_at_least(pos - write_.offset, ec1);
+                        if (pos > write_.offset) {
+                            pos = write_.offset;
+                            if (!ec) ec = ec1;
+                        }
+                        end = segment.shard_end;
+                        if (end > write_.offset)
+                            end = write_.offset;
+                    }
+                    assert(pos <= end);
+                }
             }
+            char const * ptr = buffer_move_front(read_.buffer, beg - read_.offset);
+            boost::uint64_t buf_end = beg + (boost::uint32_t)(buffer_end() - ptr);
+            if (pos < buf_end) {
+                if (end > buf_end)
+                    end = buf_end;
+            } else {
+                ptr = buffer_beg();
+                beg = buf_end;
+            }
+            off = pos - beg;
+            pos = beg - segment.size_beg;
+            buffer = boost::asio::const_buffer(ptr, end - beg);
+            return ec;
         }
 
         // 当前所有写缓冲
