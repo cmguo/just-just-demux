@@ -52,103 +52,8 @@ namespace ppbox
                 return segment_;
             }
 
-            //void read_more(
-            //    boost::uint32_t amount = 0)
-            //{
-            //    prepare(amount);
-
-            //    update_new(buffer_.read_segment());
-            //}
-
-            //void write_more(
-            //    boost::uint32_t amount = 0)
-            //{
-            //    SegmentPositionEx write_seg = buffer_.write_segment();
-            //    prepare(amount);
-            //    if (write_seg == buffer_.write_segment()) {// 下载前后，没有切换写分段时更新写分段信息
-            //        update_new(buffer_.write_segment());
-            //    }
-            //    ec_ = boost::asio::error::would_block;
-            //}
-
-            //void drop()
-            //{
-            //    Checker ck(*this);
-            //    pos_type pos = pos_ + off_type(gptr() - eback());
-            //    off_type off = pos + off_type(size_) - end_;
-            //    assert(off >= 0);
-            //    buffer_.drop(off, ec_);
-            //    assert(!ec_);
-
-            //    update(buffer_.read_segment());
-
-            //    iter_ = buffers_.begin();
-            //    assert(gptr() == egptr() 
-            //        || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
-            //    if (iter_ != buffers_.end()) {
-            //        buf_ = *iter_;
-            //    } else {
-            //        setg(NULL, NULL, NULL);
-            //    }
-            //    pos_ = pos;
-            //}
-
-            //void drop_all()
-            //{
-            //    Checker ck(*this);
-            //    buffer_.drop_all(ec_);
-            //    assert(!ec_);
-            //    update(buffer_.read_segment());
-
-            //    iter_ = buffers_.begin();
-            //    if (iter_ != buffers_.end()) {
-            //        buf_ = *iter_;
-            //    } else {
-            //        setg(NULL, NULL, NULL);
-            //    }
-            //    pos_ = 0;
-            //    end_ = size_;
-            //}
-
-            //void unchecked_update(
-            //    SegmentPositionEx const & segment)
-            //{
-            //    std::size_t iter_dist = std::distance(buffers_.begin(), iter_);
-            //    std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-            //    boost::uint32_t size = size_;
-
-            //    update(segment);
-
-            //    if ( size_ > size )
-            //    {
-            //        end_ += (size_ - size);
-            //    }
-            //    else 
-            //    {
-            //        end_ -= (size - size_);
-            //    }
-
-            //    iter_ = buffers_.begin();
-            //    std::advance(iter_, iter_dist);
-            //    std::size_t buf_size2 = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-
-            //    if (buf_size) {
-            //        if (buf_size2 > buf_size) {
-            //            buf_.commit(buf_size2 - buf_size);
-            //        }
-            //        if (buf_size > buf_size2)
-            //        {
-            //            //buf_.rewind(buf_size - buf_size2);
-            //        }
-            //    } else {
-            //        // 原先是空BufferList，Buffer是在后面追加的假定不成立
-            //        if (iter_ != buffers_.end())
-            //            buf_ = *iter_;
-            //    }
-            //}
-
-            void update_new(
-                SegmentPositionEx const & segment)
+        private:
+            void update()
             {
                 Checker ck(*this);
 
@@ -156,7 +61,7 @@ namespace ppbox
                 std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
                 boost::uint32_t size = size_;
 
-                update(segment);
+                private_update();
 
                 assert(size_ >= size);
                 end_ += (size_ - size);
@@ -175,39 +80,6 @@ namespace ppbox
                         buf_ = *iter_;
                 }
             }
-
-            //void seek(
-            //    SegmentPositionEx & segment,
-            //    boost::uint64_t offset)
-            //{
-            //    buffer_.seek(segment, offset, ec_);
-            //    update(buffer_.read_segment());
-            //    pos_ = offset;
-            //    end_ = offset + size_;
-            //    if (size_ > 0) {
-            //        iter_ = buffers_.begin();
-            //        buf_ = *iter_;
-            //    } else {
-            //        setg(NULL, NULL, NULL);
-            //    }
-            //}
-
-            //void seek(
-            //    SegmentPositionEx & segment,
-            //    boost::uint64_t offset,
-            //    boost::uint64_t head_length)
-            //{
-            //    buffer_.seek(segment, offset, head_length, ec_);
-            //    update(buffer_.read_segment());
-            //    pos_ = offset;
-            //    end_ = offset + size_;
-            //    if (size_ > 0) {
-            //        iter_ = buffers_.begin();
-            //        buf_ = *iter_;
-            //    } else {
-            //        setg(NULL, NULL, NULL);
-            //    }
-            //}
 
             void close()
             {
@@ -228,7 +100,7 @@ namespace ppbox
                 return off;
             }
 
-            void do_drop()
+            void drop()
             {
                 Checker ck(*this);
                 pos_type pos = pos_ + off_type(gptr() - eback());
@@ -237,11 +109,11 @@ namespace ppbox
                 //buffer_.drop(off, ec_);
                 //assert(!ec_);
 
-                update(buffer_.read_segment());
+                private_update(); 
 
                 iter_ = buffers_.begin();
-                assert(gptr() == egptr() 
-                    || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
+                //assert(gptr() == egptr() 
+                //    || gptr() == (boost::uint8_t *)boost::asio::buffer_cast<boost::uint8_t const *>(*iter_));
                 if (iter_ != buffers_.end()) {
                     buf_ = *iter_;
                 } else {
@@ -250,12 +122,12 @@ namespace ppbox
                 pos_ = pos;
             }
 
-            void do_drop_all()
+            void drop_all()
             {
                 Checker ck(*this);
                 //buffer_.drop_all(ec_);
                 //assert(!ec_);
-                update(buffer_.read_segment());
+                private_update();
 
                 iter_ = buffers_.begin();
                 if (iter_ != buffers_.end()) {
@@ -267,77 +139,11 @@ namespace ppbox
                 end_ = size_;
             }
 
-            void do_unchecked_update(
-                SegmentPositionEx const & segment)
-            {
-                std::size_t iter_dist = std::distance(buffers_.begin(), iter_);
-                std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-                boost::uint32_t size = size_;
-
-                update(segment);
-
-                if ( size_ > size )
-                {
-                    end_ += (size_ - size);
-                }
-                else 
-                {
-                    end_ -= (size - size_);
-                }
-
-                iter_ = buffers_.begin();
-                std::advance(iter_, iter_dist);
-                std::size_t buf_size2 = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-
-                if (buf_size) {
-                    if (buf_size2 > buf_size) {
-                        buf_.commit(buf_size2 - buf_size);
-                    }
-                    if (buf_size > buf_size2)
-                    {
-                        //buf_.rewind(buf_size - buf_size2);
-                    }
-                } else {
-                    // 原先是空BufferList，Buffer是在后面追加的假定不成立
-                    if (iter_ != buffers_.end())
-                        buf_ = *iter_;
-                }
-            }
-
-            void do_update_new(
-                SegmentPositionEx const & segment)
-            {
-                Checker ck(*this);
-
-                std::size_t iter_dist = std::distance(buffers_.begin(), iter_);
-                std::size_t buf_size = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-                boost::uint32_t size = size_;
-
-                update(segment);
-
-                assert(size_ >= size);
-                end_ += (size_ - size);
-
-                iter_ = buffers_.begin();
-                std::advance(iter_, iter_dist);
-                std::size_t buf_size2 = iter_ != buffers_.end() ? boost::asio::buffer_size(*iter_) : 0;
-                assert(buf_size2 >= buf_size);
-                if (buf_size) {
-                    if (buf_size2 > buf_size) {
-                        buf_.commit(buf_size2 - buf_size);
-                    }
-                } else {
-                    // 原先是空BufferList，Buffer是在后面追加的假定不成立
-                    if (iter_ != buffers_.end())
-                        buf_ = *iter_;
-                }
-            }
-
-            void do_seek(
+            void seek(
                 SegmentPositionEx & segment,
                 boost::uint64_t offset)
             {
-                update(buffer_.read_segment());
+                private_update();
                 pos_ = offset;
                 end_ = offset + size_;
                 if (size_ > 0) {
@@ -348,22 +154,10 @@ namespace ppbox
                 }
             }
 
-            void do_close()
-            {
-                boost::system::error_code ec1;
-                size_ = 0;
-                buffers_ = read_buffer_t();
-                setg(NULL, NULL, NULL);
-                iter_ = buffers_.begin();
-                pos_ = 0;
-                end_ = 0;
-            }
-
         private:
-            void update(SegmentPositionEx const & segment)
+            void private_update()
             {
-                segment_ = segment_;
-                buffers_ = buffer_.segment_read_buffer(segment);
+                buffers_ = buffer_.segment_read_buffer(segment_);
                 size_ = util::buffers::buffer_size(buffers_);
             }
 

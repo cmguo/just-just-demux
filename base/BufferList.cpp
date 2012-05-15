@@ -130,7 +130,7 @@ namespace ppbox
                 || source_error_ == source_error::at_end_point))
                 source_error_.clear();
 
-            read_bytesstream_->do_seek(position, offset);
+            read_bytesstream_->seek(position, offset);
 
             return ec;
         }
@@ -259,12 +259,9 @@ namespace ppbox
                 }
             }
             // ¸üÐÂ¶ÁÐ´·Ö¶Î
-            read_bytesstream_->update_new(read_);
-            //write_bytesstream_->update_new(write_);
-            if (write_seg == write_)
-            {
-                write_bytesstream_->update_new(write_);
-            }
+            write_bytesstream_->update();
+            if (read_.segment == write_.segment)
+                read_bytesstream_->update();
             last_ec_ = ec;
             return ec;
         }
@@ -310,8 +307,8 @@ namespace ppbox
                 move_front(write_, bytes_transferred);
                 if (data_end_ < write_.offset)
                     data_end_ = write_.offset;
-                read_bytesstream_->update_new(read_);
-                write_bytesstream_->update_new(write_);
+                read_bytesstream_->update();
+                write_bytesstream_->update();
                 if (amount_ <= bytes_transferred) {
                     response(ec);
                     return;
@@ -502,7 +499,9 @@ namespace ppbox
         {
             boost::uint32_t off = read_bytesstream_->get_current_off();
             boost::system::error_code ret_ec = read_seek_to(read_.offset + off, ec);
-            read_bytesstream_->do_drop();
+            read_bytesstream_->drop();
+            if (write_.segment == write_.segment)
+                write_bytesstream_->drop();
             return ret_ec;
         }
 
@@ -545,7 +544,7 @@ namespace ppbox
             }
 
             // ¶Á»º³åDropAll
-            read_bytesstream_->do_drop_all();
+            read_bytesstream_->drop_all();
 
             return ec;
         }
@@ -574,8 +573,8 @@ namespace ppbox
             sended_req_ = 0;
             clear_error();
 
-            read_bytesstream_->do_close();
-            write_bytesstream_->do_close();
+            read_bytesstream_->close();
+            write_bytesstream_->close();
         }
 
         void BufferList::reset(SegmentPositionEx const & seg, boost::uint32_t offset)
@@ -1159,12 +1158,12 @@ namespace ppbox
         }
 
         boost::system::error_code BufferList::open_segment(
-            bool is_next_segment, 
+            bool is_next_hole, 
             boost::system::error_code & ec)
         {
-            close_segment(ec, is_next_segment);
+            close_segment(ec, is_next_hole);
 
-            if (is_next_segment) {
+            if (is_next_hole) {
                 reset_zero_interval();
                 time_block_ = 0;
                 close_request(ec);
@@ -1179,7 +1178,7 @@ namespace ppbox
                 return ec;
             }
 
-            open_request(is_next_segment, ec);
+            open_request(is_next_hole, ec);
 
             if (ec && !write_.source->continuable(ec)) {
                 if (!ec)
@@ -1190,11 +1189,12 @@ namespace ppbox
                 return ec;
             }
 
-            if (is_next_segment) {
+            if (is_next_hole) {
                 if (next_write_hole(write_, write_hole_, ec)) {
                     assert(0);
                     return ec;
                 }
+                write_bytesstream_->drop_all();
             }
 
             LOG_S(framework::logger::Logger::kLevelAlarm, 

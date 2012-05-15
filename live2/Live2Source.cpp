@@ -577,7 +577,7 @@ namespace ppbox
             boost::uint64_t ret = boost::uint64_t(-1);
             for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
                 if (segments_[i].segment == segment) {
-                    ret = segments_[i].time_end;
+                    ret = segments_[i].time_end - segments_[i].time_beg;
                     break;
                 }
             }
