@@ -111,8 +111,8 @@ namespace ppbox
             }
             seek_to(offset);
             SegmentPositionEx & read = read_;
-            //read = position;
-            //root_source_->size_seek(write_.offset, abs_position_, write_, ec);
+            read = position;
+            root_source_->size_seek(write_.offset, abs_position_, write_, ec);
             if (!ec) {
                 if (offset >= seek_end_)
                     seek_end_ = (boost::uint64_t)-1;
@@ -535,7 +535,7 @@ namespace ppbox
             read_seek_to(read_.shard_end, ec);
             if (!ec) {
                 read_.source->next_segment(read_);
-                if (read_.total_state == SegmentPositionEx::not_init
+                if (read_.total_state < SegmentPositionEx::is_valid
                     && read_.segment == write_.segment) {
                         read_.size_end = write_.size_end;
                         read_.shard_end = write_.shard_end;
@@ -1072,7 +1072,6 @@ namespace ppbox
             }
 
             update_hole(pos, hole);
-
             return ec;
         }
 

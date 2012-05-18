@@ -76,6 +76,10 @@ namespace ppbox
 
             void set_stream(std::basic_streambuf<boost::uint8_t> & buf);
 
+            void set_time_offset(boost::uint64_t offset);
+
+            boost::uint64_t get_time_offset() const;
+
         private:
             //boost::system::error_code parse_stream(
             //    boost::system::error_code & ec);

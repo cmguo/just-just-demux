@@ -186,7 +186,7 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
-            // vod : 相对开起分段为0
+            /*
             abs_position.segment = 0;
             boost::uint64_t time2 = time;
             boost::uint64_t skip_size = 0;
@@ -245,8 +245,9 @@ namespace ppbox
                     position.total_state = SegmentPositionEx::not_exist;
                 }
             }
-
             return ec;
+            */
+            return boost::system::error_code();
         }
 
         boost::system::error_code SourceBase::size_seek (
@@ -255,24 +256,6 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
-            //boost::uint64_t size2 = size, tmp_size = 0;
-            //SegmentPositionEx position2 = position;
-            //do
-            //{
-            //    if (position2.size_end == (boost::uint64_t)-1
-            //        ||
-            //        position2.shard_end >= size2)
-            //    {
-            //        if (position2.size_end == (boost::uint64_t)-1)
-            //            position2.total_state = SegmentPositionEx::unknown_size;
-            //        break;
-            //    }
-
-            //    position2.segment++;
-            //} while ( next_segment(position2) );
-
-            //position = position2;
-
             boost::uint64_t size2 = size;
             boost::uint64_t skip_time = 0;
             SourceBase * next_item = (SourceBase *)first_child_;

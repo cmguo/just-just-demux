@@ -213,13 +213,15 @@ namespace ppbox
                 return ec;
             }
             archive_.seekg(parse_offset_, std::ios_base::beg);
-            assert(archive_);
+            //assert(archive_);
             framework::timer::TickCounter tc;
             if (get_tag(flv_tag_, ec)) {
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 return ec;
             }
-            current_time_ = flv_tag_.Timestamp;
+            if (flv_tag_.Type == TagType::FLV_TAG_TYPE_VIDEO) {
+                current_time_ = flv_tag_.Timestamp;
+            }
             if (tc.elapsed() > 10) {
                 LOG_S(Logger::kLevelDebug, "[get_tag], elapse " << tc.elapsed());
             }
@@ -359,6 +361,16 @@ namespace ppbox
         void FlvDemuxerBase::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
         {
             archive_.rdbuf(&buf);
+        }
+
+        void FlvDemuxerBase::set_time_offset(boost::uint64_t offset)
+        {
+            timestamp_offset_ms_ = boost::uint32_t(offset / 1000);
+        }
+
+        boost::uint64_t FlvDemuxerBase::get_time_offset() const
+        {
+            return (boost::uint64_t)timestamp_offset_ms_ * 1000;
         }
     }
 }

@@ -102,7 +102,7 @@ namespace ppbox
             virtual int_type underflow()
             {
                 pos_type pos = pos_ + gptr() - eback();
-                if (update(BufferList::PositionType::set, pos)) {
+                if (update(BufferList::PositionType::set, pos) && (gptr() < egptr())) {
                     return *gptr();
                 } else {
                     return traits_type::eof();

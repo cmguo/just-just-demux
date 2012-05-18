@@ -42,7 +42,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-
             boost::system::error_code segment_open(
                 size_t segment, 
                 boost::uint64_t beg, 
@@ -59,6 +58,15 @@ namespace ppbox
 
             virtual void set_url(std::string const &url);
 
+            virtual boost::system::error_code time_seek (
+                boost::uint64_t time, 
+                SegmentPositionEx & abs_position,
+                SegmentPositionEx & position, 
+                boost::system::error_code & ec);
+
+            virtual bool next_segment(
+                SegmentPositionEx & position);
+
             virtual boost::system::error_code reset(
                 SegmentPositionEx & segment);
 
@@ -66,9 +74,9 @@ namespace ppbox
                 DurationInfo & info,
                 boost::system::error_code & ec);
 
-            virtual void update_segment_duration(size_t segment,boost::uint32_t time);
-            virtual void update_segment_file_size(size_t segment,boost::uint64_t fsize);
-            virtual void update_segment_head_size(size_t segment,boost::uint64_t hsize);
+            virtual void update_segment_duration(size_t segment, boost::uint32_t time);
+            virtual void update_segment_file_size(size_t segment, boost::uint64_t fsize);
+            virtual void update_segment_head_size(size_t segment, boost::uint64_t hsize);
 
             
         private:
@@ -103,7 +111,6 @@ namespace ppbox
                 VodJumpInfoNoDrag & jump_info, 
                 boost::asio::streambuf & buf, 
                 boost::system::error_code & ec);
-
 
             void set_info_by_jump(
                 VodJumpInfoNoDrag & jump_info);
@@ -156,6 +163,7 @@ namespace ppbox
             std::vector<VodSegmentNew> segments_;
             boost::uint32_t max_dl_speed_;
             VodDemuxer * vod_demuxer_;
+            SegmentPositionEx begin_segment_;
         };
 
     } // namespace demux

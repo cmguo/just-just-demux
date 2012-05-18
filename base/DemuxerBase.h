@@ -208,6 +208,15 @@ namespace ppbox
                 boost::system::error_code & ec) = 0;
 
             virtual void set_stream(std::basic_streambuf<boost::uint8_t> & buf) = 0;
+
+            virtual void set_time_offset(boost::uint64_t offset)
+            {
+            }
+
+            virtual boost::uint64_t get_time_offset() const
+            {
+                return 0;
+            }
         };
 
     } // namespace demux

@@ -223,7 +223,7 @@ namespace ppbox
                     segments_[i].time_end = time;
                 }
             }
-            assert(find);
+            //assert(find);
         }
 
         void Live2Source::update_segment_file_size(
@@ -500,12 +500,14 @@ namespace ppbox
                         position.time_end = segments_[i].time_end;
                         position.shard_beg = segments_[i].shard_beg;
                         position.shard_end = segments_[i].shard_end;
+                        abs_position = begin_segment_;
                         find = true;
                         break;
                     }
                 }
                 if (!find || position.total_state < SegmentPositionEx::is_valid) {
                     segments_.clear();
+                    position.source = this;
                     begin_segment_ = position;
                     abs_position = position;
                     add_segment(position);

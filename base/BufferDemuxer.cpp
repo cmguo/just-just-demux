@@ -33,11 +33,12 @@ namespace ppbox
             , seek_time_(0)
             , segment_time_(0)
             , segment_ustime_(0)
+            , video_frame_interval_(0)
             , buffer_size_(buffer_size)
             , prepare_size_(prepare_size)
             , read_demuxer_(NULL)
             , write_demuxer_(NULL)
-            , max_demuxer_infos_(50)
+            , max_demuxer_infos_(5)
             , open_state_(OpenState::not_open)
         {
             ticker_ = new framework::timer::Ticker(1000);
@@ -181,17 +182,17 @@ namespace ppbox
                     more(0);
                     read_demuxer_->demuxer->is_open(ec);
                     if (!ec) {
-                        //write_demuxer_ = create_demuxer(
-                        //    write_demuxer_ == NULL ? SegmentPosition() : write_demuxer_->segment, 
-                        //    position, 
-                        //    false, 
-                        //    ec);
                         assert((time - position.time_beg) >= 0 && (position.time_end - time) >= 0);
                         boost::uint32_t time_t = time - boost::uint32_t(position.time_beg);
                         boost::uint64_t offset = read_demuxer_->demuxer->seek(time_t, ec);
                         if (!ec) {
                             if (!buffer_->seek(abs_position, position, offset, ec)) {
                                 segment_time_ = buffer_->read_segment().time_beg;
+                                segment_ustime_ = segment_time_ * 1000;
+                                for (size_t i = 0; i < media_time_scales_.size(); i++) {
+                                    dts_offset_[i] = 
+                                        (boost::uint64_t)segment_time_ * media_time_scales_[i] / 1000;
+                                }
                                 seek_time_ = 0;
                             }
                         }
@@ -260,8 +261,10 @@ namespace ppbox
                             read_demuxer_->is_read_stream = true;
                             boost::uint64_t segment_time = buffer_->read_segment().time_beg;
                             if (buffer_->read_segment().time_state != SegmentPositionEx::is_valid) {
+                                std::cout << "segment time: " << segment_time_ << " cur time: " << cur_time << std::endl;
                                 segment_time_ += cur_time;
                                 segment_time_ += 40; // refine: 使用帧率计算时间间隔
+
                             } else {
                                 segment_time_ = segment_time;
                             }
@@ -374,8 +377,10 @@ namespace ppbox
             stream_infos_.clear();
 
             for (boost::uint32_t i = 0; i < demuxer_infos_.size(); ++i) {
+                delete demuxer_infos_[i]->demuxer;
                 delete demuxer_infos_[i];
             }
+            demuxer_infos_.clear();
 
             open_state_ = OpenState::not_open;
             return ec;
@@ -402,11 +407,6 @@ namespace ppbox
                             true, 
                             ec1);
                         // write_demuxer都是在on_event事件中创建
-                        //write_demuxer_ = create_demuxer(
-                        //    write_demuxer_ == NULL ? SegmentPosition() : write_demuxer_->segment,
-                        //    buffer_->write_segment(), 
-                        //    false, 
-                        //    ec1);
                         buffer_->async_prepare_at_least(0, boost::bind(&BufferDemuxer::handle_async_open, this, _1));
                         break;
                     case OpenState::demuxer_open:
@@ -414,16 +414,27 @@ namespace ppbox
                         if (ec2) {
                             buffer_->async_prepare_at_least(0, boost::bind(&BufferDemuxer::handle_async_open, this, _1));
                         } else {
-                            segment_time_ = buffer_->read_segment().time_beg;
                             root_source_->set_buffer_list(buffer_);
                             stream_count = read_demuxer_->demuxer->get_media_count(ec2);
                             if (!ec2) {
                                 MediaInfo info;
                                 for (boost::uint32_t i = 0; i < stream_count; i++) {
                                     read_demuxer_->demuxer->get_media_info(i, info, ec2);
+                                    if (info.type == MEDIA_TYPE_VIDE && info.video_format.frame_rate) {
+                                        video_frame_interval_ = 1000 / info.video_format.frame_rate;
+                                    }
                                     stream_infos_.push_back(info);
                                     media_time_scales_.push_back(stream_infos_[i].time_scale);
                                     dts_offset_.push_back(stream_infos_[i].time_scale);
+                                    segment_time_ = buffer_->read_segment().time_beg;
+                                    segment_ustime_ = segment_time_ * 1000;
+                                    for (size_t i = 0; i < media_time_scales_.size(); i++) {
+                                        dts_offset_[i] = 
+                                            (boost::uint64_t)segment_time_ * media_time_scales_[i] / 1000;
+                                    }
+                                }
+                                if (info.video_format.frame_rate == 0) {
+                                    video_frame_interval_ = 40;
                                 }
                                 open_state_ = OpenState::open_finished;
                                 open_end();

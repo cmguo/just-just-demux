@@ -270,6 +270,7 @@ namespace ppbox
 
             boost::uint64_t segment_time_;
             boost::uint64_t segment_ustime_;
+            boost::uint32_t video_frame_interval_;
 
             boost::uint32_t buffer_size_;
             boost::uint32_t prepare_size_;

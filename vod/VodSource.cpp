@@ -102,8 +102,7 @@ namespace ppbox
         error_code VodSource::close(
             error_code & ec)
         {
-            if (drag_)
-            {
+            if (drag_) {
                 drag_->cancel();
             }
             ec.clear();
@@ -116,7 +115,6 @@ namespace ppbox
             url.host(dns_vod_jump_server.host());
             url.svc(dns_vod_jump_server.svc());
             url.path("/" + name_ + "dt");
-
             return url;
         }
         framework::string::Url VodSource::get_drag_url() const
@@ -201,8 +199,7 @@ namespace ppbox
             local_time_ = Time::now();
 
             assert(segments_.size() == 0);
-            if (jump_info.block_size != 0)
-            {
+            if (jump_info.block_size != 0) {
                 segments_.push_back(jump_info.firstseg);
             }
         }
@@ -211,26 +208,30 @@ namespace ppbox
             VodDragInfoNew & drag_info)
         {
             set_info_by_video(drag_info.video);
-
             know_seg_count_ = true;
 
             std::vector<VodSegmentNew> & segmentsTmp = drag_info.segments;
+            size_t segment_size = segments_.size();
             for (size_t i = 0;  i < segmentsTmp.size(); ++i) {
                 if (i == 0 && segments_.size() > 0)
                     continue;
-                segments_.push_back(segmentsTmp[i]);
+
+                if (i < segment_size) {
+                    boost::uint64_t filesize = segments_[i].file_length;
+                    segments_[i] = segmentsTmp[i];
+                    assert(filesize == segmentsTmp[i].file_length);
+                } else {
+                    segments_.push_back(segmentsTmp[i]);
+                }
             }
         }
 
         void VodSource::set_info_by_video(
             VodVideo & video)
         {
-            if (NULL == video_)
-            {
+            if (NULL == video_) {
                 video_ = new VodVideo(video);
-            }
-            else
-            {
+            } else {
                 *video_ = video;
             }
         }
@@ -294,7 +295,6 @@ namespace ppbox
                     {
                         know_seg_count_ = true;
                         open_step_ = StepType::finish;
-
                     }
                     else
                     {
@@ -310,9 +310,8 @@ namespace ppbox
                 {
                     open_step_ = StepType::finish;
                     VodDragInfoNew drag_info;
-                    parse_drag(drag_info,drag_->get_buf(),ec); //判断drag是否成功  / 是否获取到drag信息
-                    if (!ec)
-                    {
+                    parse_drag(drag_info,drag_->get_buf(),ec);
+                    if (!ec) {
                         set_info_by_drag(drag_info);
                     }
                     return;
@@ -331,20 +330,16 @@ namespace ppbox
         {
             SourceBase::response_type resp;
             resp.swap(resp_);
-
             ios_service().post(boost::bind(resp, ec));
         }
-
 
         bool VodSource::is_open()
         {
             bool ret = false;
-            switch (open_step_)
-            {
-            case StepType::finish:
+            switch (open_step_) {
+                case StepType::finish:
                 {
-                    if (jump_) 
-                    {
+                    if (jump_) {
                         delete jump_;
                         jump_ = NULL;
                     }
@@ -353,13 +348,13 @@ namespace ppbox
                     ret = true;
                 }
                 break;
-            case StepType::finish2:
-            case StepType::drag:
+                case StepType::finish2:
+                case StepType::drag:
                 {
                     ret = true;
                 }
                 break;
-            default:
+                default:
                 {
                 }
                 break;
@@ -367,22 +362,57 @@ namespace ppbox
             return ret;
         }
 
+        error_code VodSource::time_seek(
+            boost::uint64_t time, 
+            SegmentPositionEx & abs_position, 
+            SegmentPositionEx & position, 
+            error_code & ec)
+        {
+            ec.clear();
+            abs_position = begin_segment_;
+            boost::uint64_t time2 = time;
+            position.segment = size_t(-1);
+            position.source = this;
+            assert(segments_.size() > 0);
+            if (time2 > segments_[0].duration) {
+                if (know_seg_count_) {
+                    boost::uint64_t total_size = 0;
+                    for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
+                        if (time < segments_[i].duration_offset) {
+                            position.segment = i;
+                            position.total_state = SegmentPositionEx::is_valid;
+                            position.time_state = SegmentPositionEx::is_valid;
+                            position.time_beg = segments_[i].duration_offset - segments_[i].duration;
+                            position.time_end = segments_[i].duration_offset;
+                            position.shard_beg = position.size_beg = total_size;
+                            position.shard_end = position.size_end = position.size_beg + segments_[i].file_length;
+                            break;
+                        }
+                        total_size += segments_[i].file_length;
+                    }
+                } else {
+                    ec = boost::asio::error::would_block;
+                }
+            } else {
+                position = begin_segment_;
+            }
+            if (position.segment == size_t(-1)
+                && ec != boost::asio::error::would_block) {
+                ec = framework::system::logic_error::out_of_range;
+            }
+            return ec;
+        }
+
         void VodSource::update_segment(size_t segment)
         {
-            if (segments_.size() == segment )
-            {
+            if (segments_.size() == segment ) {
                 VodSegmentNew newSegment;
                 newSegment.duration = boost::uint32_t(-1);
                 newSegment.file_length = boost::uint64_t(-1);
                 newSegment.head_length = boost::uint64_t(-1);
                 segments_.push_back(newSegment);
-            }
-            else if (segments_.size() > segment)
-            {
-                //正常情况
-            }
-            else
-            {
+            } else if (segments_.size() > segment) {
+            } else {
                 assert(false);
             }
         }
@@ -405,6 +435,53 @@ namespace ppbox
         {
             update_segment(segment);
             HttpSource::segment_async_open(segment,beg,end,resp);
+        }
+
+        bool VodSource::next_segment(
+            SegmentPositionEx & position)
+        {
+            if (position.segment == 0 && !position.source) {
+                assert(begin_segment_.total_state == SegmentPositionEx::is_valid);
+                position = begin_segment_;
+                position.source = this;
+            } else {
+                position.segment++;
+                boost::uint64_t total_size = 0;
+                boost::uint64_t total_time = 0;
+                assert(segments_.size() >= position.segment);
+                for (boost::uint32_t i = 0; i < position.segment; ++i) {
+                    if (segments_[i].file_length == boost::uint64_t(-1)) {
+                        position.segment = i;
+                        break;
+                    }
+                    total_size += segments_[i].file_length;
+                    total_time += segments_[i].duration;
+                }
+                position.time_beg = total_time;
+                position.size_beg = position.shard_beg = total_size;
+                if (position.segment < segments_.size()) {
+                    if (segments_[position.segment].file_length != boost::uint64_t(-1)) {
+                        position.size_end = position.shard_end = position.size_beg + segment_size(position.segment);
+                        position.total_state = SegmentPositionEx::is_valid;
+                    } else {
+                        position.size_end = position.shard_end = boost::uint64_t(-1);
+                        position.total_state = SegmentPositionEx::not_exist;
+                    }
+                    if (segments_[position.segment].duration != boost::uint32_t(-1)) {
+                        position.time_end = position.time_beg + segment_time(position.segment);
+                        position.time_state = SegmentPositionEx::is_valid;
+                    } else {
+                        position.time_end = boost::uint64_t(-1);
+                        position.time_state = SegmentPositionEx::not_exist;
+                    }
+                } else {
+                    position.size_end = position.shard_end = boost::uint64_t(-1);
+                    position.total_state = SegmentPositionEx::not_exist;
+                    position.time_end = boost::uint64_t(-1);
+                    position.time_state = SegmentPositionEx::not_exist;
+                }
+            }
+            return true;
         }
 
         error_code VodSource::get_request(
@@ -524,13 +601,26 @@ namespace ppbox
         error_code VodSource::reset(
             SegmentPositionEx & segment)
         {
+            assert(video_);
             segment.segment = 0;
-            segment.shard_beg = segment.size_beg;
+            segment.source = this;
+            segment.shard_beg = segment.size_beg = 0;
             boost::uint64_t seg_size = segment_size(segment.segment);
             segment.shard_end = segment.size_end = (seg_size == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.size_beg + seg_size);
-            segment.time_beg = segment.time_beg;
+            segment.time_beg = segment.time_beg = 0;
             boost::uint64_t seg_time = segment_time(segment.segment);
             segment.time_end = (seg_time == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.time_beg + seg_time );
+            if (segment.shard_end == boost::uint64_t(-1)) {
+                segment.total_state = SegmentPositionEx::not_exist;
+            } else {
+                segment.total_state = SegmentPositionEx::is_valid;
+            }
+            if (segment.time_end == boost::uint64_t(-1)) {
+                segment.time_state = SegmentPositionEx::not_exist;
+            } else {
+                segment.time_state = SegmentPositionEx::is_valid;
+            }
+            begin_segment_ = segment;
             return error_code();
         }
 
@@ -554,8 +644,7 @@ namespace ppbox
         size_t VodSource::segment_count() const
         {
             size_t ret = size_t(-1);
-            if (know_seg_count_)
-            {
+            if (know_seg_count_) {
                 ret = segments_.size();
             }
             return ret;
@@ -564,8 +653,7 @@ namespace ppbox
         boost::uint64_t VodSource::segment_size(size_t segment)
         {
             boost::uint64_t ret = boost::uint64_t(-1);
-            if (segments_.size() > segment )
-            {
+            if (segments_.size() > segment ) {
                 ret = segments_[segment].file_length;
             }
             return ret;
@@ -574,35 +662,41 @@ namespace ppbox
         boost::uint64_t VodSource::segment_time(size_t segment)
         {
             boost::uint64_t ret = boost::uint64_t(-1);
-            if (segments_.size() > segment )
-            {
+            if (segments_.size() > segment ) {
                 ret = segments_[segment].duration;
             }
             return ret;
         }
 
-        void VodSource::update_segment_duration(size_t segment,boost::uint32_t time)
+        void VodSource::update_segment_duration(size_t segment, boost::uint32_t time)
         {
-            if (segments_.size() > segment )
-            {
+            if (segments_.size() > segment ) {
                 segments_[segment].duration = time;
             }
         }
 
-        void VodSource::update_segment_file_size(size_t segment,boost::uint64_t fsize)
+        void VodSource::update_segment_file_size(size_t segment, boost::uint64_t fsize)
         {
-            if (segments_.size() > segment )
-            {
-                segments_[segment].file_length = fsize;
+            if (segments_.size() > segment) {
+                if (!know_seg_count_ 
+                    && segments_[segment].file_length == boost::uint64_t(-1)) {
+                    segments_[segment].file_length = fsize;
+                }
+            }
+
+            segment++;
+            if (!know_seg_count_ && segments_.size() == segment) {
+                // add a segment
+                VodSegmentNew vod_seg;
+                vod_seg.duration = boost::uint32_t(-1);
+                vod_seg.file_length = boost::uint64_t(-1);
+                vod_seg.head_length = boost::uint64_t(-1);
+                segments_.push_back(vod_seg);
             }
         }
 
-        void VodSource::update_segment_head_size(size_t segment,boost::uint64_t hsize)
+        void VodSource::update_segment_head_size(size_t segment, boost::uint64_t hsize)
         {
-            if (segments_.size() > segment )
-            {
-                segments_[segment].head_length = hsize;
-            }
         }
 
     } // namespace demux

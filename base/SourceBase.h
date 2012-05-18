@@ -233,6 +233,13 @@ namespace ppbox
                 boost::uint32_t time_out, 
                 boost::system::error_code & ec) = 0;
 
+            virtual boost::system::error_code reset(
+                SegmentPositionEx & segment) = 0;
+
+            virtual boost::system::error_code get_duration(
+                DurationInfo & info,
+                boost::system::error_code & ec) = 0;
+
         public: // BufferDemuxerµ÷ÓÃ
             virtual boost::system::error_code open(){ return boost::system::error_code(); }
 
@@ -262,19 +269,6 @@ namespace ppbox
             virtual DemuxerType::Enum demuxer_type() const = 0;
 
             virtual void set_url(std::string const &url){}
-
-            virtual boost::system::error_code reset(
-                SegmentPositionEx & segment)
-            {
-                return boost::system::error_code();
-            }
-
-            virtual boost::system::error_code get_duration(
-                DurationInfo & info,
-                boost::system::error_code & ec)
-            {
-                return ec;
-            }
 
         public:
             virtual void on_error(
