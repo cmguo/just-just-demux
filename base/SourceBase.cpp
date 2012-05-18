@@ -186,6 +186,30 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
+            SegmentPositionEx cur_seg = SegmentPositionEx(), pre_seg = SegmentPositionEx();
+            bool ischanged = false;
+
+            while (next_segment(cur_seg))
+            {
+                if (cur_seg.shard_end == -1) {
+                    abs_position = cur_seg;
+                    ischanged = true;
+                } else if (ischanged && pre_seg.shard_end != -1 ) {
+                    cur_seg.size_beg = cur_seg.shard_beg = 0;
+                    cur_seg.size_end = cur_seg.shard_end = segment_size(cur_seg.segment);
+                    ischanged = false;
+                } else if (pre_seg.shard_beg != 0) {
+                    cur_seg.size_beg = cur_seg.shard_beg = pre_seg.shard_end;
+                    cur_seg.size_end = cur_seg.shard_end = pre_seg.shard_end + segment_size(cur_seg.segment);
+                }
+
+                if (cur_seg.time_end >= time) {
+                    position = cur_seg;
+                    break;
+                }
+
+                pre_seg = cur_seg;
+            }
             /*
             abs_position.segment = 0;
             boost::uint64_t time2 = time;
