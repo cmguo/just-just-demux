@@ -641,6 +641,26 @@ namespace ppbox
             clear_error();
         }
 
+        void BufferList::update_abs_segment(
+            SegmentPositionEx const & seg, boost::uint32_t offset)
+        {
+            if (seg == abs_position_) return;
+            abs_position_   = seg;
+            
+            read_.size_beg      -= offset;
+            read_.shard_beg     -= offset;
+            read_.size_beg      -= offset;
+            read_.size_end      -= offset;
+
+            write_.size_beg     -= offset;
+            write_.shard_beg    -= offset;
+            write_.size_end     -= offset;
+            write_.shard_end    -= offset;
+
+            write_tmp_ = write_;
+            
+        }
+
         // 当前读分段读指针之前的大小
         boost::uint64_t BufferList::read_front() const
         {

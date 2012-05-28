@@ -262,6 +262,9 @@ namespace ppbox
             void reset(
                 SegmentPositionEx const & seg, boost::uint32_t offset);
 
+            void update_abs_segment(
+                SegmentPositionEx const & seg, boost::uint32_t offset);
+
         public:
 
             // 当前读分段读指针之前的大小

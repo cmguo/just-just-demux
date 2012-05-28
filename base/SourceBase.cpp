@@ -186,21 +186,25 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
-            SegmentPositionEx cur_seg = SegmentPositionEx(), pre_seg = SegmentPositionEx();
+            //SegmentPositionEx cur_seg = SegmentPositionEx(), pre_seg = SegmentPositionEx();
+            // 从当前段开始遍历
+            SegmentPositionEx cur_seg = position, pre_seg = position, abs_pos = abs_position;
             bool ischanged = false;
 
             while (next_segment(cur_seg))
             {
-                if (cur_seg.shard_end == -1) {
+                if (cur_seg.shard_end == boost::uint64_t(-1) ||
+                    cur_seg == abs_pos) {
                     abs_position = cur_seg;
                     ischanged = true;
-                } else if (ischanged && pre_seg.shard_end != -1 ) {
+                } else if (ischanged && (pre_seg.shard_end != boost::uint64_t(-1) || pre_seg == abs_pos) ) {
                     cur_seg.size_beg = cur_seg.shard_beg = 0;
                     cur_seg.size_end = cur_seg.shard_end = segment_size(cur_seg.segment);
                     ischanged = false;
                 } else if (pre_seg.shard_beg != 0) {
                     cur_seg.size_beg = cur_seg.shard_beg = pre_seg.shard_end;
                     cur_seg.size_end = cur_seg.shard_end = pre_seg.shard_end + segment_size(cur_seg.segment);
+                    ischanged = false;
                 }
 
                 if (cur_seg.time_end >= time) {
@@ -280,6 +284,15 @@ namespace ppbox
             SegmentPositionEx & position, 
             boost::system::error_code & ec)
         {
+            boost::system::error_code ret_ec = boost::system::error_code();
+            SegmentPositionEx cur_seg = position;
+            while (next_segment(cur_seg)) {
+                if (cur_seg.shard_end >= size) {
+                    position = cur_seg;
+                    return ret_ec;
+                }
+            }
+            /*
             boost::uint64_t size2 = size;
             boost::uint64_t skip_time = 0;
             SourceBase * next_item = (SourceBase *)first_child_;
@@ -338,6 +351,8 @@ namespace ppbox
                 position.total_state = SegmentPositionEx::not_exist;
             }
             return ec;
+            */
+            return ret_ec;
         }
 
         boost::system::error_code SourceBase::time_insert(
