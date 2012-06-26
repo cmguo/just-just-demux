@@ -1163,6 +1163,15 @@ namespace ppbox
                 }
                 LOG_S(framework::logger::Logger::kLevelDebug2, 
                     "[open_request] segment: " << write_tmp_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
+
+                size_t total_count = write_tmp_.source->segment_count();
+                if (total_count != (size_t)-1 && write_tmp_.segment >= total_count) {
+                    LOG_S(framework::logger::Logger::kLevelDebug2, 
+                        "[open_request] this is the last segment: " << write_tmp_.segment);
+                    ec = boost::asio::error::eof;
+                    break;
+                }
+
                 ++sended_req_;
                 write_tmp_.source->segment_open(write_tmp_.segment, write_tmp_.offset - write_tmp_.size_beg, 
                     write_hole_tmp_.this_end == boost::uint64_t(-1) || write_hole_tmp_.this_end == write_tmp_.size_end ? 
