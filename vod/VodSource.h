@@ -31,7 +31,7 @@ namespace ppbox
             virtual ~VodSource();
 
         public:
-            virtual void async_open(SourceBase::response_type const &resp);
+            virtual void async_open(SourceBase::response_type const & resp);
 
             virtual bool is_open();
 
@@ -63,9 +63,6 @@ namespace ppbox
                 SegmentPositionEx & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
-
-            virtual bool next_segment(
-                SegmentPositionEx & position);
 
             virtual boost::system::error_code reset(
                 SegmentPositionEx & segment);
@@ -139,15 +136,12 @@ namespace ppbox
                     finish2
                 };
             };
-            //Demux
         private:
             VodVideo * video_;
             PptvJump * jump_;
             boost::shared_ptr<PptvDrag> drag_;
             SourceBase::response_type resp_;
-
             StepType::Enum open_step_;
-            //vod segment
         private:
             boost::uint16_t vod_port_;
             std::string name_;
@@ -163,7 +157,6 @@ namespace ppbox
             std::vector<VodSegmentNew> segments_;
             boost::uint32_t max_dl_speed_;
             VodDemuxer * vod_demuxer_;
-            SegmentPositionEx begin_segment_;
         };
 
     } // namespace demux

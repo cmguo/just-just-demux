@@ -367,37 +367,11 @@ namespace ppbox
             SegmentPositionEx & position, 
             error_code & ec)
         {
-            ec.clear();
-            abs_position = begin_segment_;
-            boost::uint64_t time2 = time;
-            position.segment = size_t(-1);
-            position.source = this;
-            assert(segments_.size() > 0);
-            if (time2 > segments_[0].duration) {
-                if (know_seg_count_) {
-                    boost::uint64_t total_size = 0;
-                    for (boost::uint32_t i = 0; i < segments_.size(); ++i) {
-                        if (time < segments_[i].duration_offset) {
-                            position.segment = i;
-                            position.total_state = SegmentPositionEx::is_valid;
-                            position.time_state = SegmentPositionEx::is_valid;
-                            position.time_beg = segments_[i].duration_offset - segments_[i].duration;
-                            position.time_end = segments_[i].duration_offset;
-                            position.shard_beg = position.size_beg = total_size;
-                            position.shard_end = position.size_end = position.size_beg + segments_[i].file_length;
-                            break;
-                        }
-                        total_size += segments_[i].file_length;
-                    }
-                } else {
-                    ec = boost::asio::error::would_block;
-                }
-            } else {
-                position = begin_segment_;
-            }
-            if (position.segment == size_t(-1)
-                && ec != boost::asio::error::would_block) {
-                ec = framework::system::logic_error::out_of_range;
+            SourceBase::time_seek(time, abs_position, position, ec);
+            if (position.total_state == SegmentPositionEx::not_exist 
+                && know_seg_count_
+                && !ec) {
+                    ec = framework::system::logic_error::out_of_range;
             }
             return ec;
         }
@@ -434,53 +408,6 @@ namespace ppbox
         {
             update_segment(segment);
             HttpSource::segment_async_open(segment,beg,end,resp);
-        }
-
-        bool VodSource::next_segment(
-            SegmentPositionEx & position)
-        {
-            if (position.segment == 0 && !position.source) {
-                assert(begin_segment_.total_state == SegmentPositionEx::is_valid);
-                position = begin_segment_;
-                position.source = this;
-            } else {
-                position.segment++;
-                boost::uint64_t total_size = 0;
-                boost::uint64_t total_time = 0;
-                assert(segments_.size() >= position.segment);
-                for (boost::uint32_t i = 0; i < position.segment; ++i) {
-                    if (segments_[i].file_length == boost::uint64_t(-1)) {
-                        position.segment = i;
-                        break;
-                    }
-                    total_size += segments_[i].file_length;
-                    total_time += segments_[i].duration;
-                }
-                position.time_beg = total_time;
-                position.size_beg = position.shard_beg = total_size;
-                if (position.segment < segments_.size()) {
-                    if (segments_[position.segment].file_length != boost::uint64_t(-1)) {
-                        position.size_end = position.shard_end = position.size_beg + segment_size(position.segment);
-                        position.total_state = SegmentPositionEx::is_valid;
-                    } else {
-                        position.size_end = position.shard_end = boost::uint64_t(-1);
-                        position.total_state = SegmentPositionEx::not_exist;
-                    }
-                    if (segments_[position.segment].duration != boost::uint32_t(-1)) {
-                        position.time_end = position.time_beg + segment_time(position.segment);
-                        position.time_state = SegmentPositionEx::is_valid;
-                    } else {
-                        position.time_end = boost::uint64_t(-1);
-                        position.time_state = SegmentPositionEx::not_exist;
-                    }
-                } else {
-                    position.size_end = position.shard_end = boost::uint64_t(-1);
-                    position.total_state = SegmentPositionEx::not_exist;
-                    position.time_end = boost::uint64_t(-1);
-                    position.time_state = SegmentPositionEx::not_exist;
-                }
-            }
-            return true;
         }
 
         error_code VodSource::get_request(
@@ -561,25 +488,19 @@ namespace ppbox
         void VodSource::set_url(std::string const &url)
         {
             error_code ec;
-            //name_ = name;
             std::string::size_type slash = url.find('|');
-
-            if (slash == std::string::npos) 
-            {
+            if (slash == std::string::npos) {
                 return;
             } 
             std::string key = url.substr(0, slash);
             std::string playlink = url.substr(slash + 1);
 
-            //std::string   temp_host = "http://host/";
-            //url = temp_host + url;
             playlink = framework::string::Url::decode(playlink);
             framework::string::Url request_url(playlink);
             playlink = request_url.path().substr(1);
             std::string strBwtype = request_url.param("bwtype");
 
-            if(!strBwtype.empty())
-            {
+            if(!strBwtype.empty()) {
                 bwtype_ = framework::string::parse<boost::int32_t>(strBwtype);
             }
 
