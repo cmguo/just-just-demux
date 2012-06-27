@@ -174,7 +174,6 @@ namespace ppbox
 
             std::deque<SegmentPositionEx> segments_;
             boost::uint32_t max_segment_size_;
-            SegmentPositionEx begin_segment_;
 
             boost::uint16_t interval_;
             boost::uint32_t seq_;
@@ -183,7 +182,8 @@ namespace ppbox
             SourceBase::response_type resp_;
             StepType::Enum open_step_;
             boost::uint32_t time_;
-
+            boost::uint64_t drop_segments_total_size_;
+            boost::uint64_t drop_segments_total_time_;
         };
 
     } // namespace demux
