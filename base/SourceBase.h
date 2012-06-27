@@ -67,8 +67,8 @@ namespace ppbox
                 is_valid, 
                 by_guess, 
 
-                unknown_time,   // 未知时长
-                unknown_size,   // 未知大小
+                unknown_time,
+                unknown_size,
             };
 
             StateEnum total_state;
@@ -139,8 +139,6 @@ namespace ppbox
         class BufferList;
         class BufferDemuxer;
 
-        //************************************
-        // Method:    SourceBase
         // 功能需求:
         //  1、管理多个源；
         //  2、支持顺序遍历分段；
@@ -148,12 +146,6 @@ namespace ppbox
         //  4、支持输入绝对位置（time || size）返回分段信息；
         //  5、打开（range）、关闭、读取、取消功能（若不提供分段大小，则打开成功后获取分段大小）；
         //  6、提供插入和删除源
-        // FullName:  ppbox::demux::SourceBase::SourceBase
-        // Access:    public 
-        // Returns:   
-        // Qualifier:
-        // Parameter: boost::asio::io_service & io_svc
-        //************************************
         class SourceBase
             : public SourceTreeItem
         {
@@ -398,94 +390,33 @@ namespace ppbox
             }
 
         public:
-            //************************************
-            // Method:    segment_count 分段个数
-            // FullName:  ppbox::demux::SourceBase::segment_count
-            // Access:    virtual private 
-            // Returns:   size_t
-            // Qualifier: const
-            //************************************
+            // 分段个数
             virtual size_t segment_count() const = 0;
 
-            //************************************
-            // Method:    segment_size 获取指定分段的大小
-            // FullName:  ppbox::demux::SourceBase::segment_size
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier: 
-            // Parameter: size_t segment
-            //************************************
+            // 获取指定分段的大小
             virtual boost::uint64_t segment_size(
                 size_t segment) = 0;
 
-            //************************************
-            // Method:    segment_time 获取指定分段的时长
-            // FullName:  ppbox::demux::SourceBase::segment_time
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier: 
-            // Parameter: size_t segment
-            //************************************
+            // 获取指定分段的时长
             virtual boost::uint64_t segment_time(
                 size_t segment) = 0;
 
-            //************************************
-            // Method:    source_size 自己所有分段的size总和
-            // FullName:  ppbox::demux::SourceBase::source_size
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier:
-            //************************************
+            // 自己所有分段的size总和
             virtual boost::uint64_t source_size();
 
-            //************************************
-            // Method:    source_size_before 指定分段之前所有分段大小总和
-            // FullName:  ppbox::demux::SourceBase::source_size_before
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier:
-            // Parameter: size_t segment
-            //************************************
+            // 指定分段之前所有分段大小总和
             virtual boost::uint64_t source_size_before(
                 size_t segment);
 
-            //************************************
-            // Method:    source_time 自己所有分段的time总和
-            // FullName:  ppbox::demux::SourceBase::source_time
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier:
-            //************************************
+            // 自己所有分段的time总和
             virtual boost::uint64_t source_time();
 
-            //************************************
-            // Method:    tree_size_before
-            // FullName:  ppbox::demux::SourceBase::tree_size_before
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier:
-            // Parameter: SourceBase * child
-            //************************************
             virtual boost::uint64_t tree_size_before(
                 SourceBase * child);
 
-            //************************************
-            // Method:    tree_time 自己和所有子节点的time总和
-            // FullName:  ppbox::demux::SourceBase::tree_time
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier:
-            //************************************
+            // 自己和所有子节点的time总和
             virtual boost::uint64_t tree_time();
 
-            //************************************
-            // Method:    tree_time_before
-            // FullName:  ppbox::demux::SourceBase::tree_time_before
-            // Access:    virtual private 
-            // Returns:   boost::uint64_t
-            // Qualifier:
-            // Parameter: SourceBase * child
-            //************************************
             virtual boost::uint64_t tree_time_before(
                 SourceBase * child);
 
@@ -504,6 +435,9 @@ namespace ppbox
             {
                 return demuxer_;
             }
+
+        protected:
+            SegmentPositionEx begin_segment_;
 
         private:
             boost::asio::io_service & io_svc_;

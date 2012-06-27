@@ -112,7 +112,9 @@ namespace ppbox
             seek_to(offset);
             SegmentPositionEx & read = read_;
             read = position;
-            root_source_->size_seek(write_.offset, abs_position_, write_, ec);
+            SegmentPositionEx & write = write_;
+            write = position;
+            //root_source_->size_seek(write_.offset, abs_position_, write_, ec);
             if (!ec) {
                 if (offset >= seek_end_)
                     seek_end_ = (boost::uint64_t)-1;
@@ -613,8 +615,6 @@ namespace ppbox
             delete write_bytesstream_;
             write_bytesstream_ = new BytesStream(
                 *this, write_);
-
-
 
             //read_.offset = offset;
             //read_.buffer = buffer_beg();
@@ -1366,7 +1366,7 @@ namespace ppbox
                     last_ec_ = last_error;
                 }
 
-                write_.source->on_seg_end(write_.segment);
+                //.write_.source->on_seg_end(write_.segment);
                 source_closed_ = true;
             }
             return ec;

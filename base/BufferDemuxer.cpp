@@ -263,8 +263,7 @@ namespace ppbox
                             if (buffer_->read_segment().time_state != SegmentPositionEx::is_valid) {
                                 std::cout << "segment time: " << segment_time_ << " cur time: " << cur_time << std::endl;
                                 segment_time_ += cur_time;
-                                segment_time_ += 40; // refine: 使用帧率计算时间间隔
-
+                                segment_time_ += video_frame_interval_;
                             } else {
                                 segment_time_ = segment_time;
                             }
@@ -593,8 +592,6 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (ec == source_error::at_end_point) {
-                //write_demuxer_.stream->update_new(
-                //    buffer_->write_segment());
                 if (seek_time_) {
                     boost::system::error_code ec1;
                     seek(seek_time_, ec1);

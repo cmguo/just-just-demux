@@ -166,15 +166,8 @@ namespace ppbox
             boost::system::error_code close(
                 boost::system::error_code & ec);
 
-            //************************************
-            // Method:    prepare
-            // FullName:  ppbox::demux::BufferList::prepare
-            // Access:    public 
-            // Returns:   boost::system::error_code
-            // Qualifier:
             // Parameter: boost::uint32_t amount 需要下载的数据大小
             // Parameter: boost::system::error_code & ec
-            //************************************
             boost::system::error_code prepare(
                 boost::uint32_t amount, 
                 boost::system::error_code & ec);
@@ -209,17 +202,10 @@ namespace ppbox
                 std::vector<unsigned char> & data, 
                 boost::system::error_code & ec);
 
-            //************************************
-            // Method:    peek
-            // FullName:  ppbox::demux::BufferList::peek
-            // Access:    public 
-            // Returns:   boost::system::error_code
-            // Qualifier:
             // Parameter: boost::uint64_t offset 读分段的相对偏移量
             // Parameter: boost::uint32_t size 大小
             // Parameter: std::deque<boost::asio::const_buffer> & data 输出缓存
             // Parameter: boost::system::error_code & ec 错误码
-            //************************************
             boost::system::error_code peek(
                 boost::uint64_t offset, 
                 boost::uint32_t size, 
@@ -253,7 +239,6 @@ namespace ppbox
                 drop_all 
                 丢弃当前分段的所有剩余数据，并且更新当前分段信息
              */
-            // TO BE FIXED
             boost::system::error_code drop_all(
                 boost::system::error_code & ec);
 
@@ -351,14 +336,7 @@ namespace ppbox
             write_buffer_t write_buffer(
                 boost::uint32_t max_size);
 
-            //************************************
             // Method:    add_request 串行请求
-            // FullName:  ppbox::demux::BufferList::add_request
-            // Access:    public 
-            // Returns:   void
-            // Qualifier:
-            // Parameter: boost::system::error_code & ec
-            //************************************
             void add_request(
                 boost::system::error_code & ec);
 
@@ -557,41 +535,20 @@ namespace ppbox
                 Position & position, 
                 boost::uint64_t offset) const;
 
-            //************************************
             // Method:    move_back_to 后移到
-            // FullName:  ppbox::demux::BufferList::move_back_to
-            // Access:    private 
-            // Returns:   void
-            // Qualifier: const
-            // Parameter: Position & position
             // Parameter: boost::uint64_t offset 文件绝对位置
-            //************************************
             void move_back_to(
                 Position & position, 
                 boost::uint64_t offset) const;
 
-            //************************************
             // Method:    move_front_to 前移到
-            // FullName:  ppbox::demux::BufferList::move_front_to
-            // Access:    private 
-            // Returns:   void
-            // Qualifier: const
-            // Parameter: Position & position
             // Parameter: boost::uint64_t offset 文件绝对位置
-            //************************************
             void move_front_to(
                 Position & position, 
                 boost::uint64_t offset) const;
 
-            //************************************
             // Method:    move_to 移动到
-            // FullName:  ppbox::demux::BufferList::move_to
-            // Access:    private 
-            // Returns:   void
-            // Qualifier: const
-            // Parameter: Position & position
             // Parameter: boost::uint64_t offset 文件绝对位置
-            //************************************
             void move_to(
                 Position & position, 
                 boost::uint64_t offset) const;
