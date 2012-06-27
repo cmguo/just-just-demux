@@ -208,22 +208,21 @@ namespace ppbox
             VodDragInfoNew & drag_info)
         {
             set_info_by_video(drag_info.video);
-            know_seg_count_ = true;
 
             std::vector<VodSegmentNew> & segmentsTmp = drag_info.segments;
-            size_t segment_size = segments_.size();
-            for (size_t i = 0;  i < segmentsTmp.size(); ++i) {
+            while (segments_.size() > 1)
+            {
+                segments_.erase(segments_.end());
+            }
+
+            for (size_t i = 0;  i < segmentsTmp.size(); ++i) 
+            {
                 if (i == 0 && segments_.size() > 0)
                     continue;
-
-                if (i < segment_size) {
-                    boost::uint64_t filesize = segments_[i].file_length;
-                    segments_[i] = segmentsTmp[i];
-                    assert(filesize == segmentsTmp[i].file_length);
-                } else {
                     segments_.push_back(segmentsTmp[i]);
-                }
             }
+
+            know_seg_count_ = true;
         }
 
         void VodSource::set_info_by_video(
@@ -303,6 +302,7 @@ namespace ppbox
                             get_drag_url(), 
                             jump_info.server_host, 
                             boost::bind(&VodSource::handle_async_open, this, _1));
+                        return;
                     }
                     break;
                 }
@@ -314,9 +314,8 @@ namespace ppbox
                     if (!ec) {
                         set_info_by_drag(drag_info);
                     }
-                    return;
+                    break;
                 }
-
             default:
                 assert(0);
                 return;
