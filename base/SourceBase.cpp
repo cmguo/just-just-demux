@@ -3,9 +3,15 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SourceBase.h"
 #include "ppbox/demux/base/BytesStream.h"
+#include "ppbox/demux/source/HttpSource.h"
 
 #include "ppbox/demux/vod/VodSource.h"
 #include "ppbox/demux/live2/Live2Source.h"
+
+#include <ppbox/cdn/VodSegments.h>
+#include <ppbox/cdn/Live2Segment.h>
+#include <ppbox/cdn/PeerCoreSegment.h>
+#include <ppbox/cdn/VodCoreSegment.h>
 
 #include <framework/system/LogicError.h>
 
@@ -33,11 +39,30 @@ namespace ppbox
             }
 
             if (proto == "ppvod") {
-                source = new VodSource(io_svc);
+#if (!defined(PPBOX_DISABLE_VOD) && !defined(PPBOX_DISABLE_PEER))
+                ppbox::cdn::SegmentBase * pSegment = new ppbox::cdn::VodSegments(io_svc);
+                ppbox::demux::Source * pSource = new ppbox::demux::HttpSource(io_svc);
+                source = new VodSource(io_svc, pSegment,pSource);
+#endif
+
+#ifndef PPBOX_DISABLE_VOD
+                ppbox::cdn::SegmentBase * pSegment = new ppbox::cdn::PeerCoreSegment(io_svc);
+                ppbox::demux::Source * pSource = new ppbox::demux::HttpSource(io_svc);
+                source = new VodSource(io_svc, pSegment,pSource);
+#endif
+
+#ifndef PPBOX_DISABLE_PEER
+                ppbox::cdn::SegmentBase * pSegment = new ppbox::cdn::VodCoreSegment(io_svc);
+                ppbox::demux::Source * pSource = new ppbox::demux::HttpSource(io_svc);
+                source = new VodSource(io_svc, pSegment,pSource);
+#endif
+                
             } else if (proto == "pplive2") {
-                source = new Live2Source(io_svc);
+                ppbox::cdn::SegmentBase * pSegment = new ppbox::cdn::Live2Segment(io_svc);
+                ppbox::demux::Source * pSource = new ppbox::demux::HttpSource(io_svc);
+                source = new Live2Source(io_svc, pSegment, pSource);
             } else {
-                source = new VodSource(io_svc);
+//                source = new VodSource(io_svc);
             }
             return source;
         }
@@ -50,8 +75,12 @@ namespace ppbox
         }
 
         SourceBase::SourceBase(
-            boost::asio::io_service & io_svc)
+            boost::asio::io_service & io_svc
+            ,ppbox::cdn::SegmentBase* segment
+            ,ppbox::demux::Source* source)
             : io_svc_( io_svc )
+            , segment_(segment)
+            , source_(source)
             , insert_segment_(0)
             , insert_size_(0)
             , insert_delta_(0)
@@ -77,6 +106,15 @@ namespace ppbox
         {
         }
 
+        ppbox::cdn::SegmentBase * SourceBase::get_segment_base()
+        {
+            return segment_;
+        }
+        ppbox::demux::Source * SourceBase::get_source_base()
+        {   
+            return source_;
+        }
+
         void SourceBase::on_event(
             Event const & evt)
         {
@@ -92,7 +130,7 @@ namespace ppbox
                 LOG_S(0, "EVENT_SEG_DL_END: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
-                update_segment_file_size(
+                get_segment_base()->update_segment_file_size(
                     evt.seg_info.segment, evt.seg_info.size_end - evt.seg_info.size_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
@@ -100,7 +138,7 @@ namespace ppbox
                 //LOG_S(0, "EVENT_SEG_DEMUXER_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
-                update_segment_duration(
+                get_segment_base()->update_segment_duration(
                     evt.seg_info.segment, evt.seg_info.time_end - evt.seg_info.time_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_STOP:
@@ -137,9 +175,9 @@ namespace ppbox
                 boost::uint64_t total_size = source_size_before(position.segment);
                 position.time_beg = total_time;
                 position.size_beg = position.shard_beg = total_size;
-                if (position.segment < segment_count()) {
-                    boost::uint64_t segment_len = segment_size(position.segment);
-                    boost::uint64_t segment_duration = segment_time(position.segment);
+                if (position.segment < get_segment_base()->segment_count()) {
+                    boost::uint64_t segment_len = get_segment_base()->segment_size(position.segment);
+                    boost::uint64_t segment_duration = get_segment_base()->segment_time(position.segment);
                     if (segment_len != boost::uint64_t(-1)) {
                         position.size_end = position.shard_end = position.size_beg + segment_len;
                         position.total_state = SegmentPositionEx::is_valid;
@@ -148,7 +186,7 @@ namespace ppbox
                         position.total_state = SegmentPositionEx::not_exist;
                     }
                     if (segment_duration != boost::uint64_t(-1)) {
-                        position.time_end = position.time_beg + segment_time(position.segment);
+                        position.time_end = position.time_beg + get_segment_base()->segment_time(position.segment);
                         position.time_state = SegmentPositionEx::is_valid;
                     } else {
                         position.time_end = boost::uint64_t(-1);
@@ -186,11 +224,11 @@ namespace ppbox
                     ischanged = true;
                 } else if (ischanged && (pre_seg.shard_end != boost::uint64_t(-1) || pre_seg == abs_pos) ) {
                     cur_seg.size_beg = cur_seg.shard_beg = 0;
-                    cur_seg.size_end = cur_seg.shard_end = segment_size(cur_seg.segment);
+                    cur_seg.size_end = cur_seg.shard_end = get_segment_base()->segment_size(cur_seg.segment);
                     ischanged = false;
                 } else if (pre_seg.shard_beg != 0) {
                     cur_seg.size_beg = cur_seg.shard_beg = pre_seg.shard_end;
-                    cur_seg.size_end = cur_seg.shard_end = pre_seg.shard_end + segment_size(cur_seg.segment);
+                    cur_seg.size_end = cur_seg.shard_end = pre_seg.shard_end + get_segment_base()->segment_size(cur_seg.segment);
                     ischanged = false;
                 }
 
@@ -265,8 +303,8 @@ namespace ppbox
         boost::uint64_t SourceBase::source_size()
         {
             boost::uint64_t total = 0;
-            for (boost::uint32_t i = begin_segment_.segment; i < segment_count(); i++) {
-                total += segment_size(i);
+            for (boost::uint32_t i = begin_segment_.segment; i < get_segment_base()->segment_count(); i++) {
+                total += get_segment_base()->segment_size(i);
             }
             return total;
         }
@@ -276,11 +314,11 @@ namespace ppbox
         {
             assert(begin_segment_.segment <= segment);
             boost::uint64_t total = 0;
-            if (segment > segment_count()) {
-                segment = segment_count();
+            if (segment > get_segment_base()->segment_count()) {
+                segment = get_segment_base()->segment_count();
             }
             for (int i = begin_segment_.segment; i < segment; i++) {
-                total += segment_size(i);
+                total += get_segment_base()->segment_size(i);
             }
             return total;
         }
@@ -288,8 +326,8 @@ namespace ppbox
         boost::uint64_t SourceBase::source_time()
         {
             boost::uint64_t total = 0;
-            for (int i = begin_segment_.segment; i < segment_count(); i++) {
-                total += segment_time(i);
+            for (int i = begin_segment_.segment; i < get_segment_base()->segment_count(); i++) {
+                total += get_segment_base()->segment_time(i);
             }
             return total;
         }
@@ -298,11 +336,11 @@ namespace ppbox
             size_t segment)
         {
             boost::uint64_t total = 0;
-            if (segment > segment_count()) {
-                segment = segment_count();
+            if (segment > get_segment_base()->segment_count()) {
+                segment = get_segment_base()->segment_count();
             }
             for (int i = begin_segment_.segment; i < segment; i++) {
-                total += segment_time(i);
+                total += get_segment_base()->segment_time(i);
             }
             return total;
         }

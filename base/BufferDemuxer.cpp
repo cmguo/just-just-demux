@@ -108,8 +108,8 @@ namespace ppbox
             boost::system::error_code ec;
             open_state_ = OpenState::source_open;
             DemuxerStatistic::open_beg();
-            root_source_->set_url(name);
-            root_source_->async_open(boost::bind(&BufferDemuxer::handle_async_open, this, _1));
+            root_source_->get_segment_base()->set_url(name);
+            root_source_->get_segment_base()->async_open(boost::bind(&BufferDemuxer::handle_async_open, this, _1));
         }
 
         boost::uint32_t BufferDemuxer::get_cur_time(
@@ -338,11 +338,11 @@ namespace ppbox
         }
 
         boost::system::error_code BufferDemuxer::get_duration(
-            DurationInfo & info,
+            ppbox::cdn::DurationInfo & info,
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
-                root_source_->get_duration(info, ec); // ms
+                root_source_->get_segment_base()->get_duration(info, ec); // ms
             }
             return ec;
         }
@@ -351,9 +351,9 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (OpenState::source_open == open_state_) {
-                root_source_->cancel(ec);
+                root_source_->get_segment_base()->cancel(ec);
             } else if (OpenState::demuxer_open == open_state_) {
-                root_source_->close(ec); // source opened
+                root_source_->get_segment_base()->close(ec); // source opened
                 buffer_->cancel(ec);
             }
             open_state_ = OpenState::cancel;
@@ -697,14 +697,14 @@ namespace ppbox
             bool non_block, 
             boost::system::error_code & ec)
         {
-            return root_source_->set_non_block(non_block, ec);
+            return root_source_->get_source_base()->set_non_block(non_block, ec);
         }
 
         boost::system::error_code BufferDemuxer::set_time_out(
             boost::uint32_t time_out, 
             boost::system::error_code & ec)
         {
-            return root_source_->set_time_out(time_out, ec);
+            return root_source_->get_source_base()->set_time_out(time_out, ec);
             return ec;
         }
 

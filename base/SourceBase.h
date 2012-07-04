@@ -6,6 +6,9 @@
 #include "ppbox/demux/base/DemuxerType.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
 #include "ppbox/demux/base/SourcePrefix.h"
+#include "ppbox/demux/base/Source.h"
+
+#include <ppbox/cdn/SegmentBase.h>
 
 #include <util/buffers/Buffers.h>
 
@@ -17,7 +20,6 @@ namespace ppbox
 {
     namespace demux
     {
-
         struct SegmentPosition
             : SourceTreePosition
         {
@@ -119,23 +121,6 @@ namespace ppbox
             boost::system::error_code ec;
         };
 
-        struct DurationInfo
-        {
-            DurationInfo()
-                : redundancy(0)
-                , begin(0)
-                , end(0)
-                , total(0)
-            {
-            }
-
-            boost::uint32_t redundancy;
-            boost::uint32_t begin;
-            boost::uint32_t end;
-            boost::uint32_t total;
-            boost::uint32_t interval;
-        };
-
         class BufferList;
         class BufferDemuxer;
 
@@ -150,19 +135,6 @@ namespace ppbox
             : public SourceTreeItem
         {
         public:
-            typedef util::buffers::Buffers<
-                boost::asio::mutable_buffer, 2
-            > write_buffer_t;
-
-            typedef boost::function<void(
-                boost::system::error_code const &,
-                size_t)
-            > read_handle_type;
-
-        public:
-            typedef boost::function<void (
-                boost::system::error_code const &)
-            > response_type;
 
             static SourceBase * create(
                 boost::asio::io_service & io_svc, std::string const & playlink);
@@ -172,105 +144,25 @@ namespace ppbox
 
         public:
             SourceBase(
-                boost::asio::io_service & io_svc);
+                boost::asio::io_service & io_svc
+                ,ppbox::cdn::SegmentBase* segment
+                ,ppbox::demux::Source* source);
 
             virtual ~SourceBase();
 
-        public: // BufferList调用
-            virtual boost::system::error_code segment_open(
-                size_t segment, 
-                boost::uint64_t beg, 
-                boost::uint64_t end, 
-                boost::system::error_code & ec) = 0;
-
-            virtual void segment_async_open(
-                size_t segment, 
-                boost::uint64_t beg, 
-                boost::uint64_t end, 
-                response_type const & resp) = 0;
-
-            virtual bool segment_is_open(
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::uint64_t total(
-                boost::system::error_code & ec) = 0;
-
-            virtual std::size_t segment_read(
-                write_buffer_t const & buffers,
-                boost::system::error_code & ec) = 0;
-
-            virtual void segment_async_read(
-                write_buffer_t const & buffers,
-                read_handle_type handler) = 0;
-
-            virtual bool continuable(
-                boost::system::error_code const & ec) = 0;
-
-            virtual bool recoverable(
-                boost::system::error_code const & ec) = 0;
-
-            virtual boost::system::error_code segment_cancel(
-                size_t segment, 
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::system::error_code segment_close(
-                size_t segment, 
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::system::error_code set_non_block(
-                bool non_block, 
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::system::error_code set_time_out(
-                boost::uint32_t time_out, 
-                boost::system::error_code & ec) = 0;
+        public:
+            ppbox::cdn::SegmentBase* get_segment_base();
+            ppbox::demux::Source* get_source_base();
 
             virtual boost::system::error_code reset(
                 SegmentPositionEx & segment) = 0;
 
-            virtual boost::system::error_code get_duration(
-                DurationInfo & info,
-                boost::system::error_code & ec) = 0;
-
-        public: // BufferDemuxer调用
-            virtual boost::system::error_code open(){ return boost::system::error_code(); }
-
-            virtual void async_open(
-                response_type const & resp){}
-
-            virtual boost::system::error_code cancel(
-                boost::system::error_code & ec){ return ec;}
-
-            virtual boost::system::error_code close(
-                boost::system::error_code & ec){return ec;}
-
-            virtual bool is_open()
-            {
-                return true;
-            }
-
-            virtual void update_segment_duration(
-                size_t segment,boost::uint32_t time){}
-
-            virtual void update_segment_file_size(
-                size_t segment,boost::uint64_t fsize){}
-
-            virtual void update_segment_head_size(
-                size_t segment,boost::uint64_t hsize){}
-
             virtual DemuxerType::Enum demuxer_type() const = 0;
 
-            virtual void set_url(std::string const &url){}
 
         public:
             virtual void on_error(
                 boost::system::error_code & ec) {}
-
-            virtual void on_seg_beg(
-                size_t segment) {}
-
-            virtual void on_seg_end(
-                size_t segment) {}
 
             // 处理事件通知
             virtual void on_event(
@@ -294,12 +186,6 @@ namespace ppbox
                 SegmentPositionEx const & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
-
-            virtual boost::uint64_t segment_head_size(
-                size_t segment)
-            {
-                return 0;
-            }
 
             // 自己和所有子节点的size总和
             virtual boost::uint64_t tree_size();
@@ -336,11 +222,6 @@ namespace ppbox
                 BufferList * buffer)
             {
                 buffer_ = buffer;
-            }
-
-            virtual void set_name(
-                std::string const & name)
-            {
             }
 
         public:
@@ -390,16 +271,6 @@ namespace ppbox
             }
 
         public:
-            // 分段个数
-            virtual size_t segment_count() const = 0;
-
-            // 获取指定分段的大小
-            virtual boost::uint64_t segment_size(
-                size_t segment) = 0;
-
-            // 获取指定分段的时长
-            virtual boost::uint64_t segment_time(
-                size_t segment) = 0;
 
             // 自己所有分段的size总和
             virtual boost::uint64_t source_size();
@@ -440,9 +311,11 @@ namespace ppbox
             SegmentPositionEx begin_segment_;
 
         private:
+            BufferList * buffer_;
+            ppbox::cdn::SegmentBase * segment_;
+            ppbox::demux::Source * source_;
             boost::asio::io_service & io_svc_;
             DemuxerInfo insert_demuxer_;// 父节点的demuxer
-            BufferList * buffer_;
             BufferDemuxer * demuxer_;
             size_t insert_segment_; // 插入在父节点的分段
             boost::uint64_t insert_size_; // 插入在分段上的偏移位置，相对于分段起始位置（无法）

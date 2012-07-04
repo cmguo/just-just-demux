@@ -168,7 +168,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             boost::system::error_code get_duration(
-                DurationInfo & info,
+                ppbox::cdn::DurationInfo & info,
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
