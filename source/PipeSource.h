@@ -21,7 +21,7 @@ namespace ppbox
     {
 
         class PipeSource
-            : public SourceBase
+            : public Source
         {
         public:
             typedef descriptor::native_type native_descriptor;
@@ -29,7 +29,7 @@ namespace ppbox
         public:
             PipeSource(
                 boost::asio::io_service & io_svc)
-                : SourceBase(io_svc)
+                : Source(io_svc)
                 , descriptor_(io_svc)
                 , is_open_(false)
             {
@@ -37,6 +37,7 @@ namespace ppbox
 
             boost::system::error_code segment_open(
                 size_t segment, 
+                std::string const & url,
                 boost::uint64_t beg, 
                 boost::uint64_t end, 
                 boost::system::error_code & ec)
@@ -63,6 +64,7 @@ namespace ppbox
 
             void segment_async_open(
                 size_t segment, 
+                std::string const & url,
                 boost::uint64_t beg, 
                 boost::uint64_t end, 
                 response_type const & resp)

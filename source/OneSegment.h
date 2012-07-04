@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_ONE_SEGMENT_H_
 #define _PPBOX_DEMUX_ONE_SEGMENT_H_
 
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Source.h"
 
 namespace ppbox
 {
@@ -26,16 +26,16 @@ namespace ppbox
                 std::string const & file) = 0;
         };
 
-        template <typename Source>
+        template <typename SourceTmp>
         class OneSegmentT
-            : public Source
+            : public SourceTmp
             , public OneSegment
         {
         public:
             OneSegmentT(
                 boost::asio::io_service & io_svc, 
                 DemuxerType::Enum demuxer_type)
-                : Source(io_svc)
+                : SourceTmp(io_svc)
                 , demuxer_type_(demuxer_type)
                 , segment_size_(boost::uint64_t(-1))
                 , segment_time_(boost::uint64_t(-1))

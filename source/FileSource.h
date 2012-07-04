@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_SOURCE_FILE_BUFFER_LIST_H_
 
 #include "ppbox/demux/base/BufferList.h"
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Source.h"
 
 #include <framework/system/ErrorCode.h>
 
@@ -19,7 +19,7 @@ namespace ppbox
     {
 
         class FileSource
-            : public SourceBase
+            : public Source
         {
         public:
             typedef boost::function<void (
@@ -29,13 +29,14 @@ namespace ppbox
         public:
             FileSource(
                 boost::asio::io_service & io_svc)
-                : SourceBase(io_svc)
+                : Source(io_svc)
                 , is_open_(false)
             {
             }
 
             boost::system::error_code segment_open(
-                size_t segment, 
+                size_t segment,
+                std::string const & url,
                 boost::uint64_t beg, 
                 boost::uint64_t end, 
                 boost::system::error_code & ec)
@@ -61,12 +62,13 @@ namespace ppbox
 
             void segment_async_open(
                 size_t segment, 
+                std::string const & url,
                 boost::uint64_t beg, 
                 boost::uint64_t end, 
                 response_type const & resp)
             {
                 boost::system::error_code ec;
-                segment_open(segment, beg, end, ec);
+                segment_open(segment,url,beg, end, ec);
                 resp(ec);
             }
 
