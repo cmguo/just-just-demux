@@ -3,30 +3,20 @@
 #ifndef _PPBOX_DEMUX_VOD_SOURCE_H_
 #define _PPBOX_DEMUX_VOD_SOURCE_H_
 
-#include "ppbox/demux/source/HttpSource.h"
-#include "ppbox/demux/vod/VodDemuxer.h"
-#include "ppbox/demux/vod/VodInfo.h"
+#include "ppbox/demux/base/SourceBase.h"
 
 namespace ppbox
 {
     namespace demux
     {
-        struct VodJumpInfo;
-        struct VodJumpInfoNoDrag;
-        struct VodDragInfoNew;
-        struct VodVideo;
-
-        class VodSegmentDemuxer;
-        class VodSegments;
-        class PptvJump;
-        class PptvDrag;
-
         class VodSource
-            : public HttpSource
+            : public SourceBase
         {
         public:
             VodSource(
-                boost::asio::io_service & io_svc);
+                boost::asio::io_service & io_svc,
+                ppbox::cdn::SegmentBase * pSegment,
+                ppbox::demux::Source * pSource);
 
             virtual ~VodSource();
 
@@ -56,10 +46,8 @@ namespace ppbox
 
             virtual DemuxerType::Enum demuxer_type() const;
 
-            virtual void set_url(std::string const &url);
-
             virtual boost::system::error_code time_seek (
-                boost::uint64_t time, 
+                boost::uint64_t time, // ОўГо
                 SegmentPositionEx & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
