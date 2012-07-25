@@ -336,6 +336,7 @@ namespace ppbox
             //LOG_S(Logger::kLevelDebug, "delay play time: " << play_info.delay_play_time);
             time_t server_time = play_info.dt.st.to_time_t();
             LOG_S(Logger::kLevelDebug, "server time: " << ::ctime(&server_time));
+            LOG_S(Logger::kLevelDebug, "server host: " << play_info.dt.sh.to_string());
             demux_data().set_server_host(play_info.dt.sh.to_string());
             buffer_->set_play_info(play_info);
         }

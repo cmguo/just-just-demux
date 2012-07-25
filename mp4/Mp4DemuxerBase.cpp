@@ -480,7 +480,11 @@ namespace ppbox
             if (ec) {
                 return 0;
             }
-            AP4_UI32 time_hint = (AP4_UI32)((offset - head_size_) * 8 / bitrate_);
+
+            AP4_UI32 time_hint = 0;
+            if (bitrate_ != 0) {
+                time_hint = (AP4_UI32)((offset - head_size_) * 8 / bitrate_);
+            }
             {
                 AP4_UI32 time1;
                 for (size_t i = 0; i < tracks_.size(); ++i) {
