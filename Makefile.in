@@ -58,6 +58,7 @@ PROJECT_DEPENDS			:= \
 				/ppbox/live \
 				/bento4 \
 				/base/tinyxml \
+				/base/security \
 				$(PROJECT_DEPENDS) \
 
 ## 该项目特定的引用库
