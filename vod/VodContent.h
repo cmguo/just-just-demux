@@ -1,24 +1,24 @@
-// VodSource.h
+// VodContent.h
 
 #ifndef _PPBOX_DEMUX_VOD_SOURCE_H_
 #define _PPBOX_DEMUX_VOD_SOURCE_H_
 
-#include "ppbox/demux/base/SourceBase.h"
+#include <ppbox/demux/base/Content.h>
 
 namespace ppbox
 {
     namespace demux
     {
-        class VodSource
-            : public SourceBase
+        class VodContent
+            : public Content
         {
         public:
-            VodSource(
+            VodContent(
                 boost::asio::io_service & io_svc,
-                ppbox::cdn::SegmentBase * pSegment,
-                ppbox::demux::Source * pSource);
+                ppbox::common::SegmentBase * pSegment,
+                ppbox::common::SourceBase * pSource);
 
-            virtual ~VodSource();
+            ~VodContent();
 
             virtual DemuxerType::Enum demuxer_type() const;
 

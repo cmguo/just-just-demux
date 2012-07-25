@@ -193,6 +193,11 @@ namespace ppbox
             }
         };
 
+        struct VodSegmentsOld
+            : public std::vector<VodSegment>
+        {
+        };
+
         struct VodSegmentsNew
             : public std::vector<VodSegmentNew>
         {
@@ -211,6 +216,17 @@ namespace ppbox
             {
                 ar & SERIALIZATION_NVP(blocksize)
                     & (std::vector<VodSegmentNew> &)(*this);
+                if (!ar)
+                    return;
+                for (size_t i = 0; i < size(); ++i) {
+                    VodSegmentNew & seg = at(i);
+                    seg.block_size = blocksize;
+                    if (seg.block_size != 0) {
+                        seg.block_num = (boost::uint32_t)(
+                            seg.file_length / seg.block_size + 
+                            ((seg.file_length % seg.block_size != 0) ? 1 : 0));
+                    }
+                }
             }
         };
 

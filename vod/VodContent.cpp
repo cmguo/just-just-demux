@@ -1,7 +1,7 @@
-// VodSource.h
+// VodContent.h
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/vod/VodSource.h"
+#include "ppbox/demux/vod/VodContent.h"
 #include "ppbox/demux/pptv/PptvJump.h"
 #include "ppbox/demux/pptv/PptvDrag.h"
 #include "ppbox/demux/base/DemuxerError.h"
@@ -30,7 +30,7 @@ using namespace boost::system;
 using namespace boost::asio;
 using namespace boost::asio::error;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("VodSource", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("VodContent", 0);
 
 namespace ppbox
 {
@@ -42,32 +42,28 @@ namespace ppbox
             return addr.host() + ":" + addr.svc();
         }
 
-        VodSource::VodSource(
+        VodContent::VodContent(
             boost::asio::io_service & io_svc,
-            ppbox::cdn::SegmentBase * pSegment,
-            ppbox::demux::Source * pSource)
-            : SourceBase(io_svc, pSegment, pSource)
+            ppbox::common::SegmentBase * pSegment,
+            ppbox::common::SourceBase * pSource)
+            : Content(io_svc, pSegment, pSource)
         {
         }
 
-        VodSource::~VodSource()
+        VodContent::~VodContent()
         {
 
         }
 
-
-
-
-
-        error_code VodSource::time_seek(
+        error_code VodContent::time_seek(
             boost::uint64_t time, 
             SegmentPositionEx & abs_position, 
             SegmentPositionEx & position, 
             error_code & ec)
         {
-            SourceBase::time_seek(time, abs_position, position, ec);
+            Content::time_seek(time, abs_position, position, ec);
             if (position.total_state == SegmentPositionEx::not_exist 
-                && (get_segment_base()->segment_count()>0)
+                && (get_segment()->segment_count()>0)
                 && !ec) {
                     ec = framework::system::logic_error::out_of_range;
             }
@@ -75,21 +71,24 @@ namespace ppbox
         }
 
 
-        DemuxerType::Enum VodSource::demuxer_type() const
+        DemuxerType::Enum VodContent::demuxer_type() const
         {
             return DemuxerType::mp4;
         }
 
-        error_code VodSource::reset(
+        error_code VodContent::reset(
             SegmentPositionEx & segment)
         {
             segment.segment = 0;
             segment.source = this;
             segment.shard_beg = segment.size_beg = 0;
-            boost::uint64_t seg_size = get_segment_base()->segment_size(segment.segment);
+
+            common::SegmentInfo seg_info;
+            get_segment()->segment_info(segment.segment, seg_info);
+            boost::uint64_t seg_size = seg_info.size;
             segment.shard_end = segment.size_end = (seg_size == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.size_beg + seg_size);
             segment.time_beg = segment.time_beg = 0;
-            boost::uint64_t seg_time = get_segment_base()->segment_time(segment.segment);
+            boost::uint64_t seg_time = seg_info.time;
             segment.time_end = (seg_time == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.time_beg + seg_time );
             if (segment.shard_end == boost::uint64_t(-1)) {
                 segment.total_state = SegmentPositionEx::not_exist;
