@@ -155,6 +155,32 @@ namespace ppbox
             }
         };
 
+        struct LiveDtInfoNew
+        {
+            LiveDtInfoNew()
+                : bwt(-1)
+                , st_t(0)
+            {
+
+            }
+            framework::network::NetName sh;
+            util::serialization::UtcTime st;
+            boost::uint32_t bwt;
+            time_t st_t;
+
+            template <
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar  & SERIALIZATION_NVP(sh)
+                    & SERIALIZATION_NVP(st)
+                    & SERIALIZATION_NVP(bwt);
+                st_t = st.to_time_t();
+            }
+        };
+
         struct LiveDtInfo
         {
             LiveDtInfo()
@@ -163,6 +189,17 @@ namespace ppbox
             {
 
             }
+            
+            LiveDtInfo & operator=(
+                LiveDtInfoNew const & r)
+            {
+                sh = r.sh;
+                st = r.st;
+                bwt = r.bwt;
+                st_t = r.st_t;
+                return *this;
+            }
+
             framework::network::NetName sh;
             util::serialization::UtcTime st;
             boost::uint32_t bwt;
@@ -183,9 +220,35 @@ namespace ppbox
             }
         }; 
 
+        struct Live2PlayInfoNew
+        {
+            Channel channel;
+            LiveDtInfoNew dt;
+            framework::network::NetName uh;
+
+            template <
+                typename Archive
+            >
+            void serialize(
+            Archive & ar)
+            {
+                ar  & SERIALIZATION_NVP(channel)
+                    & SERIALIZATION_NVP(dt)
+                    & SERIALIZATION_NVP(uh);
+            }
+        };
 
         struct Live2PlayInfo
         {
+            Live2PlayInfo & operator=(
+                Live2PlayInfoNew const & r)
+            {
+                channel = r.channel;
+                dt = r.dt;
+                uh = r.uh;
+                return *this;
+            }
+
             Channel channel;
             LiveDtInfo dt;
             framework::network::NetName uh;
@@ -201,6 +264,8 @@ namespace ppbox
                     & SERIALIZATION_NVP(uh);
             }
         };
+
+        
 
         static std::string addr_host(
             framework::network::NetName const & addr)

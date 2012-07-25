@@ -7,6 +7,7 @@
 #include "ppbox/demux/flv/FlvBufferDemuxer.h"
 using namespace ppbox::demux::error;
 
+#include <util/buffers/BufferCopy.h>
 #include <util/archive/XmlIArchive.h>
 #include <util/archive/ArchiveBuffer.h> 
 
@@ -304,10 +305,25 @@ namespace ppbox
                 std::string buffer = boost::asio::buffer_cast<char const *>(buf.data());
                 LOG_S(Logger::kLevelDebug2, "[parse_play] play buffer: " << buffer);
 
-                util::archive::XmlIArchive<> ia(buf);
+                boost::asio::streambuf buf2;
+                util::buffers::buffer_copy(buf2.prepare(buf.size()), buf.data());
+                buf2.commit(buf.size());
+
+                util::archive::XmlIArchive<> ia(buf2);
                 ia >> play_info;
-                if (!ia) {
-                    ec = bad_file_format;
+                if (!ia) 
+                {
+                    Live2PlayInfoNew playinfo;
+                    util::archive::XmlIArchive<> ia1(buf);
+                    ia1 >> playinfo;
+                    if (!ia1)
+                    {
+                        ec = bad_file_format;
+                    }
+                    else
+                    {
+                        play_info = playinfo;
+                    }
                 }
             }
         }
