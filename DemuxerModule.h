@@ -35,7 +35,7 @@ namespace ppbox
         struct InsertMediaInfo;
 
         class BufferDemuxer;
-        class SourceBase;
+        class Content;
 
         class DemuxerModule
 #ifdef PPBOX_DISABLE_CERTIFY
@@ -131,7 +131,7 @@ namespace ppbox
             BufferDemuxer * create(
                 boost::uint32_t buffer_size,
                 boost::uint32_t prepare_size,
-                SourceBase * source);
+                Content * source);
 
             void async_open(
                 DemuxInfo * info);

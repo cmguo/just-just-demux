@@ -3,10 +3,10 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/CommonDemuxer.h"
 #include "ppbox/demux/pptv/PptvDemuxer.h"
-#include "ppbox/demux/source/SourceType.h"
-#include "ppbox/demux/source/FileOneSegment.h"
-#include "ppbox/demux/source/HttpOneSegment.h"
-#include "ppbox/demux/source/PipeOneSegment.h"
+// #include "ppbox/demux/source/SourceType.h"
+//#include "ppbox/demux/source/FileOneSegment.h"
+//#include "ppbox/demux/source/HttpOneSegment.h"
+//#include "ppbox/demux/source/PipeOneSegment.h"
 
 namespace ppbox
 {

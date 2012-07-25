@@ -313,7 +313,7 @@ namespace ppbox
             open_response_type const & resp, 
             error_code & ec)
         { 
-            SourceBase * root_source = SourceBase::create(get_daemon().io_svc(), play_link);
+            Content * root_source = Content::create(get_daemon().io_svc(), play_link);
             BufferDemuxer * demuxer = create(buffer_size_, prepare_size_, root_source);
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_statÐèÒª¼ÓËø
@@ -328,7 +328,7 @@ namespace ppbox
         BufferDemuxer * DemuxerModule::create(
             boost::uint32_t buffer_size,
             boost::uint32_t prepare_size,
-            SourceBase * source)
+            Content * source)
         {
             return new BufferDemuxer(get_daemon().io_svc(), buffer_size, prepare_size, source);
         }
