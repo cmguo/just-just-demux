@@ -1,24 +1,24 @@
-// VodSource.h
+// Live2Content.h
 
 #ifndef _PPBOX_DEMUX_LIVE2_SOURCE_H_
 #define _PPBOX_DEMUX_LIVE2_SOURCE_H_
 
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Content.h"
 
 namespace ppbox
 {
     namespace demux
     {
-        class Live2Source
-            : public SourceBase
+        class Live2Content
+            : public Content
         {
         public:
-            Live2Source(
+            Live2Content(
                 boost::asio::io_service & io_svc,
-                ppbox::cdn::SegmentBase * pSegment,
-                ppbox::demux::Source * pSource);
+                ppbox::common::SegmentBase * pSegment,
+                ppbox::common::SourceBase * pSource);
 
-            virtual ~Live2Source();
+            virtual ~Live2Content();
 
 
             virtual DemuxerType::Enum demuxer_type() const;
