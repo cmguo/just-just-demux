@@ -95,7 +95,7 @@ namespace ppbox
                                 sub_type = AUDIO_TYPE_WMA2;
                                 break;
                             case 255:
-                                format_type = MediaInfo::audio_microsoft_wave;
+                                format_type = MediaInfo::audio_iso_mp4;
                                 sub_type = AUDIO_TYPE_MP4A;
                                 break;
                             default:
