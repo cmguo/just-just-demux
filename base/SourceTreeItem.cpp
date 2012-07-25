@@ -2,7 +2,9 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Content.h"
+
+#include <ppbox/common/SourceBase.h>
 
 namespace ppbox
 {
@@ -43,16 +45,16 @@ namespace ppbox
         void SourceTreeItem::next_source(
             SourceTreePosition & position) const
         {
-            assert(position.source == this);
+//             assert(position.source == this);
             position.source = NULL;
             while (position.next_child) { // ¸¸ÇÐ×Ó
                 assert (!position.next_child->skip_);
-                position.source = (SourceBase *)position.next_child;
+                position.source = (Content *)position.next_child;
                 position.prev_child = NULL;
                 position.next_child = position.next_child->first_child_;
             }
             if (!position.source) { // ×ÓÇÐ¸¸
-                position.source = (SourceBase *)parent_;
+                position.source = (Content *)parent_;
                 position.prev_child = const_cast<SourceTreeItem *>(this);
                 position.next_child = next_sibling_;
             }
@@ -62,7 +64,7 @@ namespace ppbox
             SourceTreePosition & position) const
         {
             if (position.next_child) {
-                position.source = (SourceBase *)position.next_child;
+                position.source = (Content *)position.next_child;
                 position.next_child = position.next_child->first_child_;
                 if (position.source->skip_) {
                     return;
@@ -70,7 +72,7 @@ namespace ppbox
                     return position.source->next_skip_source(position);
                 }
             } else {
-                position.source = (SourceBase *)parent_;
+                position.source = (Content *)parent_;
                 position.next_child = next_sibling_;
                 if (position.source) {
                     assert(!position.source->skip_);
@@ -86,7 +88,7 @@ namespace ppbox
             SourceTreeItem * where_prev, 
             SourceTreeItem * where) const
         {
-            position.source = static_cast<SourceBase *>(const_cast<SourceTreeItem *>((this)));
+            position.source = static_cast<Content *>(const_cast<SourceTreeItem *>((this)));
             position.prev_child = where_prev;
             position.next_child = where;
         }

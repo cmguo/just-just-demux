@@ -3,13 +3,14 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/BytesStream.h"
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Content.h"
 #include "ppbox/demux/base/DemuxerType.h"
 #include "ppbox/demux/base/BufferDemuxer.h"
 #include "ppbox/demux/base/BufferList.h"
 
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/flv/FlvDemuxerBase.h"
+
 
 #include <framework/timer/Ticker.h>
 using namespace framework::logger;
@@ -26,9 +27,9 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size,
-            SourceBase * source)
+            Content * source)
             : io_svc_(io_svc)
-            , root_source_(source)
+            , root_content_(source)
             , buffer_(NULL)
             , seek_time_(0)
             , segment_time_(0)
@@ -108,8 +109,12 @@ namespace ppbox
             boost::system::error_code ec;
             open_state_ = OpenState::source_open;
             DemuxerStatistic::open_beg();
-            root_source_->get_segment_base()->set_url(name);
-            root_source_->get_segment_base()->async_open(boost::bind(&BufferDemuxer::handle_async_open, this, _1));
+            root_content_->get_segment()->set_url(name);
+            root_content_->get_segment()->async_open(
+                common::SegmentBase::OpenMode::fast, 
+                boost::bind(&BufferDemuxer::handle_async_open, 
+                this, 
+                _1));
         }
 
         boost::uint32_t BufferDemuxer::get_cur_time(
@@ -170,7 +175,7 @@ namespace ppbox
             position.segment = 0;
             boost::uint32_t seg_time = 0;
             SegmentPositionEx abs_position;
-            root_source_->time_seek(time, abs_position, position, ec);
+            root_content_->time_seek(time, abs_position, position, ec);
             if (!ec) {
                 if (!buffer_->seek(abs_position, position, 0, ec)) {
                     read_demuxer_ = create_demuxer(
@@ -211,7 +216,7 @@ namespace ppbox
                     ec = boost::asio::error::would_block;
                 }
             }
-            root_source_->on_error(ec);
+            root_content_->on_error(ec);
             last_error(ec);
             return ec;
         }
@@ -247,7 +252,7 @@ namespace ppbox
                         position.shard_beg = 0;
                         position.shard_end = position.size_end;
                         Event evt(Event::EVENT_SEG_DEMUXER_STOP, position, boost::system::error_code());
-                        root_source_->on_event(evt);
+                        root_content_->on_event(evt);
 
                         buffer_->drop_all(ec1);
                         if (buffer_->read_segment().source) {
@@ -338,11 +343,11 @@ namespace ppbox
         }
 
         boost::system::error_code BufferDemuxer::get_duration(
-            ppbox::cdn::DurationInfo & info,
+            ppbox::common::DurationInfo & info,
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
-                root_source_->get_segment_base()->get_duration(info, ec); // ms
+                root_content_->get_segment()->get_duration(info, ec); // ms
             }
             return ec;
         }
@@ -351,9 +356,9 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (OpenState::source_open == open_state_) {
-                root_source_->get_segment_base()->cancel(ec);
+                root_content_->get_segment()->cancel(ec);
             } else if (OpenState::demuxer_open == open_state_) {
-                root_source_->get_segment_base()->close(ec); // source opened
+                root_content_->get_segment()->close(ec); // source opened
                 buffer_->cancel(ec);
             }
             open_state_ = OpenState::cancel;
@@ -399,7 +404,7 @@ namespace ppbox
                 switch(open_state_) {
                     case OpenState::source_open:
                         open_state_ = OpenState::demuxer_open;
-                        buffer_ = new BufferList(buffer_size_, prepare_size_, root_source_, this);
+                        buffer_ = new BufferList(buffer_size_, prepare_size_, root_content_, this);
                         read_demuxer_ = create_demuxer(
                             read_demuxer_ == NULL ? SegmentPosition() : read_demuxer_->segment,
                             buffer_->read_segment(), 
@@ -413,7 +418,7 @@ namespace ppbox
                         if (ec2) {
                             buffer_->async_prepare_at_least(0, boost::bind(&BufferDemuxer::handle_async_open, this, _1));
                         } else {
-                            root_source_->set_buffer_list(buffer_);
+                            root_content_->set_buffer_list(buffer_);
                             stream_count = read_demuxer_->demuxer->get_media_count(ec2);
                             if (!ec2) {
                                 MediaInfo info;
@@ -462,7 +467,7 @@ namespace ppbox
             position.shard_beg = 0;
             position.shard_end = position.size_end;
             Event evt(Event::EVENT_SEG_DEMUXER_OPEN, position, boost::system::error_code());
-            root_source_->on_event(evt);
+            root_content_->on_event(evt);
         } 
 
         bool BufferDemuxer::is_open(boost::system::error_code & ec)
@@ -507,7 +512,7 @@ namespace ppbox
 
             if (!find) {
                 DemuxerInfo * info = new DemuxerInfo;
-                info->demuxer = create_demuxer_base(root_source_->demuxer_type(), 
+                info->demuxer = create_demuxer_base(root_content_->demuxer_type(), 
                     using_read_stream ? *buffer_->get_read_bytesstream() : *buffer_->get_write_bytesstream());
                 info->segment = segment;
                 info->ref = 1;
@@ -597,7 +602,7 @@ namespace ppbox
                     seek(seek_time_, ec1);
                 }
                 SegmentPositionEx old_seg = buffer_->write_segment();
-                SourceBase * source = (SourceBase *)old_seg.next_child;
+                Content * source = (Content *)old_seg.next_child;
                 if (source) {// 说明本段有分段插入，source指向插入分段
                     boost::system::error_code ec2;
                     int num = 0;
@@ -697,14 +702,14 @@ namespace ppbox
             bool non_block, 
             boost::system::error_code & ec)
         {
-            return root_source_->get_source_base()->set_non_block(non_block, ec);
+            return root_content_->get_source()->set_non_block(non_block, ec);
         }
 
         boost::system::error_code BufferDemuxer::set_time_out(
             boost::uint32_t time_out, 
             boost::system::error_code & ec)
         {
-            return root_source_->get_source_base()->set_time_out(time_out, ec);
+            return root_content_->get_source()->set_time_out(time_out, ec);
             return ec;
         }
 

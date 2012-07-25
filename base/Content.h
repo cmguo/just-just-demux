@@ -1,4 +1,4 @@
-// SourceBase.h
+// Content.h
 
 #ifndef _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
 #define _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
@@ -6,9 +6,9 @@
 #include "ppbox/demux/base/DemuxerType.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
 #include "ppbox/demux/base/SourcePrefix.h"
-#include "ppbox/demux/base/Source.h"
 
-#include <ppbox/cdn/SegmentBase.h>
+#include <ppbox/common/SourceBase.h>
+#include <ppbox/common/SegmentBase.h>
 
 #include <util/buffers/Buffers.h>
 
@@ -131,31 +131,29 @@ namespace ppbox
         //  4、支持输入绝对位置（time || size）返回分段信息；
         //  5、打开（range）、关闭、读取、取消功能（若不提供分段大小，则打开成功后获取分段大小）；
         //  6、提供插入和删除源
-        class SourceBase
+        class Content
             : public SourceTreeItem
         {
         public:
 
-            static SourceBase * create(
+            static Content * create(
                 boost::asio::io_service & io_svc, std::string const & playlink);
 
             static void destory(
-                SourceBase * sourcebase);
+                Content * sourcebase);
 
         public:
-            SourceBase(
+            Content(
                 boost::asio::io_service & io_svc
-                ,ppbox::cdn::SegmentBase* segment
-                ,ppbox::demux::Source* source);
+                ,ppbox::common::SegmentBase* segment
+                ,ppbox::common::SourceBase* source);
 
-            virtual ~SourceBase();
+            ~Content();
 
         public:
-            ppbox::cdn::SegmentBase* get_segment_base();
-            ppbox::demux::Source* get_source_base();
+            ppbox::common::SegmentBase* get_segment();
 
-            virtual boost::system::error_code reset(
-                SegmentPositionEx & segment) = 0;
+            ppbox::common::SourceBase* get_source();
 
             virtual DemuxerType::Enum demuxer_type() const = 0;
 
@@ -172,6 +170,9 @@ namespace ppbox
             bool has_children(
                 SegmentPositionEx const & position);
 
+            virtual boost::system::error_code reset(
+                SegmentPositionEx & segment) = 0;
+
             virtual bool next_segment(
                 SegmentPositionEx & position);
 
@@ -187,6 +188,8 @@ namespace ppbox
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
+        //private:
+        public:
             // 自己和所有子节点的size总和
             virtual boost::uint64_t tree_size();
 
@@ -195,16 +198,16 @@ namespace ppbox
 
             // 所有节点在child插入点之前的size总和
             virtual boost::uint64_t total_size_before(
-                SourceBase * child);
+                Content * child);
 
             // 所有节点在child插入点之前的time总和
             virtual boost::uint64_t total_time_before(
-                SourceBase * child);
+                Content * child);
 
         public:
             boost::system::error_code time_insert(
                 boost::uint32_t time, 
-                SourceBase * source, 
+                Content * source, 
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
 
@@ -245,24 +248,24 @@ namespace ppbox
                 return insert_input_time_;
             }
 
-            SourceBase * parent()
+            Content * parent()
             {
-                return (SourceBase *)parent_;
+                return (Content *)parent_;
             }
 
-            SourceBase * next_sibling()
+            Content * next_sibling()
             {
-                return (SourceBase *)next_sibling_;
+                return (Content *)next_sibling_;
             }
 
-            SourceBase * prev_sibling()
+            Content * prev_sibling()
             {
-                return (SourceBase *)prev_sibling_;
+                return (Content *)prev_sibling_;
             }
 
-            SourceBase * first_child()
+            Content * first_child()
             {
-                return (SourceBase *)first_child_;
+                return (Content *)first_child_;
             }
 
             DemuxerInfo & insert_demuxer()
@@ -283,13 +286,13 @@ namespace ppbox
             virtual boost::uint64_t source_time();
 
             virtual boost::uint64_t tree_size_before(
-                SourceBase * child);
+                Content * child);
 
             // 自己和所有子节点的time总和
             virtual boost::uint64_t tree_time();
 
             virtual boost::uint64_t tree_time_before(
-                SourceBase * child);
+                Content * child);
 
         protected:
             boost::asio::io_service & ios_service()
@@ -312,8 +315,8 @@ namespace ppbox
 
         private:
             BufferList * buffer_;
-            ppbox::cdn::SegmentBase * segment_;
-            ppbox::demux::Source * source_;
+            ppbox::common::SegmentBase * segment_;
+            ppbox::common::SourceBase * source_;
             boost::asio::io_service & io_svc_;
             DemuxerInfo insert_demuxer_;// 父节点的demuxer
             BufferDemuxer * demuxer_;

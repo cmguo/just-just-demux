@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_SOURCE_BUFFER_LIST_H_
 #define _PPBOX_DEMUX_SOURCE_BUFFER_LIST_H_
 
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Content.h"
 #include "ppbox/demux/base/BufferDemuxer.h"
 #include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/SourceError.h"
@@ -47,7 +47,7 @@ namespace ppbox
         // Qualifier: : root_source_(source) , demuxer_(demuxer) , num_try_(size_t(-1)) , max_try_(size_t(-1)) , buffer_(NULL) , buffer_size_(framework::memory::MemoryPage::align_page(buffer_size)) , prepare_size_(prepare_size) , time_block_(0) , time_out_(0) , source_closed_(true) , data_beg_(0) , data_end_(0) , seek_end_(boost::uint64_t(-1)) , amount_(0) , expire_pause_time_(Time::now()) , total_req_(total_req) , sended_req_(0)
         // Parameter: boost::uint32_t buffer_size
         // Parameter: boost::uint32_t prepare_size
-        // Parameter: SourceBase * source
+        // Parameter: Content * source
         // Parameter: BufferDemuxer * demuxer
         // Parameter: size_t total_req
         //************************************
@@ -127,7 +127,7 @@ namespace ppbox
             BufferList(
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size, 
-                SourceBase * source,
+                Content * source,
                 BufferDemuxer * demuxer,
                 size_t total_req = 1);
 
@@ -363,7 +363,7 @@ namespace ppbox
 
             void insert_source(
                 boost::uint64_t offset,
-                SourceBase * source, 
+                Content * source, 
                 boost::uint64_t size,
                 boost::system::error_code & ec);
 
@@ -560,7 +560,7 @@ namespace ppbox
             }
 
         private:
-            SourceBase * root_source_;
+            Content * root_source_;
             BufferDemuxer * demuxer_;
             size_t num_try_;
             size_t max_try_;    // 尝试重连最大次数，决定不断点续传的标志

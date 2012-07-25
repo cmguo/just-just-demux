@@ -7,7 +7,10 @@
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/DemuxerStatistic.h"
 #include "ppbox/demux/base/BufferStatistic.h"
-#include "ppbox/demux/base/SourceBase.h"
+#include "ppbox/demux/base/Content.h"
+
+#include <ppbox/common/SegmentBase.h>
+#include <ppbox/common/SourceBase.h>
 
 #include <framework/timer/Ticker.h>
 
@@ -120,7 +123,7 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size, 
-                SourceBase * source);
+                Content * source);
 
             virtual ~BufferDemuxer();
 
@@ -168,7 +171,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             boost::system::error_code get_duration(
-                ppbox::cdn::DurationInfo & info,
+                common::DurationInfo & info,
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
@@ -261,7 +264,7 @@ namespace ppbox
         protected:
             boost::asio::io_service & io_svc_;
             boost::system::error_code extern_error_;
-            SourceBase * root_source_;
+            Content * root_content_;
             BufferList * buffer_;
 
         private:
