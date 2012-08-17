@@ -168,7 +168,9 @@ namespace ppbox
             FlvTag const & metadata_tag)
         {
             std::vector<FlvDataObjectProperty> const & variables = 
-            metadata_tag.DataTag.Value.ECMAArray.Variables;
+                (metadata_tag.DataTag.Value.Type == AMFDataType::AMF_DATA_TYPE_MIXEDARRAY)
+                    ? metadata_tag.DataTag.Value.ECMAArray.Variables
+                    : metadata_tag.DataTag.Value.Object.ObjectProperties;
             for (boost::uint32_t i = 0; i < variables.size(); ++i) {
                 FlvDataObjectProperty const & property = variables[i];
                 if (property.PropertyName.StringData == "datarate") {

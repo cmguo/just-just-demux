@@ -153,9 +153,9 @@ namespace ppbox
                 error_code ec;
                 close_locked(demuxers_[i], false, ec);
             }
-            while (!demuxers_.empty()) {
+            /*while (!demuxers_.empty()) {
                 cond_.wait(lock);
-            }
+            }*/
         }
 
         void DemuxerModule::certify_startup()

@@ -41,13 +41,13 @@ namespace ppbox
             void set_url(
                 std::string const & url)
             {
-                url_.from_string(url);
+                url_.from_string("http://" + url);
             }
 
             virtual void set_name(
                 std::string const & name)
             {
-                url_.from_string(name);
+                url_.from_string("http://" + name);
             }
 
         private:

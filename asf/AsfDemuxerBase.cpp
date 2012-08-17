@@ -329,13 +329,13 @@ namespace ppbox
                 ec = error::not_support;
                 return 0;
             }
-            boost::uint32_t beg = archive_.tellg();
+            boost::uint64_t beg = archive_.tellg();
             archive_.seekg(0, std::ios_base::end);
-            boost::uint32_t end = archive_.tellg();
+            boost::uint64_t end = archive_.tellg();
             assert(archive_);
-            boost::uint32_t n = (end - buffer_parse_.offset) / fixed_packet_length_;
-            boost::uint32_t off = buffer_parse_.offset + (n - 1) * fixed_packet_length_;
-            if (off > buffer_parse_.offset && off >= beg) {
+            if (end >= buffer_parse_.offset + fixed_packet_length_ * 2) {
+                boost::uint64_t n = (end - buffer_parse_.offset) / fixed_packet_length_;
+                boost::uint64_t off = buffer_parse_.offset + (n - 1) * fixed_packet_length_;
                 buffer_parse_.offset = off;
                 buffer_parse_.packet.PayloadNum = 0; // start from packet
                 buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
