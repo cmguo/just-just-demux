@@ -106,7 +106,7 @@ namespace ppbox
             return ec;
         }
 
-        void BufferDemuxer::-(
+        void BufferDemuxer::async_open(
             open_response_type const & resp)
         {
             resp_ = resp;
