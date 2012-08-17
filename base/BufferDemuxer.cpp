@@ -11,9 +11,10 @@
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/flv/FlvDemuxerBase.h"
 
-
 #include <framework/timer/Ticker.h>
 using namespace framework::logger;
+
+#include <boost/thread/condition_variable.hpp>
 using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("BufferDemuxer", 0);
@@ -91,25 +92,27 @@ namespace ppbox
             boost::condition_variable cond_;
         };
 
+        Content * BufferDemuxer::get_contet()
+        {
+            return root_content_;
+        }
+
         boost::system::error_code BufferDemuxer::open(
-            std::string const & name, 
             boost::system::error_code & ec)
         {
             SyncResponse resp(ec);
-            async_open(name, boost::ref(resp));
+            async_open(boost::ref(resp));
             resp.wait();
             return ec;
         }
 
-        void BufferDemuxer::async_open(
-            std::string const & name, 
+        void BufferDemuxer::-(
             open_response_type const & resp)
         {
             resp_ = resp;
             boost::system::error_code ec;
             open_state_ = OpenState::source_open;
             DemuxerStatistic::open_beg();
-            root_content_->get_segment()->set_url(name);
             root_content_->get_segment()->async_open(
                 common::SegmentBase::OpenMode::fast, 
                 boost::bind(&BufferDemuxer::handle_async_open, 
@@ -356,9 +359,9 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (OpenState::source_open == open_state_) {
-                root_content_->get_segment()->cancel(ec);
+                root_content_->get_segment()->cancel();
             } else if (OpenState::demuxer_open == open_state_) {
-                root_content_->get_segment()->close(ec); // source opened
+                root_content_->get_segment()->close(); // source opened
                 buffer_->cancel(ec);
             }
             open_state_ = OpenState::cancel;

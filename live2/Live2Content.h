@@ -32,9 +32,9 @@ namespace ppbox
                 SegmentPositionEx & abs_position,
                 SegmentPositionEx & position, 
                 boost::system::error_code & ec);
-
-            bool next_segment(
-                SegmentPositionEx & segment);
+// 
+//             bool next_segment(
+//                 SegmentPositionEx & segment);
 
         };
 

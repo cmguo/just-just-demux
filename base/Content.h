@@ -137,16 +137,17 @@ namespace ppbox
         public:
 
             static Content * create(
-                boost::asio::io_service & io_svc, std::string const & playlink);
+                boost::asio::io_service & io_svc, 
+                framework::string::Url const & playlink);
 
             static void destory(
                 Content * sourcebase);
 
         public:
             Content(
-                boost::asio::io_service & io_svc
-                ,ppbox::common::SegmentBase* segment
-                ,ppbox::common::SourceBase* source);
+                boost::asio::io_service & io_svc, 
+                ppbox::common::SegmentBase* segment, 
+                ppbox::common::SourceBase* source);
 
             ~Content();
 
@@ -156,7 +157,6 @@ namespace ppbox
             ppbox::common::SourceBase* get_source();
 
             virtual DemuxerType::Enum demuxer_type() const = 0;
-
 
         public:
             virtual void on_error(

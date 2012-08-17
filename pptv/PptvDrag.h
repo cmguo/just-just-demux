@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_PPTV_PPTV_DRAG_H_
 #define _PPBOX_DEMUX_PPTV_PPTV_DRAG_H_
 
-#include <ppbox/common/HttpStatistics.h>
+#include <ppbox/cdn/HttpStatistics.h>
 
 #include <util/protocol/http/HttpClient.h>
 
@@ -39,7 +39,7 @@ namespace ppbox
                 framework::network::NetName const & server_host, 
                 response_type const & resp);
 
-            ppbox::common::HttpStatistics const & http_stat() const
+            ppbox::cdn::HttpStatistics const & http_stat() const
             {
                 return http_stat_;
             }
@@ -62,7 +62,7 @@ namespace ppbox
             util::protocol::HttpClient http_;
             framework::network::NetName server_host_;
             size_t returned_;
-            ppbox::common::HttpStatistics http_stat_;
+            ppbox::cdn::HttpStatistics http_stat_;
             bool canceled_;
             response_type resp_;
 

@@ -129,11 +129,9 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code open (
-                std::string const & name, 
                 boost::system::error_code & ec);
 
             virtual void async_open(
-                std::string const & name, 
                 open_response_type const & resp);
 
             virtual boost::system::error_code seek(
@@ -158,6 +156,9 @@ namespace ppbox
 
             virtual void on_event(
                 Event const & event);
+
+        public:
+            Content * get_contet();
 
         public:
             bool is_open(boost::system::error_code & ec);

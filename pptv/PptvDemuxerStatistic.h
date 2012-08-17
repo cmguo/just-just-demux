@@ -5,7 +5,7 @@
 
 #include "ppbox/demux/pptv/PptvDemuxerType.h"
 
-#include <ppbox/common/HttpStatistics.h>
+#include <ppbox/cdn/HttpStatistics.h>
 
 #include <framework/network/Statistics.h>
 
@@ -92,7 +92,7 @@ namespace ppbox
                 return play_type_;
             }
 
-            std::vector<ppbox::common::HttpStatistics> const & open_logs() const
+            std::vector<ppbox::cdn::HttpStatistics> const & open_logs() const
             {
                 return open_logs_;
             }
@@ -108,7 +108,7 @@ namespace ppbox
             }
 
         protected:
-            std::vector<ppbox::common::HttpStatistics> open_logs_; // 不超过3个
+            std::vector<ppbox::cdn::HttpStatistics> open_logs_; // 不超过3个
             DemuxData demux_data_;
 
             PptvDemuxerType::Enum play_type_;

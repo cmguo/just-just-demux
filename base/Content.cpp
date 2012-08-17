@@ -3,17 +3,9 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/Content.h"
 #include "ppbox/demux/base/BytesStream.h"
+
 #include "ppbox/demux/live2/Live2Content.h"
 #include "ppbox/demux/Vod/VodContent.h"
-
-#include <ppbox/vod/VodCoreSource.h>
-
-#include <ppbox/common/HttpSource.h>
-
-#include <ppbox/cdn/VodSegments.h>
-#include <ppbox/cdn/Live2Segment.h>
-#include <ppbox/cdn/PeerCoreSegment.h>
-#include <ppbox/cdn/VodCoreSegment.h>
 
 #include <framework/system/LogicError.h>
 
@@ -28,25 +20,26 @@ namespace ppbox
 
         Content * Content::create(
             boost::asio::io_service & io_svc, 
-            std::string const & playlink)
+            framework::string::Url const & playlink)
         {
-            Content* source = NULL;
-            std::string::size_type pos_colon = playlink.find("://");
-            std::string proto = "ppvod";
-            if (pos_colon == std::string::npos) {
-                pos_colon = 0;
-            } else {
-                proto = playlink.substr(0, pos_colon);
-                pos_colon += 3;
+            ppbox::common::SegmentBase * pSegment = ppbox::common::SegmentBase::create(io_svc, playlink);
+            if (pSegment == NULL) {
+                return NULL;
             }
 
+            ppbox::common::SourceBase * pSource = ppbox::common::SourceBase::create(io_svc, pSegment->get_protocol());
+            if (pSource == NULL) {
+                pSource = ppbox::common::SourceBase::create(io_svc, pSegment->segment_protocol());
+            }
+            if (pSource == NULL) {
+                return NULL;
+            }
+
+            Content* source = NULL;
+            std::string proto = playlink.protocol();
             if (proto == "ppvod") {
-                ppbox::common::SegmentBase * pSegment = ppbox::common::SegmentBase::create(io_svc, playlink);
-                ppbox::common::SourceBase * pSource = ppbox::common::SourceBase::create(io_svc, playlink);
                 source = new VodContent(io_svc, pSegment, pSource);
             } else if (proto == "pplive2") {
-                ppbox::common::SegmentBase * pSegment = ppbox::common::SegmentBase::create(io_svc, playlink);
-                ppbox::common::SourceBase * pSource = ppbox::common::SourceBase::create(io_svc, playlink);
                 source = new Live2Content(io_svc, pSegment, pSource);
             } else {
 //                source = new VodSource(io_svc);
@@ -118,16 +111,16 @@ namespace ppbox
                 LOG_S(0, "EVENT_SEG_DL_END: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
-                get_segment()->update_segment_file_size(
-                    evt.seg_info.segment, evt.seg_info.size_end - evt.seg_info.size_beg);
+//                 get_segment()->update_segment_file_size(
+//                     evt.seg_info.segment, evt.seg_info.size_end - evt.seg_info.size_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_OPEN:// 分段解封装成功
                 // 更新插入状态
                 //LOG_S(0, "EVENT_SEG_DEMUXER_OPEN: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \
                     " seg.size_end = " << evt.seg_info.size_end << " seg.time_beg = " << evt.seg_info.time_beg << " seg.time_end = " <<\
                     evt.seg_info.time_end);
-                get_segment()->update_segment_duration(
-                    evt.seg_info.segment, evt.seg_info.time_end - evt.seg_info.time_beg);
+//                 get_segment()->update_segment_duration(
+//                     evt.seg_info.segment, evt.seg_info.time_end - evt.seg_info.time_beg);
                 break;
             case Event::EVENT_SEG_DEMUXER_STOP:
                 //LOG_S(0, "EVENT_SEG_DEMUXER_STOP: seg = " << evt.seg_info.segment << " seg.size_beg = " << evt.seg_info.size_beg << \

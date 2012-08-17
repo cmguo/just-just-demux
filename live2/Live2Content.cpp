@@ -49,7 +49,7 @@ namespace ppbox
             SegmentPositionEx & segment)
         {
             segment.source = this;
-            get_segment()->reset(segment.segment);
+//             get_segment()->reset(segment.segment);
             begin_segment_ = segment;
             return error_code();
         }
@@ -99,34 +99,34 @@ namespace ppbox
             return ec;
         }
 
-        bool Live2Content::next_segment(
-            SegmentPositionEx & segment)
-        {
-            bool res = false;
-            //res = Content::next_segment(segment);
-            segment.segment++;
-
-            common::SegmentInfo seg_info;
-            get_segment()->segment_info(segment.segment, seg_info);
-
-            boost::uint64_t total_time = source_time_before(segment.segment);
-            boost::uint64_t total_size = source_size_before(segment.segment);
-            segment.total_state = SegmentPositionEx::is_valid;
-            segment.time_state = SegmentPositionEx::is_valid;
-            segment.time_beg = total_time;
-            segment.time_end = total_time + seg_info.time;
-            segment.size_beg = total_size;
-            segment.size_end = seg_info.size;
-            segment.shard_beg = total_size;
-            segment.shard_end = seg_info.size;
-            boost::uint32_t out_time = 0;
-            res = get_segment()->next_segment(segment.segment,out_time);
-            if (res && out_time > 0)
-            {
-                Content::buffer()->pause(out_time*1000);
-            }
-            return res;
-        }
+//         bool Live2Content::next_segment(
+//             SegmentPositionEx & segment)
+//         {
+//             bool res = false;
+//             //res = Content::next_segment(segment);
+//             segment.segment++;
+// 
+//             common::SegmentInfo seg_info;
+//             get_segment()->segment_info(segment.segment, seg_info);
+// 
+//             boost::uint64_t total_time = source_time_before(segment.segment);
+//             boost::uint64_t total_size = source_size_before(segment.segment);
+//             segment.total_state = SegmentPositionEx::is_valid;
+//             segment.time_state = SegmentPositionEx::is_valid;
+//             segment.time_beg = total_time;
+//             segment.time_end = total_time + seg_info.time;
+//             segment.size_beg = total_size;
+//             segment.size_end = seg_info.size;
+//             segment.shard_beg = total_size;
+//             segment.shard_end = seg_info.size;
+//             boost::uint32_t out_time = 0;
+//             res = get_segment()->next_segment(segment.segment,out_time);
+//             if (res && out_time > 0)
+//             {
+//                 Content::buffer()->pause(out_time*1000);
+//             }
+//             return res;
+//         }
 
     } // namespace demux
 } // namespace ppbox

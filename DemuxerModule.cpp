@@ -312,8 +312,9 @@ namespace ppbox
             std::string const & play_link, 
             open_response_type const & resp, 
             error_code & ec)
-        { 
-            Content * root_source = Content::create(get_daemon().io_svc(), play_link);
+        {
+            framework::string::Url url(play_link);
+            Content * root_source = Content::create(get_daemon().io_svc(), url);
             BufferDemuxer * demuxer = create(buffer_size_, prepare_size_, root_source);
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_statÐèÒª¼ÓËø
@@ -337,42 +338,11 @@ namespace ppbox
             DemuxInfo * info)
         {
             error_code ec;
-#ifndef PPBOX_DISABLE_CERTIFY
-            if (is_alive()) {
-                LOG_S(Logger::kLevelEvent, "ppbox_alive: success");
-            } else {
-                LOG_S(Logger::kLevelAlarm, "ppbox_alive: failure");
-            }
-#endif
-            //while (info->status == DemuxInfo::opening && !is_certified(ec)) {
-            //    cond_.wait(lock);
-            //}
-#ifndef PPBOX_DISABLE_CERTIFY
-            is_certified(ec);
-#endif
-
-            if (info->status == DemuxInfo::canceled) {
-                ec = boost::asio::error::operation_aborted;
-            }
             BufferDemuxer * demuxer = info->demuxer;
-            // PptvDemuxer * pptv_demuxer = (PptvDemuxer *)demuxer;
-            std::string key;
-#ifdef PPBOX_DISABLE_CERTIFY
-            key = info->cert_type == ppbox::certify::CertifyType::vod ? "kioe257ds":"pplive";
-#endif
-            ec
-#ifndef PPBOX_DISABLE_CERTIFY
-                ||(demuxer && cert_.certify_url(/*demuxer->demuxer_type()*/(ppbox::demux::PptvDemuxerType::Enum)1, info->play_link, key, ec))
-#endif
-                || demuxer->set_time_out(5 * 1000, ec) // 5 seconds
-                /*|| (demuxer && !http_proxy_.host().empty() && demuxer->set_http_proxy(http_proxy_, ec))*/;
+            demuxer->set_time_out(5 * 1000, ec); // 5 seconds
             if (!ec) {
-                std::string play_link;
-                play_link.swap(info->play_link);
                 demuxer->async_open(
-                    key + "|" + play_link, 
                     boost::bind(&DemuxerModule::handle_open, this, _1, info));
-                
             } else {
                 io_svc().post(boost::bind(&DemuxerModule::handle_open, this, ec, info));
             }

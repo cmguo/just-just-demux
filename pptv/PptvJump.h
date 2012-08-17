@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_PPTV_PPTV_JUMP_H_
 #define _PPBOX_DEMUX_PPTV_PPTV_JUMP_H_
 
-#include <ppbox/common/HttpStatistics.h>
+#include <ppbox/cdn/HttpStatistics.h>
 
 #include <util/protocol/http/HttpClient.h>
 
@@ -43,7 +43,7 @@ namespace ppbox
                 framework::string::Url const & url, 
                 response_type const & resp);
 
-            ppbox::common::HttpStatistics const & http_stat() const
+            ppbox::cdn::HttpStatistics const & http_stat() const
             {
                 return http_stat_;
             }
@@ -65,7 +65,7 @@ namespace ppbox
         private:
             util::protocol::HttpClient http_;
             size_t returned_;
-            ppbox::common::HttpStatistics http_stat_;
+            ppbox::cdn::HttpStatistics http_stat_;
 
             JumpType::Enum jump_type_;
 

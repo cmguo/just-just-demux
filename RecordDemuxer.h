@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_RECORD_DEMUXER_H_
 
 #include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/BufferStatistic.h"
 
 namespace ppbox
 {

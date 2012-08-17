@@ -13,7 +13,8 @@ namespace ppbox
             enum Enum
             {
                 none, 
-                vod, 
+                vod,
+                vod2,
                 live, 
                 live2, 
                 test,
