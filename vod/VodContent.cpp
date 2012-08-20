@@ -44,8 +44,8 @@ namespace ppbox
 
         VodContent::VodContent(
             boost::asio::io_service & io_svc,
-            ppbox::common::SegmentBase * pSegment,
-            ppbox::common::SourceBase * pSource)
+            ppbox::data::SegmentBase * pSegment,
+            ppbox::data::SourceBase * pSource)
             : Content(io_svc, pSegment, pSource)
         {
         }
@@ -83,7 +83,7 @@ namespace ppbox
             segment.source = this;
             segment.shard_beg = segment.size_beg = 0;
 
-            common::SegmentInfo seg_info;
+            ppbox::data::SegmentInfo seg_info;
             get_segment()->segment_info(segment.segment, seg_info);
             boost::uint64_t seg_size = seg_info.size;
             segment.shard_end = segment.size_end = (seg_size == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.size_beg + seg_size);

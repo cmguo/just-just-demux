@@ -34,8 +34,8 @@ namespace ppbox
 
         Live2Content::Live2Content(
             boost::asio::io_service & io_svc,
-            ppbox::common::SegmentBase * pSegment,
-            ppbox::common::SourceBase * pSource)
+            ppbox::data::SegmentBase * pSegment,
+            ppbox::data::SourceBase * pSource)
             : Content(io_svc, pSegment, pSource)
         {
         }
@@ -106,7 +106,7 @@ namespace ppbox
 //             //res = Content::next_segment(segment);
 //             segment.segment++;
 // 
-//             common::SegmentInfo seg_info;
+//             ppbox::data::SegmentInfo seg_info;
 //             get_segment()->segment_info(segment.segment, seg_info);
 // 
 //             boost::uint64_t total_time = source_time_before(segment.segment);

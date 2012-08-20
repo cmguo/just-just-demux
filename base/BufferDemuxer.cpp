@@ -114,7 +114,7 @@ namespace ppbox
             open_state_ = OpenState::source_open;
             DemuxerStatistic::open_beg();
             root_content_->get_segment()->async_open(
-                common::SegmentBase::OpenMode::fast, 
+                ppbox::data::SegmentBase::OpenMode::fast, 
                 boost::bind(&BufferDemuxer::handle_async_open, 
                 this, 
                 _1));
@@ -346,7 +346,7 @@ namespace ppbox
         }
 
         boost::system::error_code BufferDemuxer::get_duration(
-            ppbox::common::DurationInfo & info,
+            ppbox::data::DurationInfo & info,
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {

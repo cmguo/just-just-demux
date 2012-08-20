@@ -7,8 +7,8 @@
 #include "ppbox/demux/base/SourceTreeItem.h"
 #include "ppbox/demux/base/SourcePrefix.h"
 
-#include <ppbox/common/SourceBase.h>
-#include <ppbox/common/SegmentBase.h>
+#include <ppbox/data/SourceBase.h>
+#include <ppbox/data/SegmentBase.h>
 
 #include <util/buffers/Buffers.h>
 
@@ -146,15 +146,15 @@ namespace ppbox
         public:
             Content(
                 boost::asio::io_service & io_svc, 
-                ppbox::common::SegmentBase* segment, 
-                ppbox::common::SourceBase* source);
+                ppbox::data::SegmentBase* segment, 
+                ppbox::data::SourceBase* source);
 
             ~Content();
 
         public:
-            ppbox::common::SegmentBase* get_segment();
+            ppbox::data::SegmentBase* get_segment();
 
-            ppbox::common::SourceBase* get_source();
+            ppbox::data::SourceBase* get_source();
 
             virtual DemuxerType::Enum demuxer_type() const = 0;
 
@@ -315,8 +315,8 @@ namespace ppbox
 
         private:
             BufferList * buffer_;
-            ppbox::common::SegmentBase * segment_;
-            ppbox::common::SourceBase * source_;
+            ppbox::data::SegmentBase * segment_;
+            ppbox::data::SourceBase * source_;
             boost::asio::io_service & io_svc_;
             DemuxerInfo insert_demuxer_;// ¸¸½ÚµãµÄdemuxer
             BufferDemuxer * demuxer_;

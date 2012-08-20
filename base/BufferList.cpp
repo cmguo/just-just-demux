@@ -15,6 +15,7 @@
 #include <framework/timer/TimeCounter.h>
 
 #include <boost/asio/io_service.hpp>
+#include <boost/asio/read.hpp>
 #include <boost/bind.hpp>
 
 #include <iostream>
@@ -207,8 +208,10 @@ namespace ppbox
                     // 请求的分段打开成功，更新 (*segments_) 信息
                     update_segments(ec);
                     framework::timer::TimeCounter tc;
-                    size_t bytes_transferred = write_.source->get_source()->read(
+                    size_t bytes_transferred = boost::asio::read(
+                        *write_.source->get_source(), 
                         write_buffer(amount),
+                        boost::asio::transfer_all(), 
                         ec);
                     if (tc.elapse() > 10) {
                         LOG_S(framework::logger::Logger::kLevelDebug, 
@@ -347,8 +350,10 @@ namespace ppbox
                 return;
             } else {
                 update_segments(ec);
-                write_.source->get_source()->async_read(
+                boost::asio::async_read(
+                    *write_.source->get_source(), 
                     write_buffer(amount_),
+                    boost::asio::transfer_all(), 
                     boost::bind(&BufferList::handle_async, this, _1, _2));
                 return;
             }
@@ -1298,9 +1303,6 @@ namespace ppbox
                 last_ec_ = last_error;
             }
 
-            write_.source->get_source()->on_seg_beg(write_.segment);
-            //demuxer_->segment_write_beg(write_);
-
             source_closed_ = false;
 
             return ec;
@@ -1340,7 +1342,6 @@ namespace ppbox
                 last_ec_ = last_error;
             }
 
-            write_.source->get_source()->on_seg_beg(write_.segment);
             std::string url;
             boost::uint64_t from = write_.offset - write_.size_beg;
             boost::uint64_t to = write_hole_.this_end == boost::uint64_t(-1) || write_hole_.this_end == write_.size_end ? 

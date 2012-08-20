@@ -4,7 +4,7 @@
 #include "ppbox/demux/base/SourceTreeItem.h"
 #include "ppbox/demux/base/Content.h"
 
-#include <ppbox/common/SourceBase.h>
+#include <ppbox/data/SourceBase.h>
 
 namespace ppbox
 {

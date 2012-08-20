@@ -9,8 +9,8 @@
 #include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/Content.h"
 
-#include <ppbox/common/SegmentBase.h>
-#include <ppbox/common/SourceBase.h>
+#include <ppbox/data/SegmentBase.h>
+#include <ppbox/data/SourceBase.h>
 
 #include <framework/timer/Ticker.h>
 
@@ -172,7 +172,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             boost::system::error_code get_duration(
-                common::DurationInfo & info,
+                ppbox::data::DurationInfo & info,
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
@@ -272,7 +272,7 @@ namespace ppbox
             framework::timer::Ticker * ticker_;
             boost::uint32_t seek_time_;
 
-            boost::uint64_t segment_time_;
+            boost::uint32_t segment_time_;
             boost::uint64_t segment_ustime_;
             boost::uint32_t video_frame_interval_;
 

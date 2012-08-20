@@ -22,14 +22,14 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             framework::string::Url const & playlink)
         {
-            ppbox::common::SegmentBase * pSegment = ppbox::common::SegmentBase::create(io_svc, playlink);
+            ppbox::data::SegmentBase * pSegment = ppbox::data::SegmentBase::create(io_svc, playlink);
             if (pSegment == NULL) {
                 return NULL;
             }
 
-            ppbox::common::SourceBase * pSource = ppbox::common::SourceBase::create(io_svc, pSegment->get_protocol());
+            ppbox::data::SourceBase * pSource = ppbox::data::SourceBase::create(io_svc, pSegment->get_protocol());
             if (pSource == NULL) {
-                pSource = ppbox::common::SourceBase::create(io_svc, pSegment->segment_protocol());
+                pSource = ppbox::data::SourceBase::create(io_svc, pSegment->segment_protocol());
             }
             if (pSource == NULL) {
                 return NULL;
@@ -56,8 +56,8 @@ namespace ppbox
 
         Content::Content(
             boost::asio::io_service & io_svc
-            ,ppbox::common::SegmentBase* segment
-            ,ppbox::common::SourceBase* source)
+            ,ppbox::data::SegmentBase* segment
+            ,ppbox::data::SourceBase* source)
             : io_svc_( io_svc )
             , segment_(segment)
             , source_(source)
@@ -86,12 +86,12 @@ namespace ppbox
         {
         }
 
-        ppbox::common::SegmentBase * Content::get_segment()
+        ppbox::data::SegmentBase * Content::get_segment()
         {
             return segment_;
         }
 
-        ppbox::common::SourceBase * Content::get_source()
+        ppbox::data::SourceBase * Content::get_source()
         {   
             return source_;
         }
@@ -157,7 +157,7 @@ namespace ppbox
                 position.time_beg = total_time;
                 position.size_beg = position.shard_beg = total_size;
                 if (position.segment < get_segment()->segment_count()) {
-                    common::SegmentInfo seg_info;
+                    ppbox::data::SegmentInfo seg_info;
                     get_segment()->segment_info(position.segment, seg_info);
 
                     boost::uint64_t segment_len = seg_info.size;
@@ -200,7 +200,7 @@ namespace ppbox
             assert(res); // source 至少有一个segment
             abs_position = first_segment;
 
-            common::SegmentInfo seg_info;
+            ppbox::data::SegmentInfo seg_info;
             get_segment()->segment_info(cur_seg.segment, seg_info);
 
             while (next_segment(cur_seg)) {
@@ -291,7 +291,7 @@ namespace ppbox
         {
             boost::uint64_t total = 0;
             for (boost::uint32_t i = begin_segment_.segment; i < get_segment()->segment_count(); i++) {
-                common::SegmentInfo seg_info;
+                ppbox::data::SegmentInfo seg_info;
                 get_segment()->segment_info(i, seg_info);
                 total += seg_info.size;
             }
@@ -307,7 +307,7 @@ namespace ppbox
                 segment = get_segment()->segment_count();
             }
             for (int i = begin_segment_.segment; i < segment; i++) {
-                common::SegmentInfo seg_info;
+                ppbox::data::SegmentInfo seg_info;
                 get_segment()->segment_info(i, seg_info);
                 total += seg_info.size;
             }
@@ -318,7 +318,7 @@ namespace ppbox
         {
             boost::uint64_t total = 0;
             for (int i = begin_segment_.segment; i < get_segment()->segment_count(); i++) {
-                common::SegmentInfo seg_info;
+                ppbox::data::SegmentInfo seg_info;
                 get_segment()->segment_info(i, seg_info);
                 total += seg_info.time;
             }
@@ -333,7 +333,7 @@ namespace ppbox
                 segment = get_segment()->segment_count();
             }
             for (int i = begin_segment_.segment; i < segment; i++) {
-                common::SegmentInfo seg_info;
+                ppbox::data::SegmentInfo seg_info;
                 get_segment()->segment_info(i, seg_info);
                 total += seg_info.time;
             }
