@@ -9,7 +9,8 @@ using namespace ppbox::demux::error;
 #include <ppbox/avformat/codec/H264Nalu.h>
 using namespace ppbox::avformat;
 
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/Logger.h>
+#include <framework/logger/StreamRecord.h>
 using namespace framework::logger;
 
 using namespace boost::system;
@@ -149,7 +150,7 @@ namespace ppbox
                         if (ready) {
                             for (size_t i = 0; i < stream_map_.size(); ++i) {
                                 AsfStream & stream = streams_[stream_map_[i]];
-                                LOG_S(Logger::kLevelDebug, "Stream: id = " 
+                                LOG_DEBUG("Stream: id = " 
                                     << stream.Flag.StreamNumber << ", time = " 
                                     << stream.time_offset_ms << "ms");
                             }

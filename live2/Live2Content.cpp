@@ -14,7 +14,7 @@
 
 #include <framework/string/Format.h>
 #include <framework/timer/Timer.h>
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/StreamRecord.h>
 using namespace boost::system;
 using namespace framework::logger;
 using namespace ppbox::demux;

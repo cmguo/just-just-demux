@@ -11,7 +11,6 @@
 #include <framework/system/LogicError.h>
 #include <framework/container/Array.h>
 #include <framework/memory/PrivateMemory.h>
-#include <framework/logger/LoggerStreamRecord.h>
 #include <framework/timer/TimeCounter.h>
 
 #include <boost/asio/io_service.hpp>
@@ -55,9 +54,6 @@ namespace ppbox
             : public BufferObserver
             , public BufferStatistic
         {
-        protected:
-            FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("BufferList", 0);
-
         private:
             struct Hole
             {

@@ -12,7 +12,8 @@ using namespace util::buffers;
 
 #include <framework/system/BytesOrder.h>
 #include <framework/timer/TimeCounter.h>
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/Logger.h>
+#include <framework/logger/StreamRecord.h>
 using namespace framework::logger;
 
 using namespace boost::asio;
@@ -146,7 +147,7 @@ namespace ppbox
         error_code Mp4DemuxerBase::parse_head(
             error_code & ec)
         {
-            LOG_S(Logger::kLevelDebug, "begin parse head,size: " << head_size_);
+            LOG_DEBUG("begin parse head,size: " << head_size_);
 
            /* if (min_head_size(buf) > util::buffers::buffer_size(buf)) {
                 return ec = bad_offset_size;
@@ -225,10 +226,10 @@ namespace ppbox
                 sample_offset_list.pop();
                 if (ap4_sample.GetOffset() < last_offset) {
                     ec = bad_smaple_order;
-                    LOG_S(Logger::kLevelDebug, "bad smaple order: " << ap4_sample.GetOffset() << "<" << last_offset);
+                    LOG_DEBUG("bad smaple order: " << ap4_sample.GetOffset() << "<" << last_offset);
                     break;
                 } else if (ap4_sample.GetOffset() > last_offset) {
-                    LOG_S(Logger::kLevelDebug, "skip data: " << last_offset << "(" << ap4_sample.GetOffset() - last_offset << ")");
+                    LOG_DEBUG("skip data: " << last_offset << "(" << ap4_sample.GetOffset() - last_offset << ")");
                 }
                 last_offset = ap4_sample.GetOffset() + ap4_sample.GetSize();
                 Track * track = tracks_[ap4_sample.itrack];
@@ -237,8 +238,7 @@ namespace ppbox
                 }
             }
             if (last_offset < total_size) {
-                LOG_S(Logger::kLevelDebug, 
-                    "skip to end: " << last_offset << "(" << total_size - last_offset << ")");
+                LOG_DEBUG("skip to end: " << last_offset << "(" << total_size - last_offset << ")");
             }
 
             if (ec) {
@@ -369,7 +369,7 @@ namespace ppbox
             is_.seekg(min_offset_, std::ios_base::beg);
                 assert(is_);
             if (tc.elapse() > 10) {
-                LOG_S(Logger::kLevelDebug, "[get_sample] elapse: " << tc.elapse());
+                LOG_DEBUG("[get_sample] elapse: " << tc.elapse());
             }
 
             return ec;

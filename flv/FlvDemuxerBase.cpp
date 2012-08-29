@@ -5,7 +5,8 @@
 using namespace ppbox::demux::error;
 using namespace ppbox::avformat;
 
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/Logger.h>
+#include <framework/logger/StreamRecord.h>
 #include <framework/system/BytesOrder.h>
 #include <framework/timer/TickCounter.h>
 using namespace framework::logger;
@@ -225,7 +226,7 @@ namespace ppbox
                 current_time_ = flv_tag_.Timestamp;
             }
             if (tc.elapsed() > 10) {
-                LOG_S(Logger::kLevelDebug, "[get_tag], elapse " << tc.elapsed());
+                LOG_DEBUG("[get_tag], elapse " << tc.elapsed());
             }
             parse_offset_ = (boost::uint32_t)archive_.tellg();
             if (flv_tag_.is_sample) {
@@ -248,22 +249,22 @@ namespace ppbox
                 sample.blocks.clear();
                 sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
             } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_META) {
-                LOG_S(Logger::kLevelDebug, "[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
+                LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
                 return get_sample(sample, ec);
             } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_AUDIO) {
                 if (flv_tag_.AudioHeader.SoundFormat == SoundCodec::FLV_CODECID_AAC
                     && flv_tag_.AudioHeader.AACPacketType == 0) {
-                        LOG_S(Logger::kLevelDebug, "[get_sample] duplicate aac sequence header");
+                        LOG_DEBUG("[get_sample] duplicate aac sequence header");
                         return get_sample(sample, ec);
                 }
                 ec = bad_file_format;
             } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_VIDEO) {
                 if (flv_tag_.VideoHeader.CodecID == VideoCodec::FLV_CODECID_H264) {
                     if (flv_tag_.VideoHeader.AVCPacketType == 0) {
-                        LOG_S(Logger::kLevelDebug, "[get_sample] duplicate aac sequence header");
+                        LOG_DEBUG("[get_sample] duplicate aac sequence header");
                         return get_sample(sample, ec);
                     } else if (flv_tag_.VideoHeader.AVCPacketType == 2) {
-                        LOG_S(Logger::kLevelDebug, "[get_sample] end of avc sequence");
+                        LOG_DEBUG("[get_sample] end of avc sequence");
                         return get_sample(sample, ec);
                     }
                 } 

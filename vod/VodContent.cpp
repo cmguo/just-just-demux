@@ -16,7 +16,7 @@
 #include <framework/string/StringToken.h>
 #include <framework/string/Algorithm.h>
 #include <framework/timer/TimeCounter.h>
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/StreamRecord.h>
 #include <framework/network/NetName.h>
 using namespace framework::system::logic_error;
 using namespace framework::string;

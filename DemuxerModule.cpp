@@ -11,7 +11,8 @@ using namespace ppbox::demux;
 #endif
 
 #include <framework/timer/Timer.h>
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/Logger.h>
+#include <framework/logger/StreamRecord.h>
 #include <framework/network/Resolver.h>
 using namespace framework::logger;
 using namespace framework::network;
@@ -501,7 +502,7 @@ namespace ppbox
         //    oa << mediainfo;
         //    msg.data = ( char * )boost::asio::detail::buffer_cast_helper( write_buf.data() );
 
-        //    LOG_S(Logger::kLevelDebug, "[insert_media] insert media info = " << msg.data);
+        //    LOG_DEBUG("[insert_media] insert media info = " << msg.data);
 
         //    msg_queue_.push( msg );
 
@@ -519,7 +520,7 @@ namespace ppbox
         //    {
         //        ec = boost::asio::error::would_block;
 
-        //        LOG_S(Logger::kLevelAlarm, "get_insert_media, ec = " << ec.message() );
+        //        LOG_WARN("get_insert_media, ec = " << ec.message() );
         //        return *mediainfo_;
         //    }
 
@@ -530,7 +531,7 @@ namespace ppbox
         //    util::archive::TextIArchive<> ia( is );
         //    ia >> mediainfo_;
 
-        //    LOG_S(Logger::kLevelDebug, "[get_insert_media] get insert media : " << msg.data );
+        //    LOG_DEBUG("[get_insert_media] get insert media : " << msg.data );
 
         //    ec.clear();
         //    return *mediainfo_;

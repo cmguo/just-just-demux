@@ -11,7 +11,8 @@
 #include <framework/system/LogicError.h>
 #include <framework/container/Array.h>
 #include <framework/memory/PrivateMemory.h>
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/Logger.h>
+#include <framework/logger/StreamRecord.h>
 #include <framework/timer/TimeCounter.h>
 
 #include <boost/asio/io_service.hpp>
@@ -25,6 +26,9 @@ namespace ppbox
 {
     namespace demux
     {
+
+        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("BufferList", 0)
+
         BufferList::BufferList(
             boost::uint32_t buffer_size, 
             boost::uint32_t prepare_size, 
@@ -214,19 +218,16 @@ namespace ppbox
                         boost::asio::transfer_all(), 
                         ec);
                     if (tc.elapse() > 10) {
-                        LOG_S(framework::logger::Logger::kLevelDebug, 
-                            "[prepare] read elapse: " << tc.elapse() 
+                        LOG_DEBUG("[prepare] read elapse: " << tc.elapse() 
                             << " bytes_transferred: " << bytes_transferred);
                     }
                     increase_download_byte(bytes_transferred);
                     move_front(write_, bytes_transferred);
                     if (ec && !write_.source->get_source()->continuable(ec)) {
-                        LOG_S(framework::logger::Logger::kLevelAlarm, 
-                            "[prepare] read_some: " << ec.message() << 
+                        LOG_WARN("[prepare] read_some: " << ec.message() << 
                             " --- failed " << num_try_ << " times");
                         if (ec == boost::asio::error::eof) {
-                            LOG_S(framework::logger::Logger::kLevelDebug, 
-                                "[prepare] read eof, write_.offset: " << write_.offset
+                            LOG_DEBUG("[prepare] read eof, write_.offset: " << write_.offset
                                 << " write_hole_.this_end: " << write_hole_.this_end);
                         }
                     }
@@ -235,8 +236,7 @@ namespace ppbox
                 } else {
                     // 打开失败
                     if (!write_.source->get_source()->continuable(ec)) {
-                        LOG_S(framework::logger::Logger::kLevelAlarm, 
-                            "[prepare] open_segment: " << ec.message() << 
+                        LOG_WARN("[prepare] open_segment: " << ec.message() << 
                             " --- failed " << num_try_ << " times");
                         //close_segment(ec);
                     } else {
@@ -292,17 +292,14 @@ namespace ppbox
             }
             if (ec && write_.source && !write_.source->get_source()->continuable(ec)) {
                 if (is_open_callback) {
-                    LOG_S(framework::logger::Logger::kLevelDebug, 
-                        "[handle_async] open_segment: " << ec.message() << 
+                    LOG_DEBUG("[handle_async] open_segment: " << ec.message() << 
                         " --- failed " << num_try_ << " times");
                 }
                 if (!source_closed_) {
-                    LOG_S(framework::logger::Logger::kLevelAlarm, 
-                        "[handle_async] read_some: " << ec.message() << 
+                    LOG_WARN("[handle_async] read_some: " << ec.message() << 
                         " --- failed " << num_try_ << " times");
                     if (ec == boost::asio::error::eof) {
-                        LOG_S(framework::logger::Logger::kLevelDebug, 
-                            "[handle_async] read eof, write_.offset: " << write_.offset
+                        LOG_DEBUG("[handle_async] read eof, write_.offset: " << write_.offset
                             << " write_hole_.this_end: " << write_hole_.this_end);
                     }
                 }
@@ -537,7 +534,7 @@ namespace ppbox
                 write_.shard_end = write_.size_end = write_.offset;
                 read_.shard_end = read_.size_end = write_.offset;
                 read_.total_state = SegmentPositionEx::by_guess;
-                LOG_S(framework::logger::Logger::kLevelInfor, "[drop_all] guess segment size " << read_.size_end - read_.size_beg);
+                LOG_INFO("[drop_all] guess segment size " << read_.size_end - read_.size_beg);
             }
             read_seek_to(read_.shard_end, ec);
             if (!ec) {
@@ -882,8 +879,7 @@ namespace ppbox
             if (write_.source->get_source()->continuable(ec)) {
                 time_block_ = get_zero_interval();
                 if (time_out_ > 0 && time_block_ > time_out_) {
-                    LOG_S(framework::logger::Logger::kLevelAlarm,
-                        "source.read_some: timeout" << 
+                    LOG_WARN("source.read_some: timeout" << 
                         " --- failed " << num_try_ << " times");
                     ec = boost::asio::error::timed_out;
                     if (can_retry()) {
@@ -907,8 +903,7 @@ namespace ppbox
                         write_tmp_.shard_end = write_tmp_.size_end = write_.size_end;
                         write_tmp_.total_state = SegmentPositionEx::by_guess;
                     }
-                    LOG_S(framework::logger::Logger::kLevelInfor, 
-                        "[handle_error] guess segment size " << write_.size_end - write_.size_beg);
+                    LOG_INFO("[handle_error] guess segment size " << write_.size_end - write_.size_beg);
                     return true;
                 } else if (can_retry()) {
                     ec = boost::asio::error::connection_aborted;
@@ -931,8 +926,7 @@ namespace ppbox
         void BufferList::seek_to(
             boost::uint64_t offset)
         {
-            LOG_S(framework::logger::Logger::kLevelDebug2, 
-                "seek_to " << offset);
+            LOG_TRACE("seek_to " << offset);
             if (data_end_ > data_beg_ + buffer_size_)
                 data_beg_ = data_end_ - buffer_size_;// 调整data_beg_
             dump();
@@ -981,8 +975,7 @@ namespace ppbox
                         data_beg_ = offset;
                         if (data_end_ > data_beg_ + buffer_size_)
                             data_end_ = data_beg_ + buffer_size_;
-                        LOG_S(framework::logger::Logger::kLevelDebug2, 
-                            "backward data: " << data_beg_ << "-" << data_end_);
+                        LOG_TRACE("backward data: " << data_beg_ << "-" << data_end_);
                     }
                     move_back_to(read_, offset);
                     read_hole_next_beg = offset;
@@ -1000,7 +993,7 @@ namespace ppbox
                         data_end_ = write_hole_.this_end;
                         if (data_end_ > data_beg_ + buffer_size_)
                             data_beg_ = data_end_ - buffer_size_;
-                        LOG_S(framework::logger::Logger::kLevelDebug2, "advance data: " << data_beg_ << "-" << data_end_);
+                        LOG_TRACE("advance data: " << data_beg_ << "-" << data_end_);
                     }
                     // 有可能两个读空洞合并
                     if (read_.offset < write_.offset) {
@@ -1028,8 +1021,7 @@ namespace ppbox
                         data_end_ = offset;
                         if (data_end_ > data_beg_ + buffer_size_)
                             data_beg_ = data_end_ - buffer_size_;
-                        LOG_S(framework::logger::Logger::kLevelDebug2, 
-                            "advance data: " << data_beg_ << "-" << data_end_);
+                        LOG_TRACE("advance data: " << data_beg_ << "-" << data_end_);
                     }
                     move_front_to(write_, offset);
                     read_ = write_;
@@ -1038,8 +1030,7 @@ namespace ppbox
                 // lay a read hole
                 read_hole_.next_beg = write_read_hole(read_hole_next_beg, read_hole_);
             }
-            LOG_S(framework::logger::Logger::kLevelDebug2, 
-                "after seek_to " << offset);
+            LOG_TRACE("after seek_to " << offset);
             dump();
         }
 
@@ -1166,8 +1157,7 @@ namespace ppbox
                     }
                     data_end_ = data_end_tmp;
                 }
-                LOG_S(framework::logger::Logger::kLevelDebug2, 
-                    "[open_request] segment: " << write_tmp_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
+                LOG_TRACE("[open_request] segment: " << write_tmp_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
 
                 size_t total_count = write_tmp_.source->get_segment()->segment_count();
                 if (total_count == (size_t)-1 || write_tmp_.segment < total_count) {
@@ -1180,8 +1170,7 @@ namespace ppbox
                     write_tmp_.source->get_segment()->segment_url(write_tmp_.segment, url_temp, ec);
                     write_tmp_.source->get_source()->open(/*write_tmp_.segment,*/ url_temp, from , to, ec);
                 } else {
-                    LOG_S(framework::logger::Logger::kLevelDebug2, 
-                        "[open_request] this is the last segment: " << write_tmp_.segment);
+                    LOG_TRACE("[open_request] this is the last segment: " << write_tmp_.segment);
                     ec = boost::asio::error::not_found;
                 }
 
@@ -1206,8 +1195,7 @@ namespace ppbox
             if (sended_req_) {
                 write_.source->get_source()->close(write_.segment, ec);
                 --sended_req_;
-                LOG_S(framework::logger::Logger::kLevelDebug2, 
-                    "[close_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
+                LOG_TRACE("[close_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
             } else {
                 return ec;
             }
@@ -1224,8 +1212,7 @@ namespace ppbox
             for (size_t i = 0; i < sended_req_; ++i) {
                 write_.source->get_source()->close(write_tmp_.segment, ec);
                 --sended_req_;
-                LOG_S(framework::logger::Logger::kLevelDebug2, 
-                    "[close_all_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
+                LOG_TRACE("[close_all_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
                 boost::uint64_t data_end_tmp = data_end_;
                 if (data_end_ < write_hole_tmp_.this_end 
                     && write_hole_tmp_.this_end <= write_tmp_.size_end 
@@ -1269,8 +1256,7 @@ namespace ppbox
             if (ec && !write_.source->get_source()->continuable(ec)) {
                 if (!ec)
                     ec = boost::asio::error::would_block;
-                LOG_S(framework::logger::Logger::kLevelDebug, 
-                    "[open_segment] source().open_segment: " << ec.message() << 
+                LOG_DEBUG("[open_segment] source().open_segment: " << ec.message() << 
                     " --- failed " << num_try_ << " times");
                 return ec;
             }
@@ -1283,8 +1269,7 @@ namespace ppbox
                 write_bytesstream_->drop_all();
             }
 
-            LOG_S(framework::logger::Logger::kLevelAlarm, 
-                "[open_segment] write_.segment: " << write_.segment << 
+            LOG_WARN("[open_segment] write_.segment: " << write_.segment << 
                 " write_.offset: " << write_.offset << 
                 " begin: " << write_.offset - write_.size_beg << 
                 " end: " << write_hole_.this_end - write_.size_beg);
@@ -1360,8 +1345,7 @@ namespace ppbox
             boost::system::error_code & ec, bool need_update)
         {
             if (!source_closed_) {
-                LOG_S(framework::logger::Logger::kLevelDebug, 
-                    "[close_segment] write_.segment: " << write_.segment << 
+                LOG_DEBUG("[close_segment] write_.segment: " << write_.segment << 
                     " write_.offset: " << write_.offset << 
                     " end: " << write_hole_.this_end - write_.size_beg);
 
@@ -1385,20 +1369,15 @@ namespace ppbox
 
         void BufferList::dump()
         {
-            LOG_S(framework::logger::Logger::kLevelDebug2, 
-                "buffer:" << (void *)buffer_beg() << "-" << (void *)buffer_end());
-            LOG_S(framework::logger::Logger::kLevelDebug2, 
-                "data:" << data_beg_ << "-" << data_end_);
-            LOG_S(framework::logger::Logger::kLevelDebug2, 
-                "read:" << read_);
-            LOG_S(framework::logger::Logger::kLevelDebug2, 
-                "write:" << write_);
+            LOG_TRACE("buffer:" << (void *)buffer_beg() << "-" << (void *)buffer_end());
+            LOG_TRACE("data:" << data_beg_ << "-" << data_end_);
+            LOG_TRACE("read:" << read_);
+            LOG_TRACE("write:" << write_);
             boost::uint64_t offset = read_hole_.next_beg;
             Hole hole;
             offset = read_read_hole(offset, hole);
             while (1) {
-                LOG_S(framework::logger::Logger::kLevelDebug2, 
-                    "read_hole:" << offset << "-" << hole.this_end);
+                LOG_TRACE("read_hole:" << offset << "-" << hole.this_end);
                 if (hole.this_end == 0)
                     break;
                 offset = read_read_hole(hole.next_beg, hole);
@@ -1406,8 +1385,7 @@ namespace ppbox
             hole = write_hole_;
             offset = write_.offset;
             while (1) {
-                LOG_S(framework::logger::Logger::kLevelDebug2, 
-                    "write_hole:" << offset << "-" << hole.this_end);
+                LOG_TRACE("write_hole:" << offset << "-" << hole.this_end);
                 if (hole.next_beg == boost::uint64_t(-1))
                     break;
                 offset = read_write_hole(hole.next_beg, hole);

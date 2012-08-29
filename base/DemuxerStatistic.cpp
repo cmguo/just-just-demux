@@ -4,7 +4,7 @@
 #include "ppbox/demux/base/DemuxerStatistic.h"
 
 #include <framework/logger/Logger.h>
-#include <framework/logger/LoggerStreamRecord.h>
+#include <framework/logger/StreamRecord.h>
 #include <framework/logger/LoggerSection.h>
 using namespace framework::logger;
 
@@ -31,7 +31,7 @@ namespace ppbox
             boost::uint32_t const & buffer_time)
         {
             if (state_ == buffering) {
-                LOG_S(Logger::kLevelDebug, "[buf_time] buf_time: " << buffer_time << " ms");
+                LOG_DEBUG("[buf_time] buf_time: " << buffer_time << " ms");
             }
             buffer_time_ = buffer_time;
         }
