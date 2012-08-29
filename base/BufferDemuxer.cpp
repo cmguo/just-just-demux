@@ -11,6 +11,7 @@
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/flv/FlvDemuxerBase.h"
 
+#include <framework/logger/Logger.h>
 #include <framework/timer/Ticker.h>
 using namespace framework::logger;
 
