@@ -2,7 +2,6 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/live2/Live2Content.h"
-#include "ppbox/demux/pptv/PptvJump.h"
 #include "ppbox/demux/base/DemuxerError.h"
 #include "ppbox/demux/base/BufferList.h"
 
@@ -34,7 +33,7 @@ namespace ppbox
 
         Live2Content::Live2Content(
             boost::asio::io_service & io_svc,
-            ppbox::data::SegmentBase * pSegment,
+            ppbox::data::MediaBase * pSegment,
             ppbox::data::SourceBase * pSource)
             : Content(io_svc, pSegment, pSource)
         {

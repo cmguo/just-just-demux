@@ -9,13 +9,14 @@ namespace ppbox
 {
     namespace demux
     {
+
         class VodContent
             : public Content
         {
         public:
             VodContent(
                 boost::asio::io_service & io_svc,
-                ppbox::data::SegmentBase * pSegment,
+                ppbox::data::MediaBase * media,
                 ppbox::data::SourceBase * pSource);
 
             ~VodContent();

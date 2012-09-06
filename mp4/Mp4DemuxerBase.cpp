@@ -3,7 +3,6 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/mp4/Mp4Track.h"
-#include "ppbox/demux/mp4/Mp4BytesStream.h"
 #include "ppbox/demux/mp4/Mp4StdByteStream.h"
 
 #include <util/buffers/BufferCopy.h>
@@ -254,7 +253,7 @@ namespace ppbox
             return ec;
         }
 
-        size_t Mp4DemuxerBase::get_media_count(
+        size_t Mp4DemuxerBase::get_stream_count(
             error_code & ec)
         {
             if (!is_open(ec)) {
@@ -265,9 +264,9 @@ namespace ppbox
             }
         }
 
-        boost::system::error_code Mp4DemuxerBase::get_media_info(
+        boost::system::error_code Mp4DemuxerBase::get_stream_info(
             size_t index, 
-            MediaInfo & info, 
+            StreamInfo & info, 
             boost::system::error_code & ec)
         {
             if (!is_open(ec)) {

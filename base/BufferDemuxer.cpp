@@ -114,8 +114,7 @@ namespace ppbox
             boost::system::error_code ec;
             open_state_ = OpenState::source_open;
             DemuxerStatistic::open_beg();
-            root_content_->get_segment()->async_open(
-                ppbox::data::SegmentBase::OpenMode::fast, 
+            root_content_->get_media()->async_open(
                 boost::bind(&BufferDemuxer::handle_async_open, 
                 this, 
                 _1));
@@ -321,7 +320,7 @@ namespace ppbox
             return ec;
         }
 
-        size_t BufferDemuxer::get_media_count(
+        size_t BufferDemuxer::get_stream_count(
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
@@ -331,9 +330,9 @@ namespace ppbox
             }
         }
 
-        boost::system::error_code BufferDemuxer::get_media_info(
+        boost::system::error_code BufferDemuxer::get_stream_info(
             size_t index, 
-            MediaInfo & info, 
+            StreamInfo & info, 
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
@@ -346,12 +345,12 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code BufferDemuxer::get_duration(
-            ppbox::data::DurationInfo & info,
+        boost::system::error_code BufferDemuxer::get_media_info(
+            ppbox::data::MediaInfo & info,
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {
-                root_content_->get_segment()->get_duration(info, ec); // ms
+                root_content_->get_media()->get_info(info, ec); // ms
             }
             return ec;
         }
@@ -360,9 +359,9 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (OpenState::source_open == open_state_) {
-                root_content_->get_segment()->cancel();
+                root_content_->get_media()->cancel();
             } else if (OpenState::demuxer_open == open_state_) {
-                root_content_->get_segment()->close(); // source opened
+                root_content_->get_media()->close(); // source opened
                 buffer_->cancel(ec);
             }
             open_state_ = OpenState::cancel;
@@ -423,11 +422,11 @@ namespace ppbox
                             buffer_->async_prepare_at_least(0, boost::bind(&BufferDemuxer::handle_async_open, this, _1));
                         } else {
                             root_content_->set_buffer_list(buffer_);
-                            stream_count = read_demuxer_->demuxer->get_media_count(ec2);
+                            stream_count = read_demuxer_->demuxer->get_stream_count(ec2);
                             if (!ec2) {
-                                MediaInfo info;
+                                StreamInfo info;
                                 for (boost::uint32_t i = 0; i < stream_count; i++) {
-                                    read_demuxer_->demuxer->get_media_info(i, info, ec2);
+                                    read_demuxer_->demuxer->get_stream_info(i, info, ec2);
                                     if (info.type == MEDIA_TYPE_VIDE && info.video_format.frame_rate) {
                                         video_frame_interval_ = 1000 / info.video_format.frame_rate;
                                     }

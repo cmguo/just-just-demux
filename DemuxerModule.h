@@ -3,8 +3,6 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_MODULE_H_
 #define _PPBOX_DEMUX_DEMUXER_MODULE_H_
 
-#include "ppbox/demux/pptv/PptvDemuxerType.h"
-
 #include <ppbox/certify/CertifyUserModule.h>
 #include <ppbox/certify/Certifier.h>
 
@@ -172,7 +170,7 @@ namespace ppbox
 #endif
 
 #ifndef PPBOX_DISABLE_PEER
-            peer::Peer & peer_;
+            peer::PeerModule & peer_;
 #endif
 
         private:

@@ -2,8 +2,6 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/vod/VodContent.h"
-#include "ppbox/demux/pptv/PptvJump.h"
-#include "ppbox/demux/pptv/PptvDrag.h"
 #include "ppbox/demux/base/DemuxerError.h"
 
 #include <util/protocol/pptv/Url.h>
@@ -44,7 +42,7 @@ namespace ppbox
 
         VodContent::VodContent(
             boost::asio::io_service & io_svc,
-            ppbox::data::SegmentBase * pSegment,
+            ppbox::data::MediaBase * pSegment,
             ppbox::data::SourceBase * pSource)
             : Content(io_svc, pSegment, pSource)
         {
@@ -63,7 +61,7 @@ namespace ppbox
         {
             Content::time_seek(time, abs_position, position, ec);
             if (position.total_state == SegmentPositionEx::not_exist 
-                && (get_segment()->segment_count()>0)
+                && (get_media()->segment_count()>0)
                 && !ec) {
                     ec = framework::system::logic_error::out_of_range;
             }
@@ -84,11 +82,11 @@ namespace ppbox
             segment.shard_beg = segment.size_beg = 0;
 
             ppbox::data::SegmentInfo seg_info;
-            get_segment()->segment_info(segment.segment, seg_info);
+            get_media()->segment_info(segment.segment, seg_info);
             boost::uint64_t seg_size = seg_info.size;
             segment.shard_end = segment.size_end = (seg_size == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.size_beg + seg_size);
             segment.time_beg = segment.time_beg = 0;
-            boost::uint64_t seg_time = seg_info.time;
+            boost::uint64_t seg_time = seg_info.duration;
             segment.time_end = (seg_time == boost::uint64_t(-1) ? boost::uint64_t(-1): segment.time_beg + seg_time );
             if (segment.shard_end == boost::uint64_t(-1)) {
                 segment.total_state = SegmentPositionEx::not_exist;

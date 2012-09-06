@@ -15,7 +15,7 @@ namespace ppbox
         public:
             Live2Content(
                 boost::asio::io_service & io_svc,
-                ppbox::data::SegmentBase * pSegment,
+                ppbox::data::MediaBase * pSegment,
                 ppbox::data::SourceBase * pSource);
 
             virtual ~Live2Content();

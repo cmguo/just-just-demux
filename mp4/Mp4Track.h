@@ -72,7 +72,7 @@ namespace ppbox
         };
 
         class Track
-            : public MediaInfo
+            : public StreamInfo
         {
         public:
             Track(
@@ -327,7 +327,7 @@ namespace ppbox
             void GetMediaInfo(
                 error_code & ec)
             {
-                MediaInfo & media_info = *this;
+                StreamInfo & media_info = *this;
                 media_info.time_scale = track_->GetMediaTimeScale();
                 ec = bad_file_format;
                 if (AP4_Atom* avc1Atom = track_->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/avc1")) {
@@ -336,7 +336,7 @@ namespace ppbox
                     if (avcc) {
                         media_info.type = MEDIA_TYPE_VIDE;
                         media_info.sub_type = VIDEO_TYPE_AVC1;
-                        media_info.format_type = MediaInfo::video_avc_packet;
+                        media_info.format_type = StreamInfo::video_avc_packet;
                         media_info.video_format.width = avc1->GetWidth();
                         media_info.video_format.height = avc1->GetHeight();
                         media_info.video_format.frame_rate = track_->GetSampleCount() * 1000 / track_->GetDurationMs();
@@ -403,7 +403,7 @@ namespace ppbox
                             case AP4_OTI_MPEG2_AAC_AUDIO_LC: // ???
                             case AP4_OTI_MPEG2_AAC_AUDIO_SSRP: // ???
                                 media_info.sub_type = AUDIO_TYPE_MP4A;
-                                media_info.format_type = MediaInfo::audio_iso_mp4;
+                                media_info.format_type = StreamInfo::audio_iso_mp4;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
@@ -414,7 +414,7 @@ namespace ppbox
                                 break;
                             case AP4_OTI_MPEG1_AUDIO: // mp3
                                 media_info.sub_type = AUDIO_TYPE_MP1A;
-                                media_info.format_type = MediaInfo::audio_iso_mp4;
+                                media_info.format_type = StreamInfo::audio_iso_mp4;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();

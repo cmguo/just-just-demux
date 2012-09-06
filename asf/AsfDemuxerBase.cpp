@@ -266,7 +266,7 @@ namespace ppbox
             return ec = error_code();
         }
 
-        size_t AsfDemuxerBase::get_media_count(
+        size_t AsfDemuxerBase::get_stream_count(
             error_code & ec)
         {
             if (is_open(ec))
@@ -274,9 +274,9 @@ namespace ppbox
             return 0;
         }
 
-        error_code AsfDemuxerBase::get_media_info(
+        error_code AsfDemuxerBase::get_stream_info(
             size_t index, 
-            MediaInfo & info, 
+            StreamInfo & info, 
             error_code & ec)
         {
             if (is_open(ec)) {

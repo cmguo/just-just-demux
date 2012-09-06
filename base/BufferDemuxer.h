@@ -9,7 +9,7 @@
 #include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/Content.h"
 
-#include <ppbox/data/SegmentBase.h>
+#include <ppbox/data/MediaBase.h>
 #include <ppbox/data/SourceBase.h>
 
 #include <framework/timer/Ticker.h>
@@ -163,16 +163,16 @@ namespace ppbox
         public:
             bool is_open(boost::system::error_code & ec);
 
-            size_t get_media_count(
+            size_t get_stream_count(
+                boost::system::error_code & ec);
+
+            boost::system::error_code get_stream_info(
+                size_t index, 
+                StreamInfo & info, 
                 boost::system::error_code & ec);
 
             boost::system::error_code get_media_info(
-                size_t index, 
-                MediaInfo & info, 
-                boost::system::error_code & ec);
-
-            boost::system::error_code get_duration(
-                ppbox::data::DurationInfo & info,
+                ppbox::data::MediaInfo & info,
                 boost::system::error_code & ec);
 
             boost::uint32_t get_cur_time(
@@ -286,7 +286,7 @@ namespace ppbox
 
             std::vector<boost::uint32_t> media_time_scales_;
             std::vector<boost::uint64_t> dts_offset_;
-            std::vector<MediaInfo> stream_infos_;
+            std::vector<StreamInfo> stream_infos_;
 
             OpenState::Enum open_state_;
             SegmentPosition open_segment_;

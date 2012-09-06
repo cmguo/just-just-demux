@@ -1159,7 +1159,7 @@ namespace ppbox
                 }
                 LOG_TRACE("[open_request] segment: " << write_tmp_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
 
-                size_t total_count = write_tmp_.source->get_segment()->segment_count();
+                size_t total_count = write_tmp_.source->get_media()->segment_count();
                 if (total_count == (size_t)-1 || write_tmp_.segment < total_count) {
                     ++sended_req_;
                     std::string url;
@@ -1167,7 +1167,7 @@ namespace ppbox
                     boost::uint64_t to = write_hole_tmp_.this_end == boost::uint64_t(-1) || write_hole_tmp_.this_end == write_tmp_.size_end ? 
                         boost::uint64_t(-1) : write_hole_tmp_.this_end - write_tmp_.size_beg;
                     framework::string::Url url_temp(url);
-                    write_tmp_.source->get_segment()->segment_url(write_tmp_.segment, url_temp, ec);
+                    write_tmp_.source->get_media()->segment_url(write_tmp_.segment, url_temp, ec);
                     write_tmp_.source->get_source()->open(/*write_tmp_.segment,*/ url_temp, from , to, ec);
                 } else {
                     LOG_TRACE("[open_request] this is the last segment: " << write_tmp_.segment);
@@ -1332,7 +1332,7 @@ namespace ppbox
             boost::uint64_t to = write_hole_.this_end == boost::uint64_t(-1) || write_hole_.this_end == write_.size_end ? 
                 boost::uint64_t(-1) : write_hole_.this_end - write_.size_beg;
             framework::string::Url url_temp(url);
-            write_.source->get_segment()->segment_url(write_.segment, url_temp, ec);
+            write_.source->get_media()->segment_url(write_.segment, url_temp, ec);
             write_.source->get_source()->async_open(
                 /*write_.segment, */
                 url_temp, 

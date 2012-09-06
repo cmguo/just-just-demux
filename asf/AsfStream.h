@@ -13,7 +13,7 @@ namespace ppbox
 
         class AsfStream
             : public ppbox::avformat::ASF_Stream_Properties_Object_Data
-            , public MediaInfo
+            , public StreamInfo
         {
         public:
             AsfStream()
@@ -74,11 +74,11 @@ namespace ppbox
                         switch (Video_Media_Type.FormatData.CompressionID) {
                             case MAKE_FOURC_TYPE('h', '2', '6', '4'):
                                 sub_type = VIDEO_TYPE_AVC1;
-                                format_type = MediaInfo::video_avc_byte_stream;
+                                format_type = StreamInfo::video_avc_byte_stream;
                                 break;
                             case MAKE_FOURC_TYPE('H', '2', '6', '4'):
                                 sub_type = VIDEO_TYPE_AVC1;
-                                format_type = MediaInfo::video_avc_byte_stream;
+                                format_type = StreamInfo::video_avc_byte_stream;
                                 break;
                             default:
                                 format_type = 0;
@@ -91,11 +91,11 @@ namespace ppbox
                         type = MEDIA_TYPE_AUDI;
                         switch (Audio_Media_Type.CodecId) {
                             case 353:
-                                format_type = MediaInfo::audio_microsoft_wave;
+                                format_type = StreamInfo::audio_microsoft_wave;
                                 sub_type = AUDIO_TYPE_WMA2;
                                 break;
                             case 255:
-                                format_type = MediaInfo::audio_iso_mp4;
+                                format_type = StreamInfo::audio_iso_mp4;
                                 sub_type = AUDIO_TYPE_MP4A;
                                 break;
                             default:

@@ -15,7 +15,7 @@ namespace ppbox
 
         class FlvStream
             : public ppbox::avformat::FlvTag
-            , public MediaInfo
+            , public StreamInfo
         {
         public:
             FlvStream()
@@ -47,7 +47,7 @@ namespace ppbox
                         switch (VideoHeader.CodecID) {
                             case 7:
                                 sub_type = VIDEO_TYPE_AVC1;
-                                format_type = MediaInfo::video_avc_packet;
+                                format_type = StreamInfo::video_avc_packet;
                                 break;
                             default:
                                 sub_type = VIDEO_TYPE_NONE;
@@ -64,7 +64,7 @@ namespace ppbox
                         switch (AudioHeader.SoundFormat) {
                             case 10:
                                 sub_type = AUDIO_TYPE_MP4A;
-                                format_type = MediaInfo::audio_iso_mp4;
+                                format_type = StreamInfo::audio_iso_mp4;
                                 break;
                             default:
                                 sub_type = AUDIO_TYPE_NONE;

@@ -275,7 +275,7 @@ namespace ppbox
             return ec;
         }
 
-        size_t FlvDemuxerBase::get_media_count(error_code & ec)
+        size_t FlvDemuxerBase::get_stream_count(error_code & ec)
         {
             if (is_open(ec)) {
                 return stream_map_.size();
@@ -284,9 +284,9 @@ namespace ppbox
             }
         }
 
-        error_code FlvDemuxerBase::get_media_info(
+        error_code FlvDemuxerBase::get_stream_info(
             size_t index, 
-            MediaInfo & info, 
+            StreamInfo & info, 
             boost::system::error_code & ec)
         {
             if (is_open(ec)) {

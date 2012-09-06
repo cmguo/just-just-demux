@@ -8,7 +8,7 @@
 #include "ppbox/demux/base/SourcePrefix.h"
 
 #include <ppbox/data/SourceBase.h>
-#include <ppbox/data/SegmentBase.h>
+#include <ppbox/data/MediaBase.h>
 
 #include <util/buffers/Buffers.h>
 
@@ -146,13 +146,13 @@ namespace ppbox
         public:
             Content(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::SegmentBase* segment, 
+                ppbox::data::MediaBase* segment, 
                 ppbox::data::SourceBase* source);
 
             ~Content();
 
         public:
-            ppbox::data::SegmentBase* get_segment();
+            ppbox::data::MediaBase* get_media();
 
             ppbox::data::SourceBase* get_source();
 
@@ -315,7 +315,7 @@ namespace ppbox
 
         private:
             BufferList * buffer_;
-            ppbox::data::SegmentBase * segment_;
+            ppbox::data::MediaBase * segment_;
             ppbox::data::SourceBase * source_;
             boost::asio::io_service & io_svc_;
             DemuxerInfo insert_demuxer_;// ¸¸½ÚµãµÄdemuxer

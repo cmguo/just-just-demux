@@ -48,12 +48,12 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
-            size_t get_media_count(
+            size_t get_stream_count(
                 boost::system::error_code & ec);
 
-            boost::system::error_code get_media_info(
+            boost::system::error_code get_stream_info(
                 size_t index, 
-                MediaInfo & info, 
+                StreamInfo & info, 
                 boost::system::error_code & ec);
 
             boost::uint32_t get_duration(

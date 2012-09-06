@@ -2,6 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/DemuxerModule.h"
+#include "ppbox/demux/Version.h"
 //#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/pptv/PptvDemuxer.h"
 #include "ppbox/demux/base/BufferDemuxer.h"
@@ -25,8 +26,8 @@ using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxerModule", 0);
 
-#ifndef PPBOX_DNS_VOD_JUMP
-#define PPBOX_DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
+#ifndef DNS_VOD_JUMP
+#define DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
 #endif
 
 namespace ppbox
@@ -106,7 +107,7 @@ namespace ppbox
             prepare_size_ = 10 * 1024;
             buffer_time_ = 3000; // 3s
             max_dl_speed_ = boost::uint32_t(-1);
-            const NetName dns_vod_jump_server(PPBOX_DNS_VOD_JUMP);
+            const NetName dns_vod_jump_server(DNS_VOD_JUMP);
 
             framework::network::ResolverService & service = 
                 boost::asio::use_service<framework::network::ResolverService>(io_svc());

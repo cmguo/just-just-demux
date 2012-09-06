@@ -79,7 +79,7 @@ namespace ppbox
             boost::uint64_t duration;
         };
 
-        struct MediaInfo
+        struct StreamInfo
             : MediaInfoBase
         {
             enum FormatTypeEnum
@@ -135,7 +135,7 @@ namespace ppbox
             boost::uint32_t duration;
             boost::uint32_t size;
             std::vector<FileBlock> blocks;
-            MediaInfo const * media_info;
+            StreamInfo const * media_info;
             void * context;
             std::deque<boost::asio::const_buffer> data;
         };
@@ -184,12 +184,12 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec) = 0;
 
-            virtual size_t get_media_count(
+            virtual size_t get_stream_count(
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::system::error_code get_media_info(
+            virtual boost::system::error_code get_stream_info(
                 size_t index, 
-                MediaInfo & info, 
+                StreamInfo & info, 
                 boost::system::error_code & ec) = 0;
 
             virtual boost::uint32_t get_duration(

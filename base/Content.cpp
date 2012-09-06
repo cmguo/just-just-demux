@@ -24,7 +24,7 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             framework::string::Url const & playlink)
         {
-            ppbox::data::SegmentBase * pSegment = ppbox::data::SegmentBase::create(io_svc, playlink);
+            ppbox::data::MediaBase * pSegment = ppbox::data::MediaBase::create(io_svc, playlink);
             if (pSegment == NULL) {
                 return NULL;
             }
@@ -58,7 +58,7 @@ namespace ppbox
 
         Content::Content(
             boost::asio::io_service & io_svc
-            ,ppbox::data::SegmentBase* segment
+            ,ppbox::data::MediaBase* segment
             ,ppbox::data::SourceBase* source)
             : io_svc_( io_svc )
             , segment_(segment)
@@ -88,7 +88,7 @@ namespace ppbox
         {
         }
 
-        ppbox::data::SegmentBase * Content::get_segment()
+        ppbox::data::MediaBase * Content::get_media()
         {
             return segment_;
         }
@@ -158,12 +158,12 @@ namespace ppbox
                 boost::uint64_t total_size = source_size_before(position.segment);
                 position.time_beg = total_time;
                 position.size_beg = position.shard_beg = total_size;
-                if (position.segment < get_segment()->segment_count()) {
+                if (position.segment < get_media()->segment_count()) {
                     ppbox::data::SegmentInfo seg_info;
-                    get_segment()->segment_info(position.segment, seg_info);
+                    get_media()->segment_info(position.segment, seg_info);
 
                     boost::uint64_t segment_len = seg_info.size;
-                    boost::uint64_t segment_duration = seg_info.time;
+                    boost::uint64_t segment_duration = seg_info.duration;
                     if (segment_len != boost::uint64_t(-1)) {
                         position.size_end = position.shard_end = position.size_beg + segment_len;
                         position.total_state = SegmentPositionEx::is_valid;
@@ -172,7 +172,7 @@ namespace ppbox
                         position.total_state = SegmentPositionEx::not_exist;
                     }
                     if (segment_duration != boost::uint64_t(-1)) {
-                        position.time_end = position.time_beg + seg_info.time;
+                        position.time_end = position.time_beg + seg_info.duration;
                         position.time_state = SegmentPositionEx::is_valid;
                     } else {
                         position.time_end = boost::uint64_t(-1);
@@ -203,7 +203,7 @@ namespace ppbox
             abs_position = first_segment;
 
             ppbox::data::SegmentInfo seg_info;
-            get_segment()->segment_info(cur_seg.segment, seg_info);
+            get_media()->segment_info(cur_seg.segment, seg_info);
 
             while (next_segment(cur_seg)) {
                 if (cur_seg.shard_end == boost::uint64_t(-1) 
@@ -292,9 +292,9 @@ namespace ppbox
         boost::uint64_t Content::source_size()
         {
             boost::uint64_t total = 0;
-            for (boost::uint32_t i = begin_segment_.segment; i < get_segment()->segment_count(); i++) {
+            for (boost::uint32_t i = begin_segment_.segment; i < get_media()->segment_count(); i++) {
                 ppbox::data::SegmentInfo seg_info;
-                get_segment()->segment_info(i, seg_info);
+                get_media()->segment_info(i, seg_info);
                 total += seg_info.size;
             }
             return total;
@@ -305,12 +305,12 @@ namespace ppbox
         {
             assert(begin_segment_.segment <= segment);
             boost::uint64_t total = 0;
-            if (segment > get_segment()->segment_count()) {
-                segment = get_segment()->segment_count();
+            if (segment > get_media()->segment_count()) {
+                segment = get_media()->segment_count();
             }
             for (int i = begin_segment_.segment; i < segment; i++) {
                 ppbox::data::SegmentInfo seg_info;
-                get_segment()->segment_info(i, seg_info);
+                get_media()->segment_info(i, seg_info);
                 total += seg_info.size;
             }
             return total;
@@ -319,10 +319,10 @@ namespace ppbox
         boost::uint64_t Content::source_time()
         {
             boost::uint64_t total = 0;
-            for (int i = begin_segment_.segment; i < get_segment()->segment_count(); i++) {
+            for (int i = begin_segment_.segment; i < get_media()->segment_count(); i++) {
                 ppbox::data::SegmentInfo seg_info;
-                get_segment()->segment_info(i, seg_info);
-                total += seg_info.time;
+                get_media()->segment_info(i, seg_info);
+                total += seg_info.duration;
             }
             return total;
         }
@@ -331,13 +331,13 @@ namespace ppbox
             size_t segment)
         {
             boost::uint64_t total = 0;
-            if (segment > get_segment()->segment_count()) {
-                segment = get_segment()->segment_count();
+            if (segment > get_media()->segment_count()) {
+                segment = get_media()->segment_count();
             }
             for (int i = begin_segment_.segment; i < segment; i++) {
                 ppbox::data::SegmentInfo seg_info;
-                get_segment()->segment_info(i, seg_info);
-                total += seg_info.time;
+                get_media()->segment_info(i, seg_info);
+                total += seg_info.duration;
             }
             return total;
         }
