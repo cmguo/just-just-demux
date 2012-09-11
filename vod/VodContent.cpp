@@ -4,29 +4,9 @@
 #include "ppbox/demux/vod/VodContent.h"
 #include "ppbox/demux/base/DemuxerError.h"
 
-#include <util/protocol/pptv/Url.h>
-#include <util/protocol/pptv/TimeKey.h>
-#include <util/archive/XmlIArchive.h>
-#include <util/archive/ArchiveBuffer.h>
-#include <util/buffers/BufferCopy.h>
+#include <framework/logger/Logger.h>
 
-#include <framework/string/Parse.h>
-#include <framework/string/StringToken.h>
-#include <framework/string/Algorithm.h>
-#include <framework/timer/TimeCounter.h>
-#include <framework/logger/StreamRecord.h>
-#include <framework/network/NetName.h>
-using namespace framework::system::logic_error;
-using namespace framework::string;
-using namespace framework::logger;
-
-#include <boost/asio/buffer.hpp>
-#include <boost/asio/read.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread/condition_variable.hpp>
 using namespace boost::system;
-using namespace boost::asio;
-using namespace boost::asio::error;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("VodContent", 0);
 
@@ -34,17 +14,12 @@ namespace ppbox
 {
     namespace demux
     {
-        static inline std::string addr_host(
-            framework::network::NetName const & addr)
-        {
-            return addr.host() + ":" + addr.svc();
-        }
 
         VodContent::VodContent(
             boost::asio::io_service & io_svc,
-            ppbox::data::MediaBase * pSegment,
-            ppbox::data::SourceBase * pSource)
-            : Content(io_svc, pSegment, pSource)
+            ppbox::data::MediaBase * media,
+            ppbox::data::SourceBase * source)
+            : Content(io_svc, media, source)
         {
         }
 

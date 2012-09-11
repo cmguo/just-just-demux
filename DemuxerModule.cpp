@@ -26,8 +26,8 @@ using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxerModule", 0);
 
-#ifndef DNS_VOD_JUMP
-#define DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
+#ifndef PPBOX_DNS_VOD_JUMP
+#define PPBOX_DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
 #endif
 
 namespace ppbox
@@ -49,7 +49,6 @@ namespace ppbox
             StatusEnum status;
             BufferDemuxer * demuxer;
             std::string play_link;
-            bool dac_sent_;
             DemuxerModule::open_response_type resp;
             error_code ec;
 
@@ -57,7 +56,6 @@ namespace ppbox
                 BufferDemuxer * demuxer)
                 : status(closed)
                 , demuxer(demuxer)
-                , dac_sent_(false)
             {
                 static size_t sid = 0;
                 id = ++sid;
@@ -82,73 +80,28 @@ namespace ppbox
             };
         };
 
-        // 这个函数干什么用的？
-        static void handle_resolver(
-            error_code const & ec, 
-            framework::network::ResolverIterator const & iterator)
-        {
-        }
-
         DemuxerModule::DemuxerModule(
             util::daemon::Daemon & daemon)
-#ifdef PPBOX_DISABLE_CERTIFY
             : ppbox::common::CommonModuleBase<DemuxerModule>(daemon, "DemuxerModule")
-#else
-            : ppbox::certify::CertifyUserModuleBase<DemuxerModule>(daemon, "DemuxerModule")
-#endif
-#ifndef PPBOX_DISABLE_DAC
-            , dac_(util::daemon::use_module<ppbox::dac::Dac>(daemon))
-#endif
-            , timer_(NULL)
-            , msg_queue_( "AdInserter", shared_memory() )
-            //, mediainfo_( new InsertMediaInfo() )
         {
             buffer_size_ = 20 * 1024 * 1024;
             prepare_size_ = 10 * 1024;
             buffer_time_ = 3000; // 3s
             max_dl_speed_ = boost::uint32_t(-1);
-            const NetName dns_vod_jump_server(DNS_VOD_JUMP);
-
-            framework::network::ResolverService & service = 
-                boost::asio::use_service<framework::network::ResolverService>(io_svc());
-            std::vector<framework::network::Endpoint> endpoints;
-            endpoints.push_back(framework::network::Endpoint("61.158.254.137", 80));
-            endpoints.push_back(framework::network::Endpoint("118.123.212.30", 80));
-            service.insert_name(dns_vod_jump_server, endpoints);
-
-            framework::network::Resolver resolver(io_svc());
-            resolver.async_resolve(dns_vod_jump_server, handle_resolver);
         }
 
         DemuxerModule::~DemuxerModule()
         {
-            //if ( mediainfo_ )
-            //{
-            //    delete mediainfo_;
-            //    mediainfo_ = NULL;
-            //}
         }
 
         error_code DemuxerModule::startup()
         {
-            timer_ = new framework::timer::PeriodicTimer(
-                timer_queue(), 1000, boost::bind(&DemuxerModule::handle_timer, this));
-            timer_->start();
-#ifdef PPBOX_DISABLE_CERTIFY
-            return error_code();
-#else
-            return start_certify();
-#endif
+            error_code ec;
+            return ec;
         }
 
         void DemuxerModule::shutdown()
         {
-            timer_->stop();
-            delete timer_;
-            timer_ = NULL;
-#ifndef PPBOX_DISABLE_CERTIFY
-            stop_certify();
-#endif
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
@@ -158,64 +111,6 @@ namespace ppbox
             /*while (!demuxers_.empty()) {
                 cond_.wait(lock);
             }*/
-        }
-
-        void DemuxerModule::certify_startup()
-        {
- #ifdef PPBOX_DISABLE_CERTIFY
-            return;
- #else
-            boost::mutex::scoped_lock lock(mutex_);
-            cond_.notify_all();
-            std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
-            for (; iter != demuxers_.end(); ++iter) {
-                //DemuxInfo * info = *iter;
-                //BufferDemuxer * demuxer = info->demuxer;
-                std::string key;
-                error_code ec;
-                //if (cert_.certify_url(info->cert_type, info->play_link, key, ec)) {
-                //    demuxer->on_extern_error(ec);
-                //}
-            }
-#endif
-        }
-
-        void DemuxerModule::certify_shutdown(
-            error_code const & ec)
-        {
-#ifdef PPBOX_DISABLE_CERTIFY
-            return;
-#else
-            boost::mutex::scoped_lock lock(mutex_);
-            cond_.notify_all();
-            std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
-            for (; iter != demuxers_.end(); ++iter) {
-                BufferDemuxer & demuxer = *(*iter)->demuxer;
-                demuxer.on_extern_error(ec);
-            }
-#endif
-        }
-
-        void DemuxerModule::certify_failed(
-            error_code const & ec)
-        {
-            DemuxerModule::certify_shutdown(ec);
-        }
-
-        void DemuxerModule::handle_timer()
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
-            for (; iter != demuxers_.end(); ++iter) {
-                DemuxInfo * info = *iter;
-                BufferDemuxer * demuxer = info->demuxer;
-                if (info->status == DemuxInfo::opened && !info->dac_sent_) {
-#ifndef PPBOX_DISABLE_DAC
-                    dac_.play_open_info(info->ec, demuxer);
-#endif
-                    info->dac_sent_ = true;
-                }
-            }
         }
 
         struct SyncResponse
@@ -371,12 +266,6 @@ namespace ppbox
                 ec = boost::asio::error::operation_aborted;
             } else {
                 info->status = DemuxInfo::opened;
-                if (!info->dac_sent_) {
-#ifndef PPBOX_DISABLE_DAC
-                    dac_.play_open_info(info->ec, demuxer);
-#endif
-                    info->dac_sent_ = true;
-                }
             }
 
             lock.unlock();
@@ -429,15 +318,6 @@ namespace ppbox
             BufferDemuxer * demuxer = info->demuxer;
             if (info->play_link.empty()) //表示demuxer曾经做过open,所以需要close
                 demuxer->close(ec);
-            if (!info->dac_sent_) {
-#ifndef PPBOX_DISABLE_DAC
-                dac_.play_open_info(info->ec, demuxer);
-#endif
-                info->dac_sent_ = true;
-            }
-#ifndef PPBOX_DISABLE_DAC
-            dac_.play_close_info(demuxer);
-#endif
             return ec;
         }
 
@@ -478,65 +358,6 @@ namespace ppbox
         {
             buffer_time_ = buffer_time;
         }
-
-        //boost::system::error_code DemuxerModule::insert_media(
-        //    boost::uint32_t id,
-        //    boost::uint64_t insert_time,      // 插入的时间点
-        //    boost::uint64_t media_duration,   // 影片时长
-        //    boost::uint64_t media_size,       // 影片大小
-        //    boost::uint64_t head_size,        // 文件头部大小
-        //    boost::uint32_t report,
-        //    char const * url,                 // 影片URL
-        //    char const * report_begin_url,
-        //    char const * report_end_url,
-        //    boost::system::error_code & ec)
-        //{
-        //    InsertMediaInfo mediainfo( id, insert_time, media_duration, media_size, head_size, url );
-        //    framework::process::Message msg;
-        //    msg.receiver = "AdProcesser";
-        //    msg.level = 0;
-        //    msg.type = 6;
-
-        //    boost::asio::streambuf write_buf;
-        //    std::ostream os(&write_buf);
-        //    util::archive::TextOArchive<> oa( os );
-        //    oa << mediainfo;
-        //    msg.data = ( char * )boost::asio::detail::buffer_cast_helper( write_buf.data() );
-
-        //    LOG_DEBUG("[insert_media] insert media info = " << msg.data);
-
-        //    msg_queue_.push( msg );
-
-        //    return boost::system::error_code();
-        //}
-
-        //InsertMediaInfo const & DemuxerModule::get_insert_media(
-        //    boost::uint32_t media_id, boost::system::error_code & ec )
-        //{
-        //    framework::process::Message msg; 
-        //    msg.level = 0;
-        //    msg.type = 6;
-
-        //    if ( !msg_queue_.pop( msg ) )
-        //    {
-        //        ec = boost::asio::error::would_block;
-
-        //        LOG_WARN("get_insert_media, ec = " << ec.message() );
-        //        return *mediainfo_;
-        //    }
-
-        //    boost::asio::streambuf read_buf_;
-        //    std::ostream os(&read_buf_);
-        //    os.write( msg.data.c_str(), msg.data.size() );
-        //    std::istream is(&read_buf_);
-        //    util::archive::TextIArchive<> ia( is );
-        //    ia >> mediainfo_;
-
-        //    LOG_DEBUG("[get_insert_media] get insert media : " << msg.data );
-
-        //    ec.clear();
-        //    return *mediainfo_;
-        //}
 
     } // namespace demux
 } // namespace ppbox

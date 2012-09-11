@@ -17,7 +17,7 @@ namespace ppbox
             VodContent(
                 boost::asio::io_service & io_svc,
                 ppbox::data::MediaBase * media,
-                ppbox::data::SourceBase * pSource);
+                ppbox::data::SourceBase * source);
 
             ~VodContent();
 

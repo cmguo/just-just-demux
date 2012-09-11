@@ -3,28 +3,13 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/live2/Live2Content.h"
 #include "ppbox/demux/base/DemuxerError.h"
-#include "ppbox/demux/base/BufferList.h"
 
-
-#include <util/protocol/pptv/Url.h>
-#include <util/protocol/pptv/TimeKey.h>
-#include <util/archive/XmlIArchive.h>
-#include <util/archive/ArchiveBuffer.h> 
-
-#include <framework/string/Format.h>
-#include <framework/timer/Timer.h>
+#include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 using namespace boost::system;
 using namespace framework::logger;
-using namespace ppbox::demux;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Live2Content", 0);
-
-#ifndef PPBOX_DNS_LIVE2_JUMP
-#  define PPBOX_DNS_LIVE2_JUMP "(tcp)(v4)live.dt.synacast.com:80"
-#endif
-
-#define P2P_HEAD_LENGTH 1400
 
 namespace ppbox
 {
@@ -33,9 +18,9 @@ namespace ppbox
 
         Live2Content::Live2Content(
             boost::asio::io_service & io_svc,
-            ppbox::data::MediaBase * pSegment,
-            ppbox::data::SourceBase * pSource)
-            : Content(io_svc, pSegment, pSource)
+            ppbox::data::MediaBase * media,
+            ppbox::data::SourceBase * source)
+            : Content(io_svc, media, source)
         {
         }
 

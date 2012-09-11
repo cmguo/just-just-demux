@@ -24,29 +24,29 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             framework::string::Url const & playlink)
         {
-            ppbox::data::MediaBase * pSegment = ppbox::data::MediaBase::create(io_svc, playlink);
-            if (pSegment == NULL) {
+            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc, playlink);
+            if (media == NULL) {
                 return NULL;
             }
 
-            ppbox::data::SourceBase * pSource = ppbox::data::SourceBase::create(io_svc, pSegment->get_protocol());
-            if (pSource == NULL) {
-                pSource = ppbox::data::SourceBase::create(io_svc, pSegment->segment_protocol());
+            ppbox::data::SourceBase * source = ppbox::data::SourceBase::create(io_svc, media->get_protocol());
+            if (source == NULL) {
+                source = ppbox::data::SourceBase::create(io_svc, media->segment_protocol());
             }
-            if (pSource == NULL) {
+            if (source == NULL) {
                 return NULL;
             }
 
-            Content* source = NULL;
+            Content* content = NULL;
             std::string proto = playlink.protocol();
             if (proto == "ppvod") {
-                source = new VodContent(io_svc, pSegment, pSource);
+                content = new VodContent(io_svc, media, source);
             } else if (proto == "pplive2") {
-                source = new Live2Content(io_svc, pSegment, pSource);
+                content = new Live2Content(io_svc, media, source);
             } else {
 //                source = new VodSource(io_svc);
             }
-            return source;
+            return content;
         }
 
         void Content::destory(
