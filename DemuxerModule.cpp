@@ -7,9 +7,6 @@
 //#include "ppbox/demux/pptv/PptvDemuxer.h"
 #include "ppbox/demux/base/BufferDemuxer.h"
 using namespace ppbox::demux;
-#ifndef PPBOX_DISABLE_DAC
-#include <ppbox/dac/Dac.h>
-#endif
 
 #include <framework/timer/Timer.h>
 #include <framework/logger/Logger.h>

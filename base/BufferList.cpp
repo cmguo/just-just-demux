@@ -176,7 +176,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             source_error_ = boost::asio::error::operation_aborted;
-            return write_.source->get_source()->cancel(write_.segment, ec);
+            return write_.source->get_source()->cancel(ec);
         }
 
         boost::system::error_code BufferList::close(
@@ -1193,7 +1193,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (sended_req_) {
-                write_.source->get_source()->close(write_.segment, ec);
+                write_.source->get_source()->close(ec);
                 --sended_req_;
                 LOG_TRACE("[close_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
             } else {
@@ -1210,7 +1210,7 @@ namespace ppbox
             write_tmp_.buffer = NULL;
             write_hole_tmp_ = write_hole_;
             for (size_t i = 0; i < sended_req_; ++i) {
-                write_.source->get_source()->close(write_tmp_.segment, ec);
+                write_.source->get_source()->close(ec);
                 --sended_req_;
                 LOG_TRACE("[close_all_request] segment: " << write_.segment << " sended_req: " << sended_req_ << "/" << total_req_);
                 boost::uint64_t data_end_tmp = data_end_;
