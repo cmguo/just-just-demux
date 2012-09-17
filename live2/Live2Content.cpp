@@ -2,7 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/live2/Live2Content.h"
-#include "ppbox/demux/base/DemuxerError.h"
+#include "ppbox/demux/base/DemuxError.h"
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -38,9 +38,9 @@ namespace ppbox
             return error_code();
         }
 
-        DemuxerType::Enum Live2Content::demuxer_type() const
+        DemuxType::Enum Live2Content::demuxer_type() const
         {
-            return DemuxerType::flv;
+            return DemuxType::flv;
         }
 
         boost::system::error_code Live2Content::time_seek (

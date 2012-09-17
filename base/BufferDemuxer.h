@@ -3,9 +3,9 @@
 #ifndef _PPBOX_DEMUX_BASE_BUFFER_DEMUXER_H_
 #define _PPBOX_DEMUX_BASE_BUFFER_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxerError.h"
+#include "ppbox/demux/base/DemuxError.h"
 #include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/base/DemuxerStatistic.h"
+#include "ppbox/demux/base/DemuxStatistic.h"
 #include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/Content.h"
 
@@ -111,7 +111,7 @@ namespace ppbox
         struct DemuxerInfo;
 
         class BufferDemuxer
-            : public DemuxerStatistic
+            : public DemuxStatistic
         {
         public:
             typedef boost::function<void (

@@ -1,7 +1,7 @@
 // DemuxerModule.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/DemuxerModule.h"
+#include "ppbox/demux/DemuxModule.h"
 #include "ppbox/demux/Version.h"
 //#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/pptv/PptvDemuxer.h"
@@ -32,7 +32,7 @@ namespace ppbox
     namespace demux
     {
 
-        struct DemuxerModule::DemuxInfo
+        struct DemuxModule::DemuxInfo
         {
             enum StatusEnum
             {
@@ -46,7 +46,7 @@ namespace ppbox
             StatusEnum status;
             BufferDemuxer * demuxer;
             std::string play_link;
-            DemuxerModule::open_response_type resp;
+            DemuxModule::open_response_type resp;
             error_code ec;
 
             DemuxInfo(
@@ -77,9 +77,9 @@ namespace ppbox
             };
         };
 
-        DemuxerModule::DemuxerModule(
+        DemuxModule::DemuxModule(
             util::daemon::Daemon & daemon)
-            : ppbox::common::CommonModuleBase<DemuxerModule>(daemon, "DemuxerModule")
+            : ppbox::common::CommonModuleBase<DemuxModule>(daemon, "DemuxerModule")
         {
             buffer_size_ = 20 * 1024 * 1024;
             prepare_size_ = 10 * 1024;
@@ -87,17 +87,17 @@ namespace ppbox
             max_dl_speed_ = boost::uint32_t(-1);
         }
 
-        DemuxerModule::~DemuxerModule()
+        DemuxModule::~DemuxModule()
         {
         }
 
-        error_code DemuxerModule::startup()
+        error_code DemuxModule::startup()
         {
             error_code ec;
             return ec;
         }
 
-        void DemuxerModule::shutdown()
+        void DemuxModule::shutdown()
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
@@ -153,7 +153,7 @@ namespace ppbox
             bool is_return_;
         };
 
-        BufferDemuxer * DemuxerModule::open(
+        BufferDemuxer * DemuxModule::open(
             std::string const & play_link, 
             size_t & close_token, 
             error_code & ec)
@@ -170,7 +170,7 @@ namespace ppbox
             return demuxer;
         }
 
-        void DemuxerModule::async_open(
+        void DemuxModule::async_open(
             std::string const & play_link, 
             size_t & close_token, 
             open_response_type const & resp)
@@ -186,7 +186,7 @@ namespace ppbox
             }
         }
 
-        error_code DemuxerModule::close(
+        error_code DemuxModule::close(
             size_t id, 
             error_code & ec)
         {
@@ -202,7 +202,7 @@ namespace ppbox
             return ec;
         }
 
-        DemuxerModule::DemuxInfo * DemuxerModule::create(
+        DemuxModule::DemuxInfo * DemuxModule::create(
             std::string const & play_link, 
             open_response_type const & resp, 
             error_code & ec)
@@ -220,7 +220,7 @@ namespace ppbox
             return info;
         }
 
-        BufferDemuxer * DemuxerModule::create(
+        BufferDemuxer * DemuxModule::create(
             boost::uint32_t buffer_size,
             boost::uint32_t prepare_size,
             Content * source)
@@ -228,7 +228,7 @@ namespace ppbox
             return new BufferDemuxer(get_daemon().io_svc(), buffer_size, prepare_size, source);
         }
 
-        void DemuxerModule::async_open(
+        void DemuxModule::async_open(
             DemuxInfo * info)
         {
             error_code ec;
@@ -236,13 +236,13 @@ namespace ppbox
             demuxer->set_time_out(5 * 1000, ec); // 5 seconds
             if (!ec) {
                 demuxer->async_open(
-                    boost::bind(&DemuxerModule::handle_open, this, _1, info));
+                    boost::bind(&DemuxModule::handle_open, this, _1, info));
             } else {
-                io_svc().post(boost::bind(&DemuxerModule::handle_open, this, ec, info));
+                io_svc().post(boost::bind(&DemuxModule::handle_open, this, ec, info));
             }
         }
 
-        void DemuxerModule::handle_open(
+        void DemuxModule::handle_open(
             error_code const & ecc,
             DemuxInfo * info)
         {
@@ -270,7 +270,7 @@ namespace ppbox
             resp(ec, demuxer);
         }
 
-        error_code DemuxerModule::close_locked(
+        error_code DemuxModule::close_locked(
             DemuxInfo * info, 
             bool inner_call, 
             error_code & ec)
@@ -298,7 +298,7 @@ namespace ppbox
             return ec;
         }
 
-        error_code DemuxerModule::cancel(
+        error_code DemuxModule::cancel(
             DemuxInfo * info, 
             error_code & ec)
         {
@@ -308,7 +308,7 @@ namespace ppbox
             return ec;
         }
 
-        error_code DemuxerModule::close(
+        error_code DemuxModule::close(
             DemuxInfo * info, 
             error_code & ec)
         {
@@ -318,7 +318,7 @@ namespace ppbox
             return ec;
         }
 
-        void DemuxerModule::destory(
+        void DemuxModule::destory(
             DemuxInfo * info)
         {
             BufferDemuxer * demuxer = info->demuxer;
@@ -332,25 +332,25 @@ namespace ppbox
             cond_.notify_all();
         }
 
-        void DemuxerModule::set_download_buffer_size(
+        void DemuxModule::set_download_buffer_size(
             boost::uint32_t buffer_size)
         {
             buffer_size_ = buffer_size;
         }
 
-        void DemuxerModule::set_download_max_speed(
+        void DemuxModule::set_download_max_speed(
             boost::uint32_t speed)
         {
             max_dl_speed_ = speed;
         }
 
-        void DemuxerModule::set_http_proxy(
+        void DemuxModule::set_http_proxy(
             char const * addr)
         {
             http_proxy_.from_string(addr);
         }
 
-        void DemuxerModule::set_play_buffer_time(
+        void DemuxModule::set_play_buffer_time(
             boost::uint32_t buffer_time)
         {
             buffer_time_ = buffer_time;

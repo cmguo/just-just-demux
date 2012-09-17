@@ -34,16 +34,16 @@ namespace ppbox
             //if (source_type == SourceType::none && url.protocol().find("pp") == 0) {
             //    return PptvDemuxer::create(daemon, url, buffer_size, prepare_size);
             //}
-            //static std::map<std::string, DemuxerType::Enum> demuxer_map;
+            //static std::map<std::string, DemuxType::Enum> demuxer_map;
             //if (demuxer_map.empty()) {
-            //    demuxer_map["mp4"] = DemuxerType::mp4;
-            //    demuxer_map["asf"] = DemuxerType::asf;
-            //    demuxer_map["flv"] = DemuxerType::flv;
-            //    demuxer_map["ts"] = DemuxerType::ts;
+            //    demuxer_map["mp4"] = DemuxType::mp4;
+            //    demuxer_map["asf"] = DemuxType::asf;
+            //    demuxer_map["flv"] = DemuxType::flv;
+            //    demuxer_map["ts"] = DemuxType::ts;
             //}
             //std::string exten_str = url_str.substr(url_str.rfind('.') + 1);
-            //DemuxerType::Enum demuxer_type = DemuxerType::none;
-            //std::map<std::string, DemuxerType::Enum>::const_iterator demuxer_iter = 
+            //DemuxType::Enum demuxer_type = DemuxType::none;
+            //std::map<std::string, DemuxType::Enum>::const_iterator demuxer_iter = 
             //    demuxer_map.find(exten_str);
             //if (demuxer_iter != demuxer_map.end()) {
             //    demuxer_type = demuxer_iter->second;

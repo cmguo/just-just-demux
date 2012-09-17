@@ -21,7 +21,7 @@ namespace ppbox
             virtual ~Live2Content();
 
 
-            virtual DemuxerType::Enum demuxer_type() const;
+            virtual DemuxType::Enum demuxer_type() const;
 
 
             virtual boost::system::error_code reset(

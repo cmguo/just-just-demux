@@ -4,7 +4,7 @@
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/BytesStream.h"
 #include "ppbox/demux/base/Content.h"
-#include "ppbox/demux/base/DemuxerType.h"
+#include "ppbox/demux/base/DemuxType.h"
 #include "ppbox/demux/base/BufferDemuxer.h"
 #include "ppbox/demux/base/BufferList.h"
 
@@ -113,7 +113,7 @@ namespace ppbox
             resp_ = resp;
             boost::system::error_code ec;
             open_state_ = OpenState::source_open;
-            DemuxerStatistic::open_beg();
+            DemuxStatistic::open_beg();
             root_content_->get_media()->async_open(
                 boost::bind(&BufferDemuxer::handle_async_open, 
                 this, 
@@ -138,7 +138,7 @@ namespace ppbox
                 }
             }
 
-            DemuxerStatistic::last_error(ec);
+            DemuxStatistic::last_error(ec);
             return time;
         }
 
@@ -211,7 +211,7 @@ namespace ppbox
                 }
             }
             if (&time != &seek_time_) {
-                DemuxerStatistic::seek(ec, time);
+                DemuxStatistic::seek(ec, time);
             }
             if (ec) {
                 seek_time_ = time; // 用户连续seek，以最后一次为准
@@ -307,13 +307,13 @@ namespace ppbox
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     buffer_->peek(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {
-                        DemuxerStatistic::last_error(ec);
+                        DemuxStatistic::last_error(ec);
                         break;
                     }
                 }
             } else {
                 if (ec == boost::asio::error::would_block) {
-                    DemuxerStatistic::block_on();
+                    DemuxStatistic::block_on();
                 }
                 last_error(ec);
             }
@@ -641,7 +641,7 @@ namespace ppbox
                 }
                 ec.clear();
             }
-            DemuxerStatistic::last_error(ec);
+            DemuxStatistic::last_error(ec);
         }
 
         void BufferDemuxer::more(boost::uint32_t size)

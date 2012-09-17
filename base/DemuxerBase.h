@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_BASE_H_
 #define _PPBOX_DEMUX_DEMUXER_BASE_H_
 
-#include "ppbox/demux/base/DemuxerType.h"
+#include "ppbox/demux/base/DemuxType.h"
 
 #include <util/smart_ptr/RefenceFromThis.h>
 

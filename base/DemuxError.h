@@ -1,7 +1,7 @@
-// DemuxerError.h
+// DemuxError.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUXER_ERROR_H_
-#define _PPBOX_DEMUX_BASE_DEMUXER_ERROR_H_
+#ifndef _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
+#define _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
 
 namespace ppbox
 {
@@ -107,4 +107,4 @@ namespace boost
     }
 }
 
-#endif // _PPBOX_DEMUX_BASE_DEMUXER_ERROR_H_
+#endif // _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_

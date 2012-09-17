@@ -1,9 +1,11 @@
-// DemuxerStatistic.h
+// DemuxStatistic.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUXER_STATISTIC_H_
-#define _PPBOX_DEMUX_BASE_DEMUXER_STATISTIC_H_
+#ifndef _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
+#define _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
 
 #include <framework/network/Statistics.h>
+
+#include <util/event/Observable.h>
 
 namespace ppbox
 {
@@ -45,8 +47,9 @@ namespace ppbox
             boost::uint32_t elapse;
         };
 
-        class DemuxerStatistic
-            : public framework::network::TimeStatistics
+        class DemuxStatistic
+            : public util::event::Observable
+            , public framework::network::TimeStatistics
         {
         public:
             enum StatusEnum
@@ -60,7 +63,7 @@ namespace ppbox
             };
 
         protected:
-            DemuxerStatistic();
+            DemuxStatistic();
 
         protected:
             void open_beg();
@@ -138,4 +141,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASE_DEMUXER_STATISTIC_H_
+#endif // _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_

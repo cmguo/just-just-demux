@@ -1,21 +1,22 @@
-// DemuxerStatistic.cpp
+// DemuxStatistic.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/DemuxerStatistic.h"
+#include "ppbox/demux/base/DemuxStatistic.h"
+#include "ppbox/demux/base/DemuxEvent.h"
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 #include <framework/logger/Section.h>
 using namespace framework::logger;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxerStatistic", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxStatistic", 0);
 
 namespace ppbox
 {
     namespace demux
     {
 
-        DemuxerStatistic::DemuxerStatistic()
+        DemuxStatistic::DemuxStatistic()
             : state_(stopped)
             , buffer_time_(0)
             , need_seek_time_(false)
@@ -27,13 +28,15 @@ namespace ppbox
             status_infos_.push_back(StatusInfo(stopped, play_position_));
         }
 
-        void DemuxerStatistic::buf_time(
+        void DemuxStatistic::buf_time(
             boost::uint32_t const & buffer_time)
         {
             if (state_ == buffering) {
                 LOG_DEBUG("[buf_time] buf_time: " << buffer_time << " ms");
             }
             buffer_time_ = buffer_time;
+
+            raise(BufferingEvent(*this));
         }
 
         static char const * type_str[] = {
@@ -45,7 +48,7 @@ namespace ppbox
             "buffering"
         };
 
-        void DemuxerStatistic::change_status(
+        void DemuxStatistic::change_status(
             boost::uint16_t new_state)
         {
             boost::uint32_t now_time = elapse();
@@ -76,22 +79,24 @@ namespace ppbox
             StatusInfo info(type, play_position_);
             status_infos_.push_back(info);
             state_ = (StatusEnum)new_state;
+
+            raise(StatusChangeEvent(*this));
         }
 
-        void DemuxerStatistic::open_beg()
+        void DemuxStatistic::open_beg()
         {
             assert(state_ == stopped);
             change_status(opening);
         }
 
-        void DemuxerStatistic::open_end()
+        void DemuxStatistic::open_end()
         {
             assert(state_ <= opening);
             change_status(opened);
             play_position_ = 0;
         }
 
-        void DemuxerStatistic::pause()
+        void DemuxStatistic::pause()
         {
             if (state_ == paused)
                 return;
@@ -99,7 +104,7 @@ namespace ppbox
             change_status(paused);
         }
 
-        void DemuxerStatistic::resume()
+        void DemuxStatistic::resume()
         {
             if (state_ != paused)
                 return;
@@ -107,7 +112,7 @@ namespace ppbox
             change_status(playing);
         }
 
-        void DemuxerStatistic::play_on(
+        void DemuxStatistic::play_on(
             boost::uint32_t sample_time)
         {
             play_position_ = sample_time;
@@ -125,14 +130,14 @@ namespace ppbox
             block_type_ = BlockType::play;
         }
 
-        void DemuxerStatistic::block_on()
+        void DemuxStatistic::block_on()
         {
             if (state_ == buffering)
                 return;
             change_status(buffering);
         }
 
-        void DemuxerStatistic::seek(
+        void DemuxStatistic::seek(
             bool ok, 
             boost::uint32_t seek_time)
         {
@@ -155,13 +160,13 @@ namespace ppbox
             }
         }
 
-        void DemuxerStatistic::last_error(
+        void DemuxStatistic::last_error(
             boost::system::error_code const & ec)
         {
             last_error_ = ec;
         }
 
-        void DemuxerStatistic::close()
+        void DemuxStatistic::close()
         {
             change_status(stopped);
             status_infos_.back().elapse = 0;

@@ -2,7 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/vod/VodContent.h"
-#include "ppbox/demux/base/DemuxerError.h"
+#include "ppbox/demux/base/DemuxError.h"
 
 #include <framework/logger/Logger.h>
 
@@ -44,9 +44,9 @@ namespace ppbox
         }
 
 
-        DemuxerType::Enum VodContent::demuxer_type() const
+        DemuxType::Enum VodContent::demuxer_type() const
         {
-            return DemuxerType::mp4;
+            return DemuxType::mp4;
         }
 
         error_code VodContent::reset(

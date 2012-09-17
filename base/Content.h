@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
 #define _PPBOX_DEMUX_BASE_SOURCE_BASE_H_
 
-#include "ppbox/demux/base/DemuxerType.h"
+#include "ppbox/demux/base/DemuxType.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
 #include "ppbox/demux/base/SourcePrefix.h"
 
@@ -156,7 +156,7 @@ namespace ppbox
 
             ppbox::data::SourceBase* get_source();
 
-            virtual DemuxerType::Enum demuxer_type() const = 0;
+            virtual DemuxType::Enum demuxer_type() const = 0;
 
         public:
             virtual void on_error(

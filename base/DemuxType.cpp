@@ -1,7 +1,7 @@
 // PptvDemuxerType.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/DemuxerType.h"
+#include "ppbox/demux/base/DemuxType.h"
 #include "ppbox/demux/base/BytesStream.h"
 #include "ppbox/demux/mp4/Mp4DemuxerBase.h"
 #include "ppbox/demux/asf/AsfDemuxerBase.h"
@@ -13,16 +13,16 @@ namespace ppbox
     {
 
         DemuxerBase * create_demuxer_base(
-            DemuxerType::Enum type,
+            DemuxType::Enum type,
             BytesStream & stream)
         {
             switch(type)
             {
-            case DemuxerType::mp4:
+            case DemuxType::mp4:
                 return new Mp4DemuxerBase(stream);
-            case DemuxerType::asf:
+            case DemuxType::asf:
                 return new AsfDemuxerBase(stream);
-            case DemuxerType::flv:
+            case DemuxType::flv:
                 return new FlvDemuxerBase(stream);
             default:
                 assert(0);

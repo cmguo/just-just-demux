@@ -17,8 +17,8 @@ namespace ppbox
         class BufferDemuxer;
         class Content;
 
-        class DemuxerModule
-            : public ppbox::common::CommonModuleBase<DemuxerModule>
+        class DemuxModule
+            : public ppbox::common::CommonModuleBase<DemuxModule>
         {
         public:
             typedef boost::function<void (
@@ -27,10 +27,10 @@ namespace ppbox
             > open_response_type;
 
         public:
-            DemuxerModule(
+            DemuxModule(
                 util::daemon::Daemon & daemon);
 
-            ~DemuxerModule();
+            ~DemuxModule();
 
         public:
             virtual boost::system::error_code startup();

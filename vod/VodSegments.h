@@ -136,9 +136,9 @@ namespace ppbox
                 return ec;
             }
 
-            virtual DemuxerType::Enum demuxer_type() const
+            virtual DemuxType::Enum demuxer_type() const
             {
-                return DemuxerType::mp4;
+                return DemuxType::mp4;
             }
 
             virtual void on_seg_beg(
@@ -280,9 +280,9 @@ namespace ppbox
                 }
             }
 
-            DemuxerType::Enum demuxer_type()
+            DemuxType::Enum demuxer_type()
             {
-                return DemuxerType::mp4;
+                return DemuxType::mp4;
             }
 
         private:

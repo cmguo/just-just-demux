@@ -21,7 +21,7 @@ namespace ppbox
 
             ~VodContent();
 
-            virtual DemuxerType::Enum demuxer_type() const;
+            virtual DemuxType::Enum demuxer_type() const;
 
             virtual boost::system::error_code time_seek (
                 boost::uint64_t time, // ОўГо
