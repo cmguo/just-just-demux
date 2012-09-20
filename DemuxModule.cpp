@@ -8,6 +8,9 @@
 #include "ppbox/demux/base/BufferDemuxer.h"
 using namespace ppbox::demux;
 
+#include "ppbox/data/MediaBase.h"
+#include "ppbox/data/SourceBase.h"
+
 #include <framework/timer/Timer.h>
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -330,6 +333,45 @@ namespace ppbox
             delete info;
             info = NULL;
             cond_.notify_all();
+        }
+
+        BufferDemuxer * DemuxModule::find(
+            std::string name)
+        {
+            boost::mutex::scoped_lock lock(mutex_);
+            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
+            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
+                if ((*iter)->play_link == name) {
+                    return (*iter)->demuxer;
+                }
+            }
+            return NULL;
+        }
+
+        BufferDemuxer * DemuxModule::find(
+            ppbox::data::MediaBase * media)
+        {
+            boost::mutex::scoped_lock lock(mutex_);
+            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
+            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
+                if ((*iter)->demuxer->get_contet()->get_media() == media) {
+                    return (*iter)->demuxer;
+                }
+            }
+            return NULL;
+        }
+
+        BufferDemuxer * DemuxModule::find(
+            ppbox::data::SourceBase * source)
+        {
+            boost::mutex::scoped_lock lock(mutex_);
+            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
+            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
+                if ((*iter)->demuxer->get_contet()->get_source() == source) {
+                    return (*iter)->demuxer;
+                }
+            }
+            return NULL;
         }
 
         void DemuxModule::set_download_buffer_size(

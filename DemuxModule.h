@@ -11,6 +11,12 @@
 
 namespace ppbox
 {
+    namespace data
+    {
+        class MediaBase;
+        class SourceBase;
+    }
+
     namespace demux
     {
 
@@ -65,7 +71,14 @@ namespace ppbox
                 size_t close_token, 
                 boost::system::error_code & ec);
 
-            static BufferDemuxer * find(std::string name);
+            BufferDemuxer * find(
+                std::string name);
+
+            BufferDemuxer * find(
+                ppbox::data::MediaBase * media);
+
+            BufferDemuxer * find(
+                ppbox::data::SourceBase * source);
 
         public:
             struct DemuxInfo;
