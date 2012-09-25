@@ -6,6 +6,7 @@
 #include <ppbox/avformat/flv/FlvFormat.h>
 #include <ppbox/avformat/flv/FlvDataType.h>
 #include <ppbox/avformat/flv/FlvTagType.h>
+#include <ppbox/avformat/codec/AacConfig.h>
 using namespace ppbox::avformat;
 
 namespace ppbox
@@ -41,7 +42,7 @@ namespace ppbox
                 FlvMetadata const & metadata)
             {
                 if (DataSize > 0) {
-                    if (TagType::FLV_TAG_TYPE_VIDEO == Type) { 
+                    if (FlvTagType::VIDEO == Type) { 
                         type = MEDIA_TYPE_VIDE;
 
                         switch (VideoHeader.CodecID) {
@@ -59,7 +60,7 @@ namespace ppbox
                         video_format.height = metadata.height;
                         time_scale = 1000;
                         format_data = codec_data;
-                    } else if (TagType::FLV_TAG_TYPE_AUDIO == Type) {
+                    } else if (FlvTagType::AUDIO == Type) {
                         type = MEDIA_TYPE_AUDI;
                         switch (AudioHeader.SoundFormat) {
                             case 10:
@@ -78,6 +79,11 @@ namespace ppbox
                         audio_format.sample_rate = frequency[AudioHeader.SoundRate];
                         audio_format.sample_size = size[AudioHeader.SoundSize];
                         audio_format.channel_count = channel[AudioHeader.SoundType];
+                        if (sub_type == AUDIO_TYPE_MP4A) {
+                            ppbox::avformat::AacConfig ac(codec_data);
+                            audio_format.sample_rate = ac.get_frequency();
+                            audio_format.channel_count = ac.channel_configuration;
+                        }
                         if (metadata.audiosamplerate > 0)
                             audio_format.sample_rate = metadata.audiosamplerate;
                         if (metadata.audiosamplesize > 0)

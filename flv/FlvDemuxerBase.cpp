@@ -55,14 +55,14 @@ namespace ppbox
                 if (archive_) {
                     streams_.clear();
                     stream_map_.clear();
-                    streams_.resize((size_t)TagType::FLV_TAG_TYPE_META + 1);
+                    streams_.resize((size_t)FlvTagType::META + 1);
                     if (flv_header_.TypeFlagsAudio) {
-                        streams_[(size_t)TagType::FLV_TAG_TYPE_AUDIO].index = stream_map_.size();
-                        stream_map_.push_back((size_t)TagType::FLV_TAG_TYPE_AUDIO);
+                        streams_[(size_t)FlvTagType::AUDIO].index = stream_map_.size();
+                        stream_map_.push_back((size_t)FlvTagType::AUDIO);
                     }
                     if (flv_header_.TypeFlagsVideo) {
-                        streams_[(size_t)TagType::FLV_TAG_TYPE_VIDEO].index = stream_map_.size();
-                        stream_map_.push_back((size_t)TagType::FLV_TAG_TYPE_VIDEO);
+                        streams_[(size_t)FlvTagType::VIDEO].index = stream_map_.size();
+                        stream_map_.push_back((size_t)FlvTagType::VIDEO);
                     }
                     open_step_ = 1;
                     parse_offset_ = std::ios::off_type(flv_header_.DataOffset) + 4; // + 4 PreTagSize
@@ -78,7 +78,7 @@ namespace ppbox
             if (open_step_ == 1) {
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 while (!get_tag(flv_tag_, ec)) {
-                    if (flv_tag_.Type == TagType::FLV_TAG_TYPE_META) {
+                    if (flv_tag_.Type == FlvTagType::META) {
                         parse_metadata(flv_tag_);
                     }
                     std::vector<boost::uint8_t> codec_data;
@@ -169,7 +169,7 @@ namespace ppbox
             FlvTag const & metadata_tag)
         {
             std::vector<FlvDataObjectProperty> const & variables = 
-                (metadata_tag.DataTag.Value.Type == AMFDataType::AMF_DATA_TYPE_MIXEDARRAY)
+                (metadata_tag.DataTag.Value.Type == AMFDataType::MIXEDARRAY)
                     ? metadata_tag.DataTag.Value.ECMAArray.Variables
                     : metadata_tag.DataTag.Value.Object.ObjectProperties;
             for (boost::uint32_t i = 0; i < variables.size(); ++i) {
@@ -248,18 +248,18 @@ namespace ppbox
                 sample.size = flv_tag_.DataSize;
                 sample.blocks.clear();
                 sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
-            } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_META) {
+            } else if (flv_tag_.Type == FlvTagType::META) {
                 LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
                 return get_sample(sample, ec);
-            } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_AUDIO) {
-                if (flv_tag_.AudioHeader.SoundFormat == SoundCodec::FLV_CODECID_AAC
+            } else if (flv_tag_.Type == FlvTagType::AUDIO) {
+                if (flv_tag_.AudioHeader.SoundFormat == FlvSoundCodec::AAC
                     && flv_tag_.AudioHeader.AACPacketType == 0) {
                         LOG_DEBUG("[get_sample] duplicate aac sequence header");
                         return get_sample(sample, ec);
                 }
                 ec = bad_file_format;
-            } else if (flv_tag_.Type == TagType::FLV_TAG_TYPE_VIDEO) {
-                if (flv_tag_.VideoHeader.CodecID == VideoCodec::FLV_CODECID_H264) {
+            } else if (flv_tag_.Type == FlvTagType::VIDEO) {
+                if (flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H264) {
                     if (flv_tag_.VideoHeader.AVCPacketType == 0) {
                         LOG_DEBUG("[get_sample] duplicate aac sequence header");
                         return get_sample(sample, ec);

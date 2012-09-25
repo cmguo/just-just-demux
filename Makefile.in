@@ -56,6 +56,7 @@ PROJECT_DEPENDS			:= \
 				/ppbox/certify \
 				/ppbox/vod \
 				/ppbox/live \
+				/ppbox/avformat \
 				/bento4 \
 				/base/tinyxml \
 				/base/security \
