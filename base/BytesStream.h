@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 #define _PPBOX_DEMUX_SOURCE_BYTES_STREAM_H_
 
-#include "ppbox/demux/base/BufferList.h"
+#include "ppbox/demux/base/SegmentBuffer.h"
 
 #include <util/buffers/BufferSize.h>
 #include <util/buffers/StlBuffer.h>
@@ -19,9 +19,11 @@ namespace ppbox
             : public util::buffers::StlStream<boost::uint8_t>
         {
         public:
-            friend class BufferList;
+            friend class SegmentBuffer;
 
-            typedef BufferList::read_buffer_t read_buffer_t;
+            typedef SegmentBuffer::segment_t segment_t;
+
+            typedef SegmentBuffer::read_buffer_t read_buffer_t;
 
             typedef read_buffer_t::const_iterator const_iterator;
 
@@ -30,8 +32,8 @@ namespace ppbox
 
         public:
             BytesStream(
-                BufferList & buffer,
-                SegmentPositionEx & segment)
+                SegmentBuffer & buffer,
+                SegmentBuffer::segment_t & segment)
                 : buffer_(buffer)
                 , segment_(segment)
                 , pos_(0)
@@ -42,14 +44,14 @@ namespace ppbox
             }
 
         public:
-            const SegmentPositionEx & segment() const
+            const segment_t & segment() const
             {
                 return segment_;
             }
 
         private:
             bool update(
-                BufferList::PositionType::Enum type, 
+                SegmentBuffer::PositionType::Enum type, 
                 pos_type pos)
             {
                 boost::uint64_t pos64 = pos;
@@ -66,7 +68,7 @@ namespace ppbox
             void update()
             {
                 pos_type pos = pos_ + off_type(gptr() - eback());
-                update(BufferList::PositionType::set, pos);
+                update(SegmentBuffer::PositionType::set, pos);
             }
 
             void close()
@@ -82,27 +84,22 @@ namespace ppbox
                 return pos;
             }
 
-            void drop()
-            {
-                update();
-            }
-
             void drop_all()
             {
-                update(BufferList::PositionType::set, 0);
+                update(SegmentBuffer::PositionType::set, 0);
             }
 
             void seek(
                 boost::uint64_t pos)
             {
-                update(BufferList::PositionType::set, pos);
+                update(SegmentBuffer::PositionType::set, pos);
             }
 
         private:
             virtual int_type underflow()
             {
                 pos_type pos = pos_ + gptr() - eback();
-                if (update(BufferList::PositionType::set, pos) && (gptr() < egptr())) {
+                if (update(SegmentBuffer::PositionType::set, pos) && (gptr() < egptr())) {
                     return *gptr();
                 } else {
                     return traits_type::eof();
@@ -128,7 +125,7 @@ namespace ppbox
                     return seekpos(off, mode);
                 } else if (dir == std::ios_base::end) {
                     assert(off <= 0);
-                    if (!update(BufferList::PositionType::end, pos_type(-off))) {
+                    if (!update(SegmentBuffer::PositionType::end, pos_type(-off))) {
                         return pos_type(-1);
                     }
                     return pos_ + gptr() - eback();
@@ -145,15 +142,15 @@ namespace ppbox
                 if (mode != std::ios_base::in) {
                     return pos_type(-1);// 模式错误
                 }
-                if (!update(BufferList::PositionType::set, position)) {
+                if (!update(SegmentBuffer::PositionType::set, position)) {
                     return pos_type(-1);// 有效位置之前
                 }
                 return position;
             }
 
         private:
-            BufferList & buffer_;
-            SegmentPositionEx & segment_;
+            SegmentBuffer & buffer_;
+            SegmentBuffer::segment_t & segment_;
             pos_type pos_;          // 与iter_对应分段的开头
             buffer_type buf_;       // 当前的内存段
         };

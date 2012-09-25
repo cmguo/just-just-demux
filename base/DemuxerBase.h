@@ -168,8 +168,7 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code open(
-                boost::system::error_code & ec,
-                open_response_type const & resp) = 0;
+                boost::system::error_code & ec) = 0;
 
             virtual boost::system::error_code close(
                 boost::system::error_code & ec) = 0;
