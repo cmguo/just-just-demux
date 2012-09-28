@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 #define _PPBOX_DEMUX_EMPTY_DEMUXER_H_
 
-#include "ppbox/demux/base/BufferDemuxer.h"
+#include "ppbox/demux/base/SegmentDemuxer.h"
 
 namespace ppbox
 {
@@ -15,18 +15,18 @@ namespace ppbox
         {
         private:
             virtual void next_segment(
-                SegmentPositionEx &)
+                SegmentPosition &)
             {
             }
         }
 
         class EmptyDemuxer
-            : public BufferDemuxer
+            : public SegmentDemuxer
         {
         public:
             EmptyDemuxer(
                 boost::asio::io_service & io_svc)
-                : BufferDemuxer(io_svc, &source_)
+                : SegmentDemuxer(io_svc, &source_)
             {
             }
 

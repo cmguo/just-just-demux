@@ -2,7 +2,6 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SourceTreeItem.h"
-#include "ppbox/demux/base/Content.h"
 
 #include <ppbox/data/SourceBase.h>
 
@@ -43,52 +42,28 @@ namespace ppbox
         }
 
         void SourceTreeItem::next_source(
-            SourceTreePosition & position) const
+            SourceTreePosition & position)
         {
-//             assert(position.source == this);
-            position.source = NULL;
+            assert(position.current == this);
+            position.current = NULL;
             while (position.next_child) { // ¸¸ÇÐ×Ó
-                assert (!position.next_child->skip_);
-                position.source = (Content *)position.next_child;
+                position.current = position.next_child;
                 position.prev_child = NULL;
                 position.next_child = position.next_child->first_child_;
             }
-            if (!position.source) { // ×ÓÇÐ¸¸
-                position.source = (Content *)parent_;
-                position.prev_child = const_cast<SourceTreeItem *>(this);
+            if (!position.current) { // ×ÓÇÐ¸¸
+                position.current = parent_;
+                position.prev_child = this;
                 position.next_child = next_sibling_;
-            }
-        }
-
-        void SourceTreeItem::next_skip_source(
-            SourceTreePosition & position) const
-        {
-            if (position.next_child) {
-                position.source = (Content *)position.next_child;
-                position.next_child = position.next_child->first_child_;
-                if (position.source->skip_) {
-                    return;
-                } else {
-                    return position.source->next_skip_source(position);
-                }
-            } else {
-                position.source = (Content *)parent_;
-                position.next_child = next_sibling_;
-                if (position.source) {
-                    assert(!position.source->skip_);
-                    return position.source->next_skip_source(position);
-                } else {
-                    return;
-                }
             }
         }
 
         void SourceTreeItem::seek(
             SourceTreePosition & position, 
             SourceTreeItem * where_prev, 
-            SourceTreeItem * where) const
+            SourceTreeItem * where)
         {
-            position.source = static_cast<Content *>(const_cast<SourceTreeItem *>((this)));
+            position.current = this;
             position.prev_child = where_prev;
             position.next_child = where;
         }

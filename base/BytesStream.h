@@ -55,7 +55,7 @@ namespace ppbox
                 pos_type pos)
             {
                 boost::uint64_t pos64 = pos;
-                boost::uint32_t off32 = 0;
+                boost::uint64_t off32 = 0;
                 boost::asio::const_buffer buf;;
                 boost::system::error_code ec;
                 ec = buffer_.segment_buffer(segment_, type, pos64, off32, buf);

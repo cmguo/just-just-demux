@@ -29,7 +29,7 @@ namespace ppbox
         }
 
         void DemuxStatistic::buf_time(
-            boost::uint32_t const & buffer_time)
+            boost::uint64_t buffer_time)
         {
             if (state_ == buffering) {
                 LOG_DEBUG("[buf_time] buf_time: " << buffer_time << " ms");
@@ -51,8 +51,8 @@ namespace ppbox
         void DemuxStatistic::change_status(
             boost::uint16_t new_state)
         {
-            boost::uint32_t now_time = elapse();
-            boost::uint32_t elapse = now_time - last_time_;
+            boost::uint64_t now_time = TimeCounter::elapse();
+            boost::uint64_t elapse = now_time - last_time_;
             last_time_ = now_time;
             // 两个Buffering状态，原因相同，并且中间间隔一个playing状态，并且持续play时间（sample时间）小于3秒
             // 那么合并Buffering状态，并且如果接下来是playing状态，也合并
@@ -113,7 +113,7 @@ namespace ppbox
         }
 
         void DemuxStatistic::play_on(
-            boost::uint32_t sample_time)
+            boost::uint64_t sample_time)
         {
             play_position_ = sample_time;
 
@@ -139,7 +139,7 @@ namespace ppbox
 
         void DemuxStatistic::seek(
             bool ok, 
-            boost::uint32_t seek_time)
+            boost::uint64_t seek_time)
         {
             // 如果拖动的时间与当前播放的时间相同，则不处理
             if (play_position_ == seek_time)

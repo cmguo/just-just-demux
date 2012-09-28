@@ -4,8 +4,8 @@
 #include "ppbox/demux/DemuxModule.h"
 #include "ppbox/demux/Version.h"
 //#include "ppbox/demux/CommonDemuxer.h"
-//#include "ppbox/demux/pptv/PptvDemuxer.h"
-#include "ppbox/demux/base/BufferDemuxer.h"
+#include "ppbox/demux/base/DemuxerTypes.h"
+#include "ppbox/demux/base/SegmentDemuxer.h"
 using namespace ppbox::demux;
 
 #include "ppbox/data/MediaBase.h"
@@ -47,13 +47,13 @@ namespace ppbox
 
             size_t id;
             StatusEnum status;
-            BufferDemuxer * demuxer;
+            SegmentDemuxer * demuxer;
             std::string play_link;
             DemuxModule::open_response_type resp;
             error_code ec;
 
             DemuxInfo(
-                BufferDemuxer * demuxer)
+                SegmentDemuxer * demuxer)
                 : status(closed)
                 , demuxer(demuxer)
             {
@@ -85,9 +85,6 @@ namespace ppbox
             : ppbox::common::CommonModuleBase<DemuxModule>(daemon, "DemuxerModule")
         {
             buffer_size_ = 20 * 1024 * 1024;
-            prepare_size_ = 10 * 1024;
-            buffer_time_ = 3000; // 3s
-            max_dl_speed_ = boost::uint32_t(-1);
         }
 
         DemuxModule::~DemuxModule()
@@ -117,7 +114,7 @@ namespace ppbox
         {
             SyncResponse(
                 error_code & ec, 
-                BufferDemuxer *& demuxer, 
+                SegmentDemuxer *& demuxer, 
                 boost::condition_variable & cond, 
                 boost::mutex & mutex)
                 : ec_(ec)
@@ -130,7 +127,7 @@ namespace ppbox
 
             void operator()(
                 error_code const & ec, 
-                BufferDemuxer * demuxer)
+                SegmentDemuxer * demuxer)
             {
                 boost::mutex::scoped_lock lock(mutex_);
                 ec_ = ec;
@@ -149,19 +146,19 @@ namespace ppbox
 
         private:
             error_code & ec_;
-            BufferDemuxer *& demuxer_;
+            SegmentDemuxer *& demuxer_;
             boost::condition_variable & cond_;
 
             boost::mutex & mutex_;
             bool is_return_;
         };
 
-        BufferDemuxer * DemuxModule::open(
+        SegmentDemuxer * DemuxModule::open(
             std::string const & play_link, 
             size_t & close_token, 
             error_code & ec)
         {
-            BufferDemuxer * demuxer = NULL;
+            SegmentDemuxer * demuxer = NULL;
             SyncResponse resp(ec, demuxer, cond_, mutex_);
             DemuxInfo * info = create(play_link, boost::ref(resp), ec);
             close_token = info->id;
@@ -211,8 +208,8 @@ namespace ppbox
             error_code & ec)
         {
             framework::string::Url url(play_link);
-            Content * root_source = Content::create(get_daemon().io_svc(), url);
-            BufferDemuxer * demuxer = create(buffer_size_, prepare_size_, root_source);
+            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), url);
+            SegmentDemuxer * demuxer = new SegmentDemuxer(io_svc(), *media);
             boost::mutex::scoped_lock lock(mutex_);
             // new shared_stat需要加锁
             DemuxInfo * info = new DemuxInfo(demuxer);
@@ -223,20 +220,11 @@ namespace ppbox
             return info;
         }
 
-        BufferDemuxer * DemuxModule::create(
-            boost::uint32_t buffer_size,
-            boost::uint32_t prepare_size,
-            Content * source)
-        {
-            return new BufferDemuxer(get_daemon().io_svc(), buffer_size, prepare_size, source);
-        }
-
         void DemuxModule::async_open(
             DemuxInfo * info)
         {
             error_code ec;
-            BufferDemuxer * demuxer = info->demuxer;
-            demuxer->set_time_out(5 * 1000, ec); // 5 seconds
+            SegmentDemuxer * demuxer = info->demuxer;
             if (!ec) {
                 demuxer->async_open(
                     boost::bind(&DemuxModule::handle_open, this, _1, info));
@@ -253,9 +241,7 @@ namespace ppbox
 
             error_code ec = ecc;
             
-            BufferDemuxer * demuxer = info->demuxer;
-
-            ec || demuxer->set_non_block(true, ec);
+            SegmentDemuxer * demuxer = info->demuxer;
 
             open_response_type resp;
             resp.swap(info->resp);
@@ -305,7 +291,7 @@ namespace ppbox
             DemuxInfo * info, 
             error_code & ec)
         {
-            BufferDemuxer * demuxer = info->demuxer;
+            SegmentDemuxer * demuxer = info->demuxer;
             demuxer->cancel(ec);
             cond_.notify_all();
             return ec;
@@ -315,7 +301,7 @@ namespace ppbox
             DemuxInfo * info, 
             error_code & ec)
         {
-            BufferDemuxer * demuxer = info->demuxer;
+            SegmentDemuxer * demuxer = info->demuxer;
             if (info->play_link.empty()) //表示demuxer曾经做过open,所以需要close
                 demuxer->close(ec);
             return ec;
@@ -324,7 +310,7 @@ namespace ppbox
         void DemuxModule::destory(
             DemuxInfo * info)
         {
-            BufferDemuxer * demuxer = info->demuxer;
+            SegmentDemuxer * demuxer = info->demuxer;
             delete demuxer;
             demuxer = NULL;
             demuxers_.erase(
@@ -335,39 +321,13 @@ namespace ppbox
             cond_.notify_all();
         }
 
-        BufferDemuxer * DemuxModule::find(
-            std::string name)
+        SegmentDemuxer * DemuxModule::find(
+            std::string play_link)
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
-                if ((*iter)->play_link == name) {
-                    return (*iter)->demuxer;
-                }
-            }
-            return NULL;
-        }
-
-        BufferDemuxer * DemuxModule::find(
-            ppbox::data::MediaBase * media)
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
-            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
-                if ((*iter)->demuxer->get_contet()->get_media() == media) {
-                    return (*iter)->demuxer;
-                }
-            }
-            return NULL;
-        }
-
-        BufferDemuxer * DemuxModule::find(
-            ppbox::data::SourceBase * source)
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
-            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
-                if ((*iter)->demuxer->get_contet()->get_source() == source) {
+                if ((*iter)->play_link == play_link) {
                     return (*iter)->demuxer;
                 }
             }
@@ -378,24 +338,6 @@ namespace ppbox
             boost::uint32_t buffer_size)
         {
             buffer_size_ = buffer_size;
-        }
-
-        void DemuxModule::set_download_max_speed(
-            boost::uint32_t speed)
-        {
-            max_dl_speed_ = speed;
-        }
-
-        void DemuxModule::set_http_proxy(
-            char const * addr)
-        {
-            http_proxy_.from_string(addr);
-        }
-
-        void DemuxModule::set_play_buffer_time(
-            boost::uint32_t buffer_time)
-        {
-            buffer_time_ = buffer_time;
         }
 
     } // namespace demux

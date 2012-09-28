@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_COMMON_DEMUXER_H_
 #define _PPBOX_DEMUX_COMMON_DEMUXER_H_
 
-#include "ppbox/demux/base/BufferDemuxer.h"
+#include "ppbox/demux/base/SegmentDemuxer.h"
 
 namespace ppbox
 {
@@ -11,10 +11,10 @@ namespace ppbox
     {
 
         class CommonDemuxer
-            : public BufferDemuxer
+            : public SegmentDemuxer
         {
         public:
-            static BufferDemuxer *  create(
+            static SegmentDemuxer *  create(
                 util::daemon::Daemon & daemon,                std::string const & url_str,
                 boost::uint32_t buffer_size,
                 boost::uint32_t prepare_size);
@@ -24,9 +24,9 @@ namespace ppbox
                 boost::asio::io_service & io_svc, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size, 
-                Content * source, 
+                Strategy * source, 
                 std::string const & url_str )
-                : BufferDemuxer(io_svc, buffer_size, prepare_size, source)
+                : SegmentDemuxer(io_svc, buffer_size, prepare_size, source)
                 , source_(source)
                 , url_str_(url_str)
             {
@@ -45,10 +45,10 @@ namespace ppbox
 
             //virtual void async_open(
             //    std::string const & name, 
-            //    BufferDemuxer::open_response_type const & resp);
+            //    SegmentDemuxer::open_response_type const & resp);
 
         private:
-            Content * source_;
+            Strategy * source_;
             std::string url_str_;
         };
 

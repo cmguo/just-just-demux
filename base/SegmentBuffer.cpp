@@ -2,7 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SegmentBuffer.h"
-#include "ppbox/demux/base/Content.h"
+//#include "ppbox/demux/base/DemuxStrategy.h"
 #include "ppbox/demux/base/BufferStatistic.h"
 #include "ppbox/demux/base/SourceError.h"
 #include "ppbox/demux/base/BytesStream.h"
@@ -59,18 +59,17 @@ namespace ppbox
             ec.clear();
             if (base != base_) {
                 boost::system::error_code ec1;
-                // TODO
-                //source_->seek(pos, size, ec);
                 reset(base, pos);
+                //source_->seek(pos, size, ec);
                 return ec;
             }
 
             bool write_change = Buffer::seek(pos.big_pos());
 
-            while (segments_.front().big_end() <= in_position()) {
+            while (segments_.front().big_end() <= data_begin()) {
                 segments_.pop_front();
             }
-            while (segments_.back().big_beg() >= out_position()) {
+            while (segments_.back().big_beg() >= data_end()) {
                 segments_.pop_back();
             }
 
@@ -80,10 +79,10 @@ namespace ppbox
             if (write_change) {
                 // 调整了写指针，需要从新的位置开始下载
                 if (segments_.back().big_end() > out_position()) {
-                    source_->byte_seek(segments_.back(), size, ec);
+                    //source_->seek(segments_.back(), size, ec);
                     update_write(segments_.back());
                 } else {
-                    source_->byte_seek(out_position(), size, ec);
+                    //source_->byte_seek(out_position(), size, ec);
                     segment_t seg;
                     source_->current_segment(seg);
                     update_write(seg); 
@@ -142,11 +141,36 @@ namespace ppbox
             resp(ec, 0);
         }
 
+        boost::system::error_code SegmentBuffer::data(
+            boost::uint64_t offset, 
+            boost::uint32_t size, 
+            std::deque<boost::asio::const_buffer> & data, 
+            boost::system::error_code & ec)
+        {
+            offset += read_.big_beg();
+            assert(offset >= in_position() && offset + size <= read_.big_end());
+            if (offset < in_position()) {
+                ec = framework::system::logic_error::out_of_range;
+            } else if (offset + size > read_.big_end()) {
+                ec = boost::asio::error::eof;
+            } else {
+                if (offset + size > out_position()) {// 是否超出当前写指针
+                    prepare_at_least((boost::uint32_t)(offset + size - out_position()), ec);
+                }
+                if (offset + size <= out_position()) {
+                    read_buffer_t bufs = Buffer::read_buffer(offset, offset + size);
+                    data.insert(data.end(), bufs.begin(), bufs.end());
+                    ec.clear();
+                }
+            }
+            return ec;
+        }
+
         boost::system::error_code SegmentBuffer::drop(
             boost::system::error_code & ec)
         {
             read_.small_offset = read_stream_->position();
-            if (consume(read_.big_pos() - in_position())) {
+            if (consume((size_t)(read_.big_pos() - in_position()))) {
                 read_stream_->update();
                 if (read_ == write_)
                     write_stream_->update();
@@ -169,7 +193,7 @@ namespace ppbox
             //if (read_.segment == write_.segment) {
             // source_->drop_all();
             //}
-            if (consume(read_.big_end() - in_position())) {
+            if (consume((size_t)(read_.big_end() - in_position()))) {
                 // TODO
                 segments_.pop_front();
                 read_ = segments_.front();
@@ -220,7 +244,7 @@ namespace ppbox
             segment_t const & segment, 
             PositionType::Enum pos_type, 
             boost::uint64_t & pos, 
-            boost::uint32_t & off, 
+            boost::uint64_t & off, 
             boost::asio::const_buffer & buffer)
         {
             boost::uint64_t beg = segment.big_beg();
@@ -256,7 +280,7 @@ namespace ppbox
                     }
                     if (pos > out_position()) {
                         boost::system::error_code ec1 = last_ec_;
-                        ec1 || prepare(pos - out_position(), ec1);
+                        ec1 || prepare((size_t)(pos - out_position()), ec1);
                         if (pos > out_position()) {
                             pos = out_position();
                             if (!ec) ec = ec1;
@@ -271,7 +295,7 @@ namespace ppbox
             char const * ptr = read_buffer(beg, pos, end); // read_buffer里面会调整beg或者end
             off = pos - beg;
             pos = beg - segment.big_offset;
-            buffer = boost::asio::const_buffer(ptr, end - beg);
+            buffer = boost::asio::const_buffer(ptr, (size_t)(end - beg));
             return ec;
         }
 

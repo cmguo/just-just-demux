@@ -20,8 +20,8 @@ namespace ppbox
     namespace demux
     {
 
-        class BufferDemuxer;
-        class Content;
+        class SegmentDemuxer;
+        class Strategy;
 
         class DemuxModule
             : public ppbox::common::CommonModuleBase<DemuxModule>
@@ -29,7 +29,7 @@ namespace ppbox
         public:
             typedef boost::function<void (
                 boost::system::error_code const &, 
-                BufferDemuxer *)
+                SegmentDemuxer *)
             > open_response_type;
 
         public:
@@ -47,17 +47,8 @@ namespace ppbox
             void set_download_buffer_size(
                 boost::uint32_t buffer_size);
 
-            void set_download_max_speed(
-                boost::uint32_t speed);
-
-            void set_http_proxy(
-                char const * addr);
-
-            void set_play_buffer_time(
-                boost::uint32_t buffer_time);
-
         public:
-            BufferDemuxer * open(
+            SegmentDemuxer * open(
                 std::string const & play_link, 
                 size_t & close_token, 
                 boost::system::error_code & ec);
@@ -71,14 +62,8 @@ namespace ppbox
                 size_t close_token, 
                 boost::system::error_code & ec);
 
-            BufferDemuxer * find(
-                std::string name);
-
-            BufferDemuxer * find(
-                ppbox::data::MediaBase * media);
-
-            BufferDemuxer * find(
-                ppbox::data::SourceBase * source);
+            SegmentDemuxer * find(
+                std::string play_link);
 
         public:
             struct DemuxInfo;
@@ -89,10 +74,10 @@ namespace ppbox
                 open_response_type const & resp, 
                 boost::system::error_code & ec);
 
-            BufferDemuxer * create(
+            SegmentDemuxer * create(
                 boost::uint32_t buffer_size,
                 boost::uint32_t prepare_size,
-                Content * source);
+                Strategy * source);
 
             void async_open(
                 DemuxInfo * info);
@@ -120,10 +105,6 @@ namespace ppbox
         private:
             // ≈‰÷√
             boost::uint32_t buffer_size_;
-            boost::uint32_t prepare_size_;
-            boost::uint32_t buffer_time_;
-            boost::uint32_t max_dl_speed_;
-            framework::network::NetName http_proxy_;
 
         private:
             std::vector<DemuxInfo *> demuxers_;

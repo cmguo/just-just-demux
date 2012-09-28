@@ -5,6 +5,8 @@
 
 using namespace ppbox::demux::error;
 
+using namespace ppbox::avformat;
+
 #include <framework/container/OrderedUnidirList.h>
 using namespace framework::container;
 using namespace framework::system;

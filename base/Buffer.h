@@ -86,7 +86,7 @@ namespace ppbox
                 boost::uint64_t end = write_hole_.this_end;
                 if (end > write_.offset + buffer_size_)
                     end = write_.offset + buffer_size_;
-                return end - write_.offset;
+                return (size_t)(end - write_.offset);
             }
 
             write_buffer_t prepare()
@@ -126,14 +126,24 @@ namespace ppbox
 
         public:
             // ∂¡÷∏’Î∆´“∆
-            size_t in_position() const
+            boost::uint64_t in_position() const
             {
                 return read_.offset;
             }
 
-            size_t in_avail() const
+            boost::uint64_t in_avail() const
             {
                 return write_.offset- read_.offset;
+            }
+
+            boost::uint64_t data_begin() const
+            {
+                return data_beg_;
+            }
+
+            boost::uint64_t data_end() const
+            {
+                return data_end_;
             }
 
             read_buffer_t data()

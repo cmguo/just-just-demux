@@ -16,68 +16,66 @@ namespace ppbox
     namespace demux
     {
 
-        class AsfDemuxerBase
+        class AsfDemuxer
             : public ASF_Object_Header
             , public DemuxerBase
         {
 
         public:
-            AsfDemuxerBase(
-                std::basic_streambuf<boost::uint8_t> & buf)
-                : DemuxerBase(buf)
-                , archive_(buf)
-                , open_step_(size_t(-1))
-                , object_parse_(file_prop_)
-                , buffer_parse_(file_prop_)
-                , timestamp_offset_ms_(boost::uint32_t(-1))
-            {
-            }
+            AsfDemuxer(
+                std::basic_streambuf<boost::uint8_t> & buf);
 
-            ~AsfDemuxerBase()
-            {
-            }
+            ~AsfDemuxer();
 
-            boost::system::error_code open(
-                boost::system::error_code & ec,
-                open_response_type const & resp);
-
-            bool is_open(
+        public:
+            virtual boost::system::error_code open(
                 boost::system::error_code & ec);
 
-            boost::system::error_code close(
+            virtual boost::system::error_code close(
                 boost::system::error_code & ec);
 
-            boost::system::error_code get_sample(
-                Sample & sample, 
+            virtual bool is_open(
                 boost::system::error_code & ec);
 
-            size_t get_stream_count(
+        public:
+            virtual boost::system::error_code reset(
                 boost::system::error_code & ec);
 
-            boost::system::error_code get_stream_info(
+            virtual boost::uint64_t seek(
+                boost::uint64_t & time, 
+                boost::system::error_code & ec);
+
+        public:
+            virtual boost::uint64_t get_duration(
+                boost::system::error_code & ec);
+
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code get_stream_info(
                 size_t index, 
                 StreamInfo & info, 
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_duration(
+        public:
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_end_time(
+            virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_cur_time(
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
                 boost::system::error_code & ec);
 
-            boost::uint64_t seek(
-                boost::uint32_t & time, 
-                boost::system::error_code & ec);
+        public:
+            virtual void set_stream(
+                std::basic_streambuf<boost::uint8_t> & buf);
 
-            boost::uint64_t get_offset(
-                boost::uint32_t & time, 
-                boost::uint32_t & delta, 
+            virtual boost::uint64_t get_offset(
+                boost::uint64_t & time, 
+                boost::uint64_t & delta, 
                 boost::system::error_code & ec);
-
-            void set_stream(std::basic_streambuf<boost::uint8_t> & buf);
 
         private:
             boost::system::error_code get_real_sample(
@@ -113,8 +111,8 @@ namespace ppbox
                 ASF_PayloadHeader payload;
                 boost::uint64_t offset_packet;
                 boost::uint64_t offset;
-                boost::uint32_t num_packet;
-                boost::uint32_t num_payload;
+                boost::uint64_t num_packet;
+                boost::uint64_t num_payload;
                 framework::system::LimitNumber<32> timestamp;
             };
 
@@ -137,16 +135,18 @@ namespace ppbox
             // std::vector<Sample> start_samples_; // send revert order
             ParseStatus object_parse_; 
             std::vector<ASF_PayloadHeader> object_payloads_;
-            boost::uint32_t next_object_offset_; // not offset in file, just offset of this object
+            boost::uint64_t next_object_offset_; // not offset in file, just offset of this object
             bool is_discontinuity_;
 
             // for calc end time
-            boost::uint32_t fixed_packet_length_;
+            boost::uint64_t fixed_packet_length_;
             ParseStatus buffer_parse_;
 
             // for calc sample timestamp
-            boost::uint32_t timestamp_offset_ms_;
+            boost::uint64_t timestamp_offset_ms_;
         };
+
+        PPBOX_REGISTER_DEMUXER(asf, AsfDemuxer);
 
     }
 }

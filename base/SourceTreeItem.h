@@ -9,35 +9,42 @@ namespace ppbox
     {
 
         class SourceTreeItem;
-        class Content;
+        class DemuxStrategy;
 
         struct SourceTreePosition
         {
             SourceTreePosition()
-                : source(NULL)
+                : current(NULL)
                 , prev_child(NULL)
                 , next_child(NULL)
             {
             }
 
-            Content * source;// 处理流程中的下一个子节点
+            SourceTreeItem * current;   // 处理流程中的当前
             SourceTreeItem * prev_child;// 处理流程中的上一个子节点
             SourceTreeItem * next_child;// 处理流程中的下一个子节点
 
-            friend bool operator == (
+            friend bool operator==(
                 SourceTreePosition const & l, 
                 SourceTreePosition const & r)
             {
-                return l.source == r.source
+                return l.current == r.current
                     && l.next_child == r.next_child
                     && l.prev_child == r.prev_child;
             }
 
-            friend bool operator != (
+            friend bool operator<(
                 SourceTreePosition const & l, 
                 SourceTreePosition const & r)
             {
-                return l.source != r.source
+                return false;
+            }
+
+            friend bool operator!=(
+                SourceTreePosition const & l, 
+                SourceTreePosition const & r)
+            {
+                return l.current != r.current
                     || l.next_child != r.next_child
                     || l.prev_child != r.prev_child;
             }
@@ -47,16 +54,18 @@ namespace ppbox
         class SourceTreeItem
         {
         public:
-            SourceTreeItem()
-                : parent_(NULL)
+            SourceTreeItem(
+                DemuxStrategy * owner)
+                : owner_(owner)
+                , parent_(NULL)
                 , first_child_(NULL)
+                , last_child_(NULL)
                 , prev_sibling_(NULL)
                 , next_sibling_(NULL)
-                , skip_(false)
             {
             }
 
-        protected:
+        public:
             void insert_child(
                 SourceTreeItem * child, 
                 SourceTreeItem * where);
@@ -66,27 +75,31 @@ namespace ppbox
 
             // 返回下一个Source
             void next_source(
-                SourceTreePosition & position) const;
-
-            void next_skip_source(
-                SourceTreePosition & position) const;
+                SourceTreePosition & position);
 
             void seek(
                 SourceTreePosition & position, 
                 SourceTreeItem * where_prev, 
-                SourceTreeItem * where) const;
+                SourceTreeItem * where);
 
             void remove_self()
             {
                 return parent_->remove_child(this);
             }
 
-        protected:
-            SourceTreeItem * parent_;         // 父节点
-            SourceTreeItem * first_child_;    // 第一个子节点
-            SourceTreeItem * prev_sibling_;    // 前一个兄弟节点
-            SourceTreeItem * next_sibling_;   // 下一个兄弟节点
-            bool skip_;
+        public:
+            DemuxStrategy * owner() const
+            {
+                return owner_;
+            }
+
+        public:
+            DemuxStrategy * owner_;         // 对应的Strategy对象，包含该Item的对象
+            SourceTreeItem * parent_;       // 父节点
+            SourceTreeItem * first_child_;  // 第一个子节点
+            SourceTreeItem * last_child_;   // 最后一个子节点
+            SourceTreeItem * prev_sibling_; // 前一个兄弟节点
+            SourceTreeItem * next_sibling_; // 下一个兄弟节点
         };
 
     } // namespace demux

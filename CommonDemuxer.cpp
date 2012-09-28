@@ -12,7 +12,7 @@ namespace ppbox
     namespace demux
     {
 
-        BufferDemuxer * CommonDemuxer::create(
+        SegmentDemuxer * CommonDemuxer::create(
             util::daemon::Daemon & daemon,
             std::string const & url_str,
             boost::uint32_t buffer_size,
@@ -75,12 +75,12 @@ namespace ppbox
         //    assert(key_playlink.size() > 0);
         //    std::string playlink = key_playlink[key_playlink.size()-1];*/
         //    //source_->set_name(url_str_);
-        //    //return BufferDemuxer::open(name, ec);
+        //    //return SegmentDemuxer::open(name, ec);
         //}
 
         //void CommonDemuxer::async_open(
         //    std::string const & name, 
-        //    BufferDemuxer::open_response_type const & resp)
+        //    SegmentDemuxer::open_response_type const & resp)
         //{
         //    /*std::vector<std::string> key_playlink;
         //    slice<std::string>(name, std::inserter(
@@ -88,7 +88,7 @@ namespace ppbox
         //    assert(key_playlink.size() > 0);
         //    std::string playlink = key_playlink[key_playlink.size()-1];*/
         //    source_->set_name(url_str_);
-        //    BufferDemuxer::async_open(name, resp);
+        //    SegmentDemuxer::async_open(name, resp);
         //}
 
     } // namespace demux

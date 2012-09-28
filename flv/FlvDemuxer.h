@@ -13,70 +13,68 @@ namespace ppbox
 {
     namespace demux
     {
-        class FlvDemuxerBase
+        class FlvDemuxer
             : public DemuxerBase
         {
         public:
-            FlvDemuxerBase(
-                std::basic_streambuf<boost::uint8_t> & buf)
-                : DemuxerBase(buf)
-                , archive_(buf)
-                , open_step_((boost::uint32_t)-1)
-                , header_offset_(0)
-                , parse_offset_(0)
-                , timestamp_offset_ms_(0)
-                , current_time_(0)
-            {
-                streams_.resize(2);
-            }
+            FlvDemuxer(
+                std::basic_streambuf<boost::uint8_t> & buf);
 
-            ~FlvDemuxerBase()
-            {
-            }
+            ~FlvDemuxer();
 
-            boost::system::error_code open(
-                boost::system::error_code & ec,
-                open_response_type const & resp);
-
-            bool is_open(
+        public:
+            virtual boost::system::error_code open(
                 boost::system::error_code & ec);
 
-            boost::system::error_code close(
+            virtual boost::system::error_code close(
                 boost::system::error_code & ec);
 
-            boost::system::error_code get_sample(
-                Sample & sample, 
+            virtual bool is_open(
                 boost::system::error_code & ec);
 
-            size_t get_stream_count(
+        public:
+            virtual boost::system::error_code reset(
                 boost::system::error_code & ec);
 
-            boost::system::error_code get_stream_info(
+            virtual boost::uint64_t seek(
+                boost::uint64_t & time, 
+                boost::system::error_code & ec);
+
+        public:
+            virtual boost::uint64_t get_duration(
+                boost::system::error_code & ec);
+
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code get_stream_info(
                 size_t index, 
                 StreamInfo & info, 
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_duration(
+        public:
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_end_time(
+            virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec);
 
-            boost::uint32_t get_cur_time(
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
                 boost::system::error_code & ec);
 
-            boost::uint64_t seek(
-                boost::uint32_t & time, 
+        public:
+            virtual void set_stream(
+                std::basic_streambuf<boost::uint8_t> & buf);
+
+            virtual boost::uint64_t get_offset(
+                boost::uint64_t & time, 
+                boost::uint64_t & delta, 
                 boost::system::error_code & ec);
 
-            boost::uint64_t get_offset(
-                boost::uint32_t & time, 
-                boost::uint32_t & delta, 
-                boost::system::error_code & ec);
-
-            void set_stream(std::basic_streambuf<boost::uint8_t> & buf);
-
-            void set_time_offset(boost::uint64_t offset);
+        private:
+            void set_time_offset(
+                boost::uint64_t offset);
 
             boost::uint64_t get_time_offset() const;
 
@@ -100,17 +98,17 @@ namespace ppbox
             std::vector<size_t> stream_map_; // Map index to FlvStream
             FlvTag flv_tag_;
 
-            boost::uint32_t open_step_;
+            boost::uint64_t open_step_;
             boost::uint64_t header_offset_;
 
             boost::uint64_t parse_offset_;
-            boost::uint32_t timestamp_offset_ms_;
+            boost::uint64_t timestamp_offset_ms_;
             framework::system::LimitNumber<32> timestamp_;
 
-            boost::uint32_t current_time_;
-
-            open_response_type resp_;
+            boost::uint64_t current_time_;
         };
+
+        PPBOX_REGISTER_DEMUXER(flv, FlvDemuxer);
 
     } // namespace demux
 } // namespace ppbox

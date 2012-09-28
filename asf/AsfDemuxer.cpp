@@ -1,7 +1,7 @@
 // AsfDemuxerBase.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/asf/AsfDemuxerBase.h"
+#include "ppbox/demux/asf/AsfDemuxer.h"
 using namespace ppbox::demux::error;
 
 #include <ppbox/avformat/asf/AsfGuid.h>
@@ -22,16 +22,30 @@ namespace ppbox
     namespace demux
     {
 
-        error_code AsfDemuxerBase::open(
-            error_code & ec,
-            open_response_type const & resp)
+        AsfDemuxer::AsfDemuxer(
+            std::basic_streambuf<boost::uint8_t> & buf)
+            : DemuxerBase(buf)
+            , archive_(buf)
+            , open_step_(size_t(-1))
+            , object_parse_(file_prop_)
+            , buffer_parse_(file_prop_)
+            , timestamp_offset_ms_(boost::uint64_t(-1))
+        {
+        }
+
+        AsfDemuxer::~AsfDemuxer()
+        {
+        }
+
+        error_code AsfDemuxer::open(
+            error_code & ec)
         {
             open_step_ = 0;
             is_open(ec);
             return ec;
         }
 
-        bool AsfDemuxerBase::is_open(
+        bool AsfDemuxer::is_open(
             error_code & ec)
         {
             if (open_step_ == 2) {
@@ -55,7 +69,7 @@ namespace ppbox
                     ec = file_stream_error;
                     return false;
                 }
-                boost::uint32_t offset = archive_.tellg();
+                boost::uint64_t offset = archive_.tellg();
                 if (!archive_.seekg(std::ios::off_type(header_.ObjLength), std::ios_base::beg)) {
                     archive_.clear();
                     ec = file_stream_error;
@@ -81,7 +95,7 @@ namespace ppbox
                         //streams_[obj_data.Flag.StreamNumber].get_start_sample(start_samples_);
                         stream_map_.push_back(obj_data.Flag.StreamNumber);
                     }
-                    offset += (boost::uint32_t)obj_head.ObjLength;
+                    offset += (boost::uint64_t)obj_head.ObjLength;
                     archive_.seekg(offset, std::ios_base::beg);
                 }
 
@@ -176,14 +190,14 @@ namespace ppbox
             }
         }
 
-        error_code AsfDemuxerBase::close(
+        error_code AsfDemuxer::close(
             error_code & ec)
         {
             open_step_ = size_t(-1);
             return ec = error_code();
         }
 
-        error_code AsfDemuxerBase::get_sample(
+        error_code AsfDemuxer::get_sample(
             Sample & sample, 
             error_code & ec)
         {
@@ -247,7 +261,7 @@ namespace ppbox
                     if (is_discontinuity_)
                         sample.flags |= Sample::discontinuity;
                     boost::uint64_t timestamp = object_parse_.timestamp.transfer(object_parse_.payload.PresTime);
-                    sample.time = (boost::uint32_t)timestamp - stream.time_offset_ms;
+                    sample.time = (boost::uint64_t)timestamp - stream.time_offset_ms;
                     sample.ustime = (timestamp - stream.time_offset_ms) * 1000;
                     sample.dts = timestamp - stream.time_offset_ms;
                     sample.cts_delta = boost::uint32_t(-1);
@@ -266,7 +280,7 @@ namespace ppbox
             return ec = error_code();
         }
 
-        size_t AsfDemuxerBase::get_stream_count(
+        size_t AsfDemuxer::get_stream_count(
             error_code & ec)
         {
             if (is_open(ec))
@@ -274,7 +288,7 @@ namespace ppbox
             return 0;
         }
 
-        error_code AsfDemuxerBase::get_stream_info(
+        error_code AsfDemuxer::get_stream_info(
             size_t index, 
             StreamInfo & info, 
             error_code & ec)
@@ -293,7 +307,7 @@ namespace ppbox
                             &info.format_data.at(0),
                             info.format_data.size(),
                             config_list);
-                        AvcConfig avc_config((boost::uint32_t)framework::memory::MemoryPage::align_page(info.format_data.size() * 2));
+                        AvcConfig avc_config((boost::uint64_t)framework::memory::MemoryPage::align_page(info.format_data.size() * 2));
                         if (config_list.size() >= 2) {
                             Buffer_Array spss;
                             Buffer_Array ppss;
@@ -313,14 +327,14 @@ namespace ppbox
             return ec;
         }
 
-        boost::uint32_t AsfDemuxerBase::get_duration(
+        boost::uint64_t AsfDemuxer::get_duration(
             error_code & ec)
         {
             ec = error::not_support;
             return 0;
         }
 
-        boost::uint32_t AsfDemuxerBase::get_end_time(
+        boost::uint64_t AsfDemuxer::get_end_time(
             error_code & ec)
         {
             if (!is_open(ec)) {
@@ -354,7 +368,7 @@ namespace ppbox
             }
         }
 
-        boost::uint32_t AsfDemuxerBase::get_cur_time(
+        boost::uint64_t AsfDemuxer::get_cur_time(
             error_code & ec)
         {
             if (is_open(ec) && object_parse_.payload.StreamNum < streams_.size()) {
@@ -364,28 +378,28 @@ namespace ppbox
             return 0;
         }
 
-        boost::uint64_t AsfDemuxerBase::seek(
-            boost::uint32_t & time, 
+        boost::uint64_t AsfDemuxer::seek(
+            boost::uint64_t & time, 
             error_code & ec)
         {
             ec = error::not_support;
             return 0;
         }
 
-        boost::uint64_t AsfDemuxerBase::get_offset(
-            boost::uint32_t & time, 
-            boost::uint32_t & delta, 
+        boost::uint64_t AsfDemuxer::get_offset(
+            boost::uint64_t & time, 
+            boost::uint64_t & delta, 
             boost::system::error_code & ec)
         {
             ec = error::not_support;
             return 0;
         }
 
-        void AsfDemuxerBase::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
+        void AsfDemuxer::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
         {
         }
 
-        error_code AsfDemuxerBase::next_packet(
+        error_code AsfDemuxer::next_packet(
             ParseStatus & parse_status,  
             error_code & ec)
         {
@@ -401,7 +415,7 @@ namespace ppbox
             }
         }
 
-        error_code AsfDemuxerBase::next_payload(
+        error_code AsfDemuxer::next_payload(
             ParseStatus & parse_status,  
             error_code & ec)
         {
