@@ -163,55 +163,6 @@ namespace ppbox
             return true;
         }
 
-        error_code FlvDemuxer::get_tag(
-            FlvTag & flv_tag,
-            error_code & ec)
-        {
-            if (archive_ >> flv_tag) {
-                ec.clear();
-                return ec;
-            } else if (archive_.failed()) {
-                archive_.clear();
-                return ec = error::bad_file_format;
-            } else {
-                archive_.clear();
-                return ec = error::file_stream_error;
-            }
-        }
-
-        void FlvDemuxer::parse_metadata(
-            FlvTag const & metadata_tag)
-        {
-            std::vector<FlvDataObjectProperty> const & variables = 
-                (metadata_tag.DataTag.Value.Type == AMFDataType::MIXEDARRAY)
-                    ? metadata_tag.DataTag.Value.ECMAArray.Variables
-                    : metadata_tag.DataTag.Value.Object.ObjectProperties;
-            for (size_t i = 0; i < variables.size(); ++i) {
-                FlvDataObjectProperty const & property = variables[i];
-                if (property.PropertyName.StringData == "datarate") {
-                    metadata_.datarate = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "width") {
-                    metadata_.width = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "height") {
-                    metadata_.height = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "framerate") {
-                    metadata_.framerate = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "audiosamplerate") {
-                    metadata_.audiosamplerate = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "audiosamplesize") {
-                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "audiosamplesize") {
-                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
-                }
-            }
-        }
-
         error_code FlvDemuxer::close(error_code & ec)
         {
             header_offset_ = 0;
@@ -222,9 +173,62 @@ namespace ppbox
             return ec;
         }
 
+        error_code FlvDemuxer::reset(
+            error_code & ec)
+        {
+            ec.clear();
+            parse_offset_ = header_offset_;
+            return ec;
+        }
+
+        boost::uint64_t FlvDemuxer::seek(
+            boost::uint64_t & time, 
+            error_code & ec)
+        {
+            if (time == 0) {
+                ec.clear();
+                parse_offset_ = header_offset_;
+                return header_offset_;
+            } else {
+                ec = error::not_support;
+                return 0;
+            }
+        }
+
+        boost::uint64_t FlvDemuxer::get_duration(
+            error_code & ec)
+        {
+            ec = error::not_support;
+            return 0;
+        }
+
+        size_t FlvDemuxer::get_stream_count(error_code & ec)
+        {
+            if (is_open(ec)) {
+                return stream_map_.size();
+            } else {
+                return 0;
+            }
+        }
+
+        error_code FlvDemuxer::get_stream_info(
+            size_t index, 
+            StreamInfo & info, 
+            error_code & ec)
+        {
+            if (is_open(ec)) {
+                if (index >= stream_map_.size()) {
+                    ec = framework::system::logic_error::out_of_range;
+                } else {
+                    info = streams_[stream_map_[index]];
+                }
+            }
+            return ec;
+        }
+
         error_code FlvDemuxer::get_sample(
             Sample & sample, 
-            boost::system::error_code & ec)
+            error_code & ec)
         {
             if (!is_open(ec)) {
                 return ec;
@@ -289,39 +293,8 @@ namespace ppbox
             return ec;
         }
 
-        size_t FlvDemuxer::get_stream_count(error_code & ec)
-        {
-            if (is_open(ec)) {
-                return stream_map_.size();
-            } else {
-                return 0;
-            }
-        }
-
-        error_code FlvDemuxer::get_stream_info(
-            size_t index, 
-            StreamInfo & info, 
-            boost::system::error_code & ec)
-        {
-            if (is_open(ec)) {
-                if (index >= stream_map_.size()) {
-                    ec = framework::system::logic_error::out_of_range;
-                } else {
-                    info = streams_[stream_map_[index]];
-                }
-            }
-            return ec;
-        }
-
-        boost::uint64_t FlvDemuxer::get_duration(
-            boost::system::error_code & ec)
-        {
-            ec = error::not_support;
-            return 0;
-        }
-
         boost::uint64_t FlvDemuxer::get_end_time(
-            boost::system::error_code & ec)
+            error_code & ec)
         {
             if (!is_open(ec)) {
                 return 0;
@@ -343,7 +316,7 @@ namespace ppbox
         }
 
         boost::uint64_t FlvDemuxer::get_cur_time(
-            boost::system::error_code & ec)
+            error_code & ec)
         {
             if (is_open(ec)) {
                 // return flv_tag_.Timestamp - timestamp_offset_ms_;
@@ -352,24 +325,10 @@ namespace ppbox
             return 0;
         }
 
-        boost::uint64_t FlvDemuxer::seek(
-            boost::uint64_t & time, 
-            boost::system::error_code & ec)
-        {
-            if (time == 0) {
-                ec.clear();
-                parse_offset_ = header_offset_;
-                return header_offset_;
-            } else {
-                ec = error::not_support;
-                return 0;
-            }
-        }
-
         boost::uint64_t FlvDemuxer::get_offset(
             boost::uint64_t & time, 
             boost::uint64_t & delta, 
-            boost::system::error_code & ec)
+            error_code & ec)
         {
             ec = error::not_support;
             return 0;
@@ -389,5 +348,55 @@ namespace ppbox
         {
             return (boost::uint64_t)timestamp_offset_ms_ * 1000;
         }
+
+        error_code FlvDemuxer::get_tag(
+            FlvTag & flv_tag,
+            error_code & ec)
+        {
+            if (archive_ >> flv_tag) {
+                ec.clear();
+                return ec;
+            } else if (archive_.failed()) {
+                archive_.clear();
+                return ec = error::bad_file_format;
+            } else {
+                archive_.clear();
+                return ec = error::file_stream_error;
+            }
+        }
+
+        void FlvDemuxer::parse_metadata(
+            FlvTag const & metadata_tag)
+        {
+            std::vector<FlvDataObjectProperty> const & variables = 
+                (metadata_tag.DataTag.Value.Type == AMFDataType::MIXEDARRAY)
+                ? metadata_tag.DataTag.Value.ECMAArray.Variables
+                : metadata_tag.DataTag.Value.Object.ObjectProperties;
+            for (size_t i = 0; i < variables.size(); ++i) {
+                FlvDataObjectProperty const & property = variables[i];
+                if (property.PropertyName.StringData == "datarate") {
+                    metadata_.datarate = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "width") {
+                    metadata_.width = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "height") {
+                    metadata_.height = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "framerate") {
+                    metadata_.framerate = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "audiosamplerate") {
+                    metadata_.audiosamplerate = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "audiosamplesize") {
+                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
+                }
+                if (property.PropertyName.StringData == "audiosamplesize") {
+                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
+                }
+            }
+        }
+
     }
 }

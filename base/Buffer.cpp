@@ -21,9 +21,7 @@ namespace ppbox
             , data_end_(0)
         {
             buffer_ = (char *)memory_.alloc_block(buffer_size_);
-            read_.buffer = buffer_beg();
-            read_.offset = 0;
-            write_hole_.this_end = boost::uint64_t(-1);
+            reset(0);
         }
 
         Buffer::~Buffer()
@@ -379,32 +377,6 @@ namespace ppbox
                 memcpy(p.buffer, src, size1);
                 memcpy(buffer_beg(), (char const *)src + size1, size - size1);
             }
-        }
-
-        // 循环前移
-        char * Buffer::buffer_move_front(
-            char * buffer, 
-            boost::uint64_t offset) const
-        {
-            buffer += offset;
-            if ((long)buffer >= (long)buffer_end()) {
-                buffer -= buffer_size_;
-            }
-            assert((long)buffer >= (long)buffer_beg() && (long)buffer < (long)buffer_end());
-            return buffer;
-        }
-
-        // 循环后移
-        char * Buffer::buffer_move_back(
-            char * buffer, 
-            boost::uint64_t offset) const
-        {
-            buffer -= offset;
-            if ((long)buffer < (long)buffer_beg()) {
-                buffer += buffer_size_;
-            }
-            assert((long)buffer >= (long)buffer_beg() && (long)buffer < (long)buffer_end());
-            return buffer;
         }
 
         void Buffer::move_back(

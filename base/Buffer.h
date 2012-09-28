@@ -271,6 +271,33 @@ namespace ppbox
             }
 
         private:
+            // 循环前移
+            char * buffer_move_front(
+                char * buffer, 
+                boost::uint64_t offset) const
+            {
+                buffer += offset;
+                if ((long)buffer >= (long)buffer_end()) {
+                    buffer -= buffer_size_;
+                }
+                assert((long)buffer >= (long)buffer_beg() && (long)buffer < (long)buffer_end());
+                return buffer;
+            }
+
+            // 循环后移
+            char * buffer_move_back(
+                char * buffer, 
+                boost::uint64_t offset) const
+            {
+                buffer -= offset;
+                if ((long)buffer < (long)buffer_beg()) {
+                    buffer += buffer_size_;
+                }
+                assert((long)buffer >= (long)buffer_beg() && (long)buffer < (long)buffer_end());
+                return buffer;
+            }
+
+        private:
             boost::uint64_t read_write_hole(
                 boost::uint64_t offset, 
                 Hole & hole) const;
@@ -306,16 +333,6 @@ namespace ppbox
                 boost::uint64_t offset, 
                 boost::uint32_t size, 
                 void const * src);
-
-            // 循环前移
-            char * buffer_move_front(
-                char * buffer, 
-                boost::uint64_t offset) const;
-
-            // 循环后移
-            char * buffer_move_back(
-                char * buffer, 
-                boost::uint64_t offset) const;
 
             void move_back(
                 Position & position, 

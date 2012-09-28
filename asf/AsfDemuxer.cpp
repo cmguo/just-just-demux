@@ -197,6 +197,75 @@ namespace ppbox
             return ec = error_code();
         }
 
+        error_code AsfDemuxer::reset(
+            error_code & ec)
+        {
+            ec = error::not_support;
+            return ec;
+        }
+
+        boost::uint64_t AsfDemuxer::seek(
+            boost::uint64_t & time, 
+            error_code & ec)
+        {
+            ec = error::not_support;
+            return 0;
+        }
+
+        boost::uint64_t AsfDemuxer::get_duration(
+            error_code & ec)
+        {
+            ec = error::not_support;
+            return 0;
+        }
+
+        size_t AsfDemuxer::get_stream_count(
+            error_code & ec)
+        {
+            if (is_open(ec))
+                return stream_map_.size();
+            return 0;
+        }
+
+        error_code AsfDemuxer::get_stream_info(
+            size_t index, 
+            StreamInfo & info, 
+            error_code & ec)
+        {
+            if (is_open(ec)) {
+                if (index >= stream_map_.size()) {
+                    ec = framework::system::logic_error::out_of_range;
+                } else {
+                    info = streams_[stream_map_[index]];
+                    // 添加直播的配置信息
+                    if (MEDIA_TYPE_VIDE == info.type) {
+                        info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
+                        // change to avc config
+                        Buffer_Array config_list;
+                        H264Nalu::process_live_video_config(
+                            &info.format_data.at(0),
+                            info.format_data.size(),
+                            config_list);
+                        AvcConfig avc_config((boost::uint64_t)framework::memory::MemoryPage::align_page(info.format_data.size() * 2));
+                        if (config_list.size() >= 2) {
+                            Buffer_Array spss;
+                            Buffer_Array ppss;
+                            spss.push_back(config_list[config_list.size()-2]);
+                            ppss.push_back(config_list[config_list.size()-1]);
+                            avc_config.creat(0x01, 0x64, 0x00, 0x15, 0x04, spss, ppss);
+                            info.format_data.resize(avc_config.data_size());
+                            memcpy(&info.format_data.at(0), avc_config.data(), avc_config.data_size());
+                        } else {
+                            info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
+                        }
+                    } else if (MEDIA_TYPE_AUDI == info.type) {
+                        info.format_data = streams_[stream_map_[index]].Audio_Media_Type.CodecSpecificData;
+                    }
+                }
+            }
+            return ec;
+        }
+
         error_code AsfDemuxer::get_sample(
             Sample & sample, 
             error_code & ec)
@@ -280,57 +349,13 @@ namespace ppbox
             return ec = error_code();
         }
 
-        size_t AsfDemuxer::get_stream_count(
+        boost::uint64_t AsfDemuxer::get_cur_time(
             error_code & ec)
         {
-            if (is_open(ec))
-                return stream_map_.size();
-            return 0;
-        }
-
-        error_code AsfDemuxer::get_stream_info(
-            size_t index, 
-            StreamInfo & info, 
-            error_code & ec)
-        {
-            if (is_open(ec)) {
-                if (index >= stream_map_.size()) {
-                    ec = framework::system::logic_error::out_of_range;
-                } else {
-                    info = streams_[stream_map_[index]];
-                    // 添加直播的配置信息
-                    if (MEDIA_TYPE_VIDE == info.type) {
-                        info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
-                        // change to avc config
-                        Buffer_Array config_list;
-                        H264Nalu::process_live_video_config(
-                            &info.format_data.at(0),
-                            info.format_data.size(),
-                            config_list);
-                        AvcConfig avc_config((boost::uint64_t)framework::memory::MemoryPage::align_page(info.format_data.size() * 2));
-                        if (config_list.size() >= 2) {
-                            Buffer_Array spss;
-                            Buffer_Array ppss;
-                            spss.push_back(config_list[config_list.size()-2]);
-                            ppss.push_back(config_list[config_list.size()-1]);
-                            avc_config.creat(0x01, 0x64, 0x00, 0x15, 0x04, spss, ppss);
-                            info.format_data.resize(avc_config.data_size());
-                            memcpy(&info.format_data.at(0), avc_config.data(), avc_config.data_size());
-                        } else {
-                            info.format_data = streams_[stream_map_[index]].Video_Media_Type.FormatData.CodecSpecificData;
-                        }
-                    } else if (MEDIA_TYPE_AUDI == info.type) {
-                        info.format_data = streams_[stream_map_[index]].Audio_Media_Type.CodecSpecificData;
-                    }
-                }
+            if (is_open(ec) && object_parse_.payload.StreamNum < streams_.size()) {
+                AsfStream & stream = streams_[object_parse_.payload.StreamNum];
+                return object_parse_.payload.PresTime - stream.time_offset_ms;
             }
-            return ec;
-        }
-
-        boost::uint64_t AsfDemuxer::get_duration(
-            error_code & ec)
-        {
-            ec = error::not_support;
             return 0;
         }
 
@@ -366,24 +391,6 @@ namespace ppbox
                 ec = bad_file_format;
                 return 0;
             }
-        }
-
-        boost::uint64_t AsfDemuxer::get_cur_time(
-            error_code & ec)
-        {
-            if (is_open(ec) && object_parse_.payload.StreamNum < streams_.size()) {
-                AsfStream & stream = streams_[object_parse_.payload.StreamNum];
-                return object_parse_.payload.PresTime - stream.time_offset_ms;
-            }
-            return 0;
-        }
-
-        boost::uint64_t AsfDemuxer::seek(
-            boost::uint64_t & time, 
-            error_code & ec)
-        {
-            ec = error::not_support;
-            return 0;
         }
 
         boost::uint64_t AsfDemuxer::get_offset(

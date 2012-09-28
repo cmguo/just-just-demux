@@ -41,7 +41,7 @@ namespace ppbox
             ticker_ = new framework::timer::Ticker(1000);
             events_.reset(new EventQueue);
 
-            source_ = new ppbox::data::SegmentSource(io_svc);
+            source_ = new ppbox::data::SegmentSource(io_svc, media);
             root_content_ = new DemuxStrategy(media);
             buffer_ = new SegmentBuffer(source_, 10 * 1024 * 1024, 10240);
         }
@@ -105,10 +105,7 @@ namespace ppbox
         {
             resp_ = resp;
             boost::system::error_code ec;
-            open_state_ = source_open;
-            DemuxStatistic::open_beg();
-            root_content_->media().async_open(
-                boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
+            handle_async_open(ec);
         }
 
         bool SegmentDemuxer::is_open(
@@ -166,40 +163,48 @@ namespace ppbox
             if (ec) {
                 last_error(ec);
                 resp_(ec);
-            } else {
-                boost::system::error_code ec1;
-                boost::system::error_code ec2;
-                boost::uint32_t stream_count = 0;
-                switch(open_state_) {
-                    case source_open:
-                        open_state_ = demuxer_open;
-                        read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec1);
-                        write_demuxer_ = read_demuxer_;
-                        ++write_demuxer_->nref;
-                        buffer_->async_prepare_at_least(0, boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
-                        break;
-                    case demuxer_open:
-                        read_demuxer_->demuxer->is_open(ec2);
-                        if (ec2) {
-                            buffer_->async_prepare_at_least(0, boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
-                        } else {
-                            stream_count = read_demuxer_->demuxer->get_stream_count(ec2);
-                            if (!ec2) {
-                                StreamInfo info;
-                                for (boost::uint32_t i = 0; i < stream_count; i++) {
-                                    read_demuxer_->demuxer->get_stream_info(i, info, ec2);
-                                    stream_infos_.push_back(info);
-                                }
-                                open_state_ = open_finished;
-                                open_end();
+                return;
+            }
+
+            switch(open_state_) {
+                case not_open:
+                    open_state_ = source_open;
+                    DemuxStatistic::open_beg();
+                    media_.async_open(
+                        boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
+                    break;
+                case source_open:
+                    open_state_ = demuxer_open;
+                    media_.get_info(media_info_, ec);
+                    source_->set_non_block(true, ec);
+                    if (!ec) {
+                        reset(ec);
+                    }
+                case demuxer_open:
+                    if (!ec && read_demuxer_->demuxer->is_open(ec)) {
+                        size_t stream_count = read_demuxer_->demuxer->get_stream_count(ec);
+                        if (!ec) {
+                            StreamInfo info;
+                            for (boost::uint32_t i = 0; i < stream_count; i++) {
+                                read_demuxer_->demuxer->get_stream_info(i, info, ec);
+                                stream_infos_.push_back(info);
                             }
-                            response(ec);
                         }
-                        break;
-                    default:
-                        assert(0);
-                        break;
-                }
+                        open_state_ = open_finished;
+                        open_end();
+                        response(ec);
+                    } else if (ec == error::file_stream_error) {
+                        buffer_->async_prepare_at_least(0, 
+                            boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
+                    } else {
+                        open_state_ = open_finished;
+                        open_end();
+                        response(ec);
+                    }
+                    break;
+                default:
+                    assert(0);
+                    break;
             }
         }
 
@@ -229,14 +234,16 @@ namespace ppbox
             SegmentPosition base(buffer_->base_segment());
             SegmentPosition pos(buffer_->read_segment());
             if (!root_content_->time_seek(time, base, pos, ec) 
-                || !buffer_->seek(base, pos, 0, ec)) {
+                || !buffer_->seek(base, pos, ec)) {
                     last_error(ec);
                     return ec;
             }
+            if (read_demuxer_)
+                free_demuxer(read_demuxer_, ec);
             read_demuxer_ = alloc_demuxer(pos, true, ec);
             if (read_demuxer_->demuxer->is_open(ec)) {
                 assert(time >= pos.big_time_beg() && pos.big_time_end() >= time);
-                boost::uint64_t time_t = time - boost::uint32_t(pos.big_time_beg());
+                boost::uint64_t time_t = time - pos.big_time_beg();
                 boost::uint64_t offset = read_demuxer_->demuxer->seek(time_t, ec);
                 if (!ec) {
                     time = pos.big_time_beg() + time_t;
@@ -369,6 +376,7 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
+            buffer_->drop(ec);
             buffer_->prepare_at_least(0, ec);
             if (seek_time_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -377,8 +385,6 @@ namespace ppbox
                 return ec;
             }
 
-            boost::system::error_code ec1;
-            buffer_->drop(ec1);
             while (read_demuxer_->demuxer->get_sample(sample, ec)) {
                 if (ec != ppbox::demux::error::file_stream_error
                     && ec != error::no_more_sample) {
@@ -387,7 +393,7 @@ namespace ppbox
                 if (buffer_->read_segment() != buffer_->write_segment()) {
                     std::cout << "finish segment " << buffer_->read_segment().index << std::endl;
                     boost::uint64_t cur_time = read_demuxer_->demuxer->get_cur_time(ec);
-                    buffer_->drop_all(ec1);
+                    buffer_->drop_all(ec);
                     if (buffer_->read_segment().current) {
                         read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
                         continue;

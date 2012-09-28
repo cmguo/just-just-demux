@@ -23,7 +23,13 @@ namespace ppbox
     namespace demux
     {
 
-        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("SegmentBuffer", 0)
+        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("SegmentBuffer", 0);
+
+        static SourceBase * create_source(
+            MediaBase const & media)
+        {
+
+        }
 
         SegmentBuffer::SegmentBuffer(
             ppbox::data::SegmentSource * source, 
@@ -50,26 +56,25 @@ namespace ppbox
         // 目前只发生在，seek到一个分段，还没有该分段头部数据时，
         // 此时size为head_size_头部数据大小
         // TO BE FIXED
-        boost::system::error_code SegmentBuffer::seek(
+        bool SegmentBuffer::seek(
             segment_t const & base,
             segment_t const & pos,
             boost::uint64_t size, 
             boost::system::error_code & ec)
         {
-            ec.clear();
             if (base != base_) {
                 boost::system::error_code ec1;
                 reset(base, pos);
-                //source_->seek(pos, size, ec);
-                return ec;
+                source_->seek(pos, size, ec);
+                return !ec;
             }
 
             bool write_change = Buffer::seek(pos.big_pos());
 
-            while (segments_.front().big_end() <= data_begin()) {
+            while (!segments_.empty() && segments_.front().big_end() <= data_begin()) {
                 segments_.pop_front();
             }
-            while (segments_.back().big_beg() >= data_end()) {
+            while (!segments_.empty() && segments_.back().big_beg() >= data_end()) {
                 segments_.pop_back();
             }
 
@@ -79,23 +84,18 @@ namespace ppbox
             if (write_change) {
                 // 调整了写指针，需要从新的位置开始下载
                 if (segments_.back().big_end() > out_position()) {
-                    //source_->seek(segments_.back(), size, ec);
+                    source_->seek(segments_.back(), size, ec);
                     update_write(segments_.back());
-                } else {
-                    //source_->byte_seek(out_position(), size, ec);
-                    segment_t seg;
-                    source_->current_segment(seg);
-                    update_write(seg); 
                 }
                 write_stream_->seek(0);
             }
 
-            return ec;
+            return !ec;
         }
 
         // seek到分段的具体位置offset
         // TO BE FIXED
-        boost::system::error_code SegmentBuffer::seek(
+        bool SegmentBuffer::seek(
             segment_t const & base,
             segment_t const & pos, 
             boost::system::error_code & ec)
@@ -141,7 +141,7 @@ namespace ppbox
             resp(ec, 0);
         }
 
-        boost::system::error_code SegmentBuffer::data(
+        bool SegmentBuffer::data(
             boost::uint64_t offset, 
             boost::uint32_t size, 
             std::deque<boost::asio::const_buffer> & data, 
@@ -163,10 +163,10 @@ namespace ppbox
                     ec.clear();
                 }
             }
-            return ec;
+            return !ec;
         }
 
-        boost::system::error_code SegmentBuffer::drop(
+        bool SegmentBuffer::drop(
             boost::system::error_code & ec)
         {
             read_.small_offset = read_stream_->position();
@@ -178,7 +178,7 @@ namespace ppbox
             } else {
                 ec = framework::system::logic_error::out_of_range;
             }
-            return ec;
+            return !ec;
         }
 
         /**
@@ -186,7 +186,7 @@ namespace ppbox
         丢弃当前分段的所有剩余数据，并且更新当前分段信息
         */
         // TO BE FIXED
-        boost::system::error_code SegmentBuffer::drop_all(
+        bool SegmentBuffer::drop_all(
             boost::system::error_code & ec)
         {
             // TODO
@@ -202,7 +202,7 @@ namespace ppbox
             } else {
                 ec = framework::system::logic_error::out_of_range;
             }
-            return ec;
+            return !ec;
         }
 
         void SegmentBuffer::reset(

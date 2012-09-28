@@ -115,7 +115,6 @@ namespace ppbox
 
         public:
             virtual bool next_segment(
-                bool is_next,
                 ppbox::data::SegmentInfoEx & info)
             {
                 return false;

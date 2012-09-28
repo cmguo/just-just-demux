@@ -50,7 +50,7 @@ namespace ppbox
             // 目前只发生在，seek到一个分段，还没有该分段头部数据时，
             // 此时size为head_size_头部数据大小
             // TO BE FIXED
-            boost::system::error_code seek(
+            bool seek(
                 segment_t const & base,
                 segment_t const & pos,
                 boost::uint64_t end, 
@@ -58,7 +58,7 @@ namespace ppbox
 
             // seek到分段的具体位置offset
             // TO BE FIXED
-            boost::system::error_code seek(
+            bool seek(
                 segment_t const & base,
                 segment_t const & pos, 
                 boost::system::error_code & ec);
@@ -87,20 +87,20 @@ namespace ppbox
                 async_prepare(amount > prepare_size_ ? amount : prepare_size_, resp);
             }
 
-            boost::system::error_code data(
+            bool data(
                 boost::uint64_t offset, 
                 boost::uint32_t size, 
                 std::deque<boost::asio::const_buffer> & data, 
                 boost::system::error_code & ec);
 
-            boost::system::error_code drop(
+            bool drop(
                 boost::system::error_code & ec);
 
             /**
                 drop_all 
                 丢弃当前分段的所有剩余数据，并且更新当前分段信息
              */
-            boost::system::error_code drop_all(
+            bool drop_all(
                 boost::system::error_code & ec);
 
             void reset(

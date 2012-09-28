@@ -19,10 +19,19 @@ namespace ppbox
             if (where) {
                 where->prev_sibling_ = child;
                 child->prev_sibling_ = where->prev_sibling_;
-                where->prev_sibling_->next_sibling_ = child;
+                if (where->prev_sibling_) {
+                    where->prev_sibling_->next_sibling_ = child;
+                } else {
+                    first_child_ = child;
+                }
             } else {
-                child->prev_sibling_ = NULL;
-                first_child_ = child;
+                child->prev_sibling_ = last_child_;
+                if (last_child_) {
+                    last_child_->next_sibling_ = child;
+                } else {
+                    first_child_ = child;
+                }
+                last_child_ = child;
             }
         }
 
@@ -44,6 +53,13 @@ namespace ppbox
         void SourceTreeItem::next_source(
             SourceTreePosition & position)
         {
+            if (!position.current) { // 回滚到开始
+                assert(position.prev_child == this);
+                position.current = this;
+                position.prev_child = NULL;
+                position.next_child = first_child_;
+                return;
+            }
             assert(position.current == this);
             position.current = NULL;
             while (position.next_child) { // 父切子
