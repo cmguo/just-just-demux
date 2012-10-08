@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_MODULE_H_
 #define _PPBOX_DEMUX_DEMUXER_MODULE_H_
 
-#include <framework/network/NetName.h>
+#include <framework/string/Url.h>
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -11,12 +11,6 @@
 
 namespace ppbox
 {
-    namespace data
-    {
-        class MediaBase;
-        class SourceBase;
-    }
-
     namespace demux
     {
 
@@ -49,12 +43,12 @@ namespace ppbox
 
         public:
             SegmentDemuxer * open(
-                std::string const & play_link, 
+                framework::string::Url const & play_link, 
                 size_t & close_token, 
                 boost::system::error_code & ec);
 
             void async_open(
-                std::string const & play_link, 
+                framework::string::Url const & play_link, 
                 size_t & close_token, 
                 open_response_type const & resp);
 
@@ -63,14 +57,14 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             SegmentDemuxer * find(
-                std::string play_link);
+                framework::string::Url const & play_link);
 
         public:
             struct DemuxInfo;
 
         private:
             DemuxInfo * create(
-                std::string const & play_link, 
+                framework::string::Url const & play_link, 
                 open_response_type const & resp, 
                 boost::system::error_code & ec);
 
@@ -80,6 +74,7 @@ namespace ppbox
                 Strategy * source);
 
             void async_open(
+                boost::mutex::scoped_lock & lock, 
                 DemuxInfo * info);
 
             void handle_open(

@@ -48,7 +48,7 @@ namespace ppbox
             size_t id;
             StatusEnum status;
             SegmentDemuxer * demuxer;
-            std::string play_link;
+            framework::string::Url play_link;
             DemuxModule::open_response_type resp;
             error_code ec;
 
@@ -154,7 +154,7 @@ namespace ppbox
         };
 
         SegmentDemuxer * DemuxModule::open(
-            std::string const & play_link, 
+            framework::string::Url const & play_link, 
             size_t & close_token, 
             error_code & ec)
         {
@@ -162,27 +162,29 @@ namespace ppbox
             SyncResponse resp(ec, demuxer, cond_, mutex_);
             DemuxInfo * info = create(play_link, boost::ref(resp), ec);
             close_token = info->id;
+            boost::mutex::scoped_lock lock(mutex_);
+            demuxers_.push_back(info);
             if (!ec) {
-                boost::mutex::scoped_lock lock(mutex_);
-                async_open(info);
+                async_open(lock, info);
                 resp.wait(lock);
             }
             return demuxer;
         }
 
         void DemuxModule::async_open(
-            std::string const & play_link, 
+            framework::string::Url const & play_link, 
             size_t & close_token, 
             open_response_type const & resp)
         {
             error_code ec;
             DemuxInfo * info = create(play_link, resp, ec);
             close_token = info->id;
+            boost::mutex::scoped_lock lock(mutex_);
+            demuxers_.push_back(info);
             if (ec) {
                 io_svc().post(boost::bind(resp, ec, info->demuxer));
             } else {
-                boost::mutex::scoped_lock lock(mutex_);
-                async_open(info);
+                async_open(lock, info);
             }
         }
 
@@ -203,34 +205,29 @@ namespace ppbox
         }
 
         DemuxModule::DemuxInfo * DemuxModule::create(
-            std::string const & play_link, 
+            framework::string::Url const & play_link, 
             open_response_type const & resp, 
             error_code & ec)
         {
-            framework::string::Url url(play_link);
-            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), url);
+            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), play_link);
             SegmentDemuxer * demuxer = new SegmentDemuxer(io_svc(), *media);
             boost::mutex::scoped_lock lock(mutex_);
-            // new shared_stat需要加锁
             DemuxInfo * info = new DemuxInfo(demuxer);
             info->play_link = play_link;
-            info->status = DemuxInfo::opening;
             info->resp = resp;
-            demuxers_.push_back(info);
             return info;
         }
 
         void DemuxModule::async_open(
+            boost::mutex::scoped_lock & lock, 
             DemuxInfo * info)
         {
-            error_code ec;
             SegmentDemuxer * demuxer = info->demuxer;
-            if (!ec) {
-                demuxer->async_open(
-                    boost::bind(&DemuxModule::handle_open, this, _1, info));
-            } else {
-                io_svc().post(boost::bind(&DemuxModule::handle_open, this, ec, info));
-            }
+            lock.unlock();
+            demuxer->async_open(
+                boost::bind(&DemuxModule::handle_open, this, _1, info));
+            lock.lock();
+            info->status = DemuxInfo::opening;
         }
 
         void DemuxModule::handle_open(
@@ -302,8 +299,7 @@ namespace ppbox
             error_code & ec)
         {
             SegmentDemuxer * demuxer = info->demuxer;
-            if (info->play_link.empty()) //表示demuxer曾经做过open,所以需要close
-                demuxer->close(ec);
+            demuxer->close(ec);
             return ec;
         }
 
@@ -322,7 +318,7 @@ namespace ppbox
         }
 
         SegmentDemuxer * DemuxModule::find(
-            std::string play_link)
+            framework::string::Url const & play_link)
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();

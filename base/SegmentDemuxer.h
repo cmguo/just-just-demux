@@ -132,6 +132,11 @@ namespace ppbox
                 return *buffer_;
             }
 
+            ppbox::data::SegmentSource const & source() const
+            {
+                return *source_;
+            }
+
         public:
             virtual void on_event(
                 util::event::Event const & event);
