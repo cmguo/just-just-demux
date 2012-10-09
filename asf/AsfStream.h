@@ -85,7 +85,7 @@ namespace ppbox
                                 sub_type = VIDEO_TYPE_NONE;
                                 break;
                         }
-                        format_data = TypeSpecificData;
+                        format_data = Video_Media_Type.FormatData.CodecSpecificData;
                         time_scale = 1000;
                     } else if (ASF_Audio_Media == StreamType) {
                         type = MEDIA_TYPE_AUDI;
@@ -107,7 +107,7 @@ namespace ppbox
                         audio_format.channel_count = Audio_Media_Type.NumberOfChannels;
                         audio_format.sample_rate = Audio_Media_Type.SamplesPerSecond;
                         audio_format.sample_size = Audio_Media_Type.BitsPerSample;
-                        format_data = TypeSpecificData;
+                        format_data = Audio_Media_Type.CodecSpecificData;
                     }
                 }
             }
