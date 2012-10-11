@@ -355,10 +355,10 @@ namespace ppbox
         void SegmentBuffer::on_event(
             util::event::Event const & e)
         {
-            if (ppbox::data::SegmentStartEvent const * event = e.cast<ppbox::data::SegmentStartEvent>()) {
+            if (ppbox::data::SegmentStartEvent const * event = e.as<ppbox::data::SegmentStartEvent>()) {
                 insert_segment((segment_t const &)event->segment);
                 find_segment(out_position(), write_);
-            } else if (ppbox::data::SegmentStopEvent const * event = e.cast<ppbox::data::SegmentStopEvent>()) {
+            } else if (ppbox::data::SegmentStopEvent const * event = e.as<ppbox::data::SegmentStopEvent>()) {
                 insert_segment((segment_t const &)event->segment);
             }
         }
