@@ -1,4 +1,4 @@
-// AsfDemuxerBase.cpp
+// AsfDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/asf/AsfDemuxer.h"
@@ -13,7 +13,7 @@ using namespace framework::logger;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("AsfDemuxerBase", 0)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.AsfDemuxer", Debug)
 
 namespace ppbox
 {

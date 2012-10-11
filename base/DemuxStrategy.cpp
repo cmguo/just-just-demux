@@ -10,7 +10,7 @@
 using namespace framework::logger;
 using namespace framework::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Strategy", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxStrategy", Debug);
 
 namespace ppbox
 {
@@ -33,9 +33,9 @@ namespace ppbox
 
         DemuxStrategy::DemuxStrategy(
             ppbox::data::MediaBase & media)
-            : ppbox::data::Strategy(media)
+            : ppbox::data::SegmentStrategy(media)
             , tree_item_(this)
-            , media_(media)
+            , insert_item_(NULL)
             , insert_segment_(0)
             , insert_size_(0)
             , insert_delta_(0)
@@ -51,42 +51,47 @@ namespace ppbox
             SegmentPosition & pos, 
             boost::system::error_code & ec)
         {
-            if (!pos.current) {
-                pos.prev_child = &tree_item_;
-                tree_item_.next_source(pos);
+            if (!pos.item()) {
+                pos.item_context = &tree_item_;
                 pos.index = -1;
-                return pos.current->owner()->next_segment(pos, ec);
-            } else if (pos.current != &tree_item_) { // 转发请求
-                return pos.current->owner()->next_segment(pos, ec);
-            } else if (pos.next_child && pos.next_child->owner()->insert_segment_ == pos.index) { // 父切子
-                pos.current->next_source(pos);
+                return pos.owner()->next_segment(pos, ec);
+            } else if (pos.owner() != this) { // 转发请求
+                return pos.owner()->next_segment(pos, ec);
+            } else if (pos.is_inserted() && pos.next_owner()->insert_segment_ == pos.index) { // 父切子
+                pos.item_context = pos.next_item();
                 pos.index = (size_t)-1;
-                return pos.current->owner()->next_segment(pos, ec);
+                return pos.owner()->next_segment(pos, ec);
             } else if (++pos.index == media_.segment_count()) { // 子切父
-                pos.current->next_source(pos);
-                if (pos.current) {
+                pos.item_context = pos.next_item();
+                if (pos.item_context) {
                     pos.index = insert_segment_ - 1;
-                    pos.current->owner()->next_segment(pos, ec);
-                    pos.begin = insert_size_ - insert_delta_; // 调整begin，big_offset也要相应调整
-                    pos.big_offset -= pos.begin;
-                    pos.time_beg = insert_time_; // 调整time_beg，big_time也要相应调整
-                    pos.big_time -= pos.time_beg;
+                    pos.owner()->next_segment(pos, ec);
+                    pos.byte_range.beg = insert_size_ - insert_delta_; // 调整begin，big_offset也要相应调整
+                    pos.byte_range.pos = pos.byte_range.beg;
+                    pos.byte_range.big_offset -= pos.byte_range.beg;
+                    pos.time_range.beg = insert_time_; // 调整time_beg，big_time也要相应调整
+                    pos.time_range.pos = pos.time_range.beg;
+                    pos.time_range.big_offset -= pos.time_range.beg;
                     return true;
                 } else {
                     ec = source_error::no_more_segment;
                     return false; // 没有父节点了
                 }
             } else {
-                pos.big_offset += pos.end;
-                pos.big_time += pos.time_end;
+                pos.byte_range.before_next();
+                pos.time_range.before_next();
                 media_.segment_info(pos.index, pos);
-                pos.begin = 0;
-                pos.end = pos.size;
-                pos.time_beg = 0;
-                pos.time_end = pos.duration;
-                if (pos.next_child && pos.next_child->owner()->insert_segment_ == pos.index) {
-                    pos.end = pos.next_child->owner()->insert_size_;
-                    pos.time_end = pos.next_child->owner()->insert_time_;
+                if (pos.url.is_valid())
+                    media_.segment_url(pos.index, pos.url, ec);
+                pos.byte_range.beg = 0;
+                pos.byte_range.pos = 0;
+                pos.byte_range.end = pos.size;
+                pos.time_range.beg = 0;
+                pos.time_range.pos = 0;
+                pos.time_range.end = pos.duration;
+                if (pos.is_inserted() && pos.next_owner()->insert_segment_ == pos.index) {
+                    pos.byte_range.end = pos.next_owner()->insert_size_;
+                    pos.time_range.end = pos.next_owner()->insert_time_;
                 }
                 ec.clear();
                 return true;
@@ -113,7 +118,9 @@ namespace ppbox
         {
             SegmentPosition old_base = base;
 
-            if (time < pos.big_time_beg()) {
+            pos.url.protocol("");
+
+            if (time < pos.time_range.big_beg()) {
                 base = SegmentPosition();
                 pos = SegmentPosition();
                 if (!next_segment(pos, ec)) {
@@ -122,15 +129,17 @@ namespace ppbox
                 }
             }
 
-            while (time >= pos.big_time_end()) {
-                if (pos.end == boost::uint64_t(-1) || pos == old_base) {
+            while (time >= pos.time_range.big_end()) {
+                if (pos.byte_range.end == boost::uint64_t(-1) || pos == old_base) {
                     base = pos;
-                    pos.big_offset = pos.end = 0;
+                    pos.byte_range.big_offset = pos.byte_range.end = 0;
                 }
                 if (!next_segment(pos, ec)) {
                     return false;
                 }
             }
+
+            media_.segment_url(pos.index, pos.url, ec);
 
             return true;
         }
@@ -142,9 +151,9 @@ namespace ppbox
         {
             tree_item_.insert_child(&child.tree_item_, NULL);                     // 插入子节点
             child.insert_segment_ = pos.index;
-            child.insert_size_ = pos.end;
-            child.insert_delta_ = pos.end - pos.begin;
-            child.insert_time_ = pos.time_beg;   // 插入分段上的时间位置（相对）
+            child.insert_size_ = pos.byte_range.end;
+            child.insert_delta_ = pos.byte_range.end - pos.byte_range.beg;
+            child.insert_time_ = pos.time_range.beg;   // 插入分段上的时间位置（相对）
             return ec;
         }
 

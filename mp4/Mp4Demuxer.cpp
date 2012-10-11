@@ -1,9 +1,12 @@
-// Mp4DemuxerBase.cpp
+// Mp4Demuxer.cpp
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/mp4/Mp4Demuxer.h"
 #include "ppbox/demux/mp4/Mp4Track.h"
 #include "ppbox/demux/mp4/Mp4StdByteStream.h"
+
+#include <ppbox/avformat/mp4/Mp4Algorithm.h>
+using namespace ppbox::avformat;
 
 #include <util/buffers/BufferCopy.h>
 #include <util/buffers/BufferSize.h>
@@ -19,7 +22,7 @@ using namespace boost::asio;
 
 #include <fstream>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Mp4DemuxerBase", 0)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", Debug)
 
 namespace ppbox
 {
@@ -96,45 +99,11 @@ namespace ppbox
             }
 
             if (open_step_ == 0) {
-                head_size_ = 8;
-                is_.seekg(head_size_, std::ios_base::beg);
-                if (!is_) {
-                    is_.clear();
-                    ec = error::file_stream_error;
-                    return false;
-                }
-                is_.seekg(head_size_ - 8, std::ios_base::beg);
-                boost::uint32_t size1_char;
-                is_.read( ( boost::uint8_t *)&size1_char, 4);
-                boost::uint32_t size1 = BytesOrder::host_to_net_long(size1_char);
-                head_size_ += size1;
-                is_.seekg(head_size_, std::ios_base::beg);
-                if (!is_) {
-                    is_.clear();
-                    ec = error::file_stream_error;
-                    return false;
-                }
-                is_.seekg(head_size_ - 8, std::ios_base::beg);
-                boost::uint32_t size2_char;
-                is_.read(( boost::uint8_t * )&size2_char, 4);
-                boost::uint32_t size2 = BytesOrder::net_to_host_long(size2_char);
-                is_.seekg(0, std::ios_base::end);
-                head_size_ += size2;
-                is_.seekg(head_size_, std::ios_base::beg);
-                if (!is_) {
-                    is_.clear();
-                    ec = error::file_stream_error;
-                    return false;
-                }
-                is_.seekg(0, std::ios_base::beg);
-                parse_head(ec);
-                if (ec) {
-                    return false;
-                } else {
-                    open_step_ = 1;
-                    boost::uint64_t duration = file_->GetMovie()->GetDurationMs();
-                    boost::uint64_t filesize = boost::uint64_t(-1);
-                    return true;
+                head_size_ = mp4_head_size(is_, ec);
+                if (!ec) {
+                    parse_head(ec);
+                    if (!ec)
+                        open_step_ = 1;
                 }
             }
             return !ec;
@@ -345,7 +314,7 @@ namespace ppbox
             is_.seekg(min_offset_, std::ios_base::beg);
             assert(is_);
 
-            if (tc.elapse() > 10) {
+            if (tc.elapse() >= 20) {
                 LOG_DEBUG("[get_sample] elapse: " << tc.elapse());
             }
 

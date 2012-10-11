@@ -5,10 +5,6 @@
 
 #include "ppbox/demux/base/DemuxStrategy.h"
 #include "ppbox/demux/base/Buffer.h"
-#include "ppbox/demux/base/BufferStatistic.h"
-#include "ppbox/demux/base/SourceError.h"
-
-#include <ppbox/data/strategy/Strategy.h>
 
 #include <util/event/Event.h>
 
@@ -28,7 +24,6 @@ namespace ppbox
 
         class SegmentBuffer
             : public Buffer
-            , private BufferObserver
         {
         public:
             typedef boost::function<void (
@@ -41,7 +36,7 @@ namespace ppbox
 
         public:
             SegmentBuffer(
-                ppbox::data::SegmentSource * source, 
+                ppbox::data::SegmentSource & source, 
                 boost::uint32_t buffer_size, 
                 boost::uint32_t prepare_size);
 
@@ -108,9 +103,9 @@ namespace ppbox
                 segment_t const & pos);
 
         public:
-            BufferStatistic stat() const
+            ppbox::data::SegmentSource const & source() const
             {
-                return buffer_stat();
+                return source_;
             }
 
             // 获取最后一次错误的错误码
@@ -118,6 +113,10 @@ namespace ppbox
             {
                 return last_ec_;
             }
+
+            void pause_stream();
+
+            void resume_stream();
 
         public:
             // 写分段
@@ -139,24 +138,17 @@ namespace ppbox
                 return write_;
             }
 
-            // 读BytesStream
-            BytesStream & read_stream() const
-            {
-                return *read_stream_;
-            }
+        public:
+            void detach_stream(
+                BytesStream & stream);
 
-            // 写BytesStream
-            BytesStream & write_stream() const
-            {
-                return *write_stream_;
-            }
+            void attach_stream(
+                BytesStream & stream, 
+                bool read);
 
-            // 读BytesStream
-            BytesStream & bytes_stream(
-                bool read) const
-            {
-                return read ? *read_stream_ : *write_stream_;
-            }
+            void change_stream(
+                BytesStream & stream, 
+                bool read);
 
         private:
             friend class BytesStream;
@@ -183,11 +175,12 @@ namespace ppbox
                 util::event::Event const & event);
 
         private:
-            void update_read(
+            void insert_segment(
                 segment_t const & seg);
 
-            void update_write(
-                segment_t const & seg);
+            void find_segment(
+                boost::uint64_t offset, 
+                segment_t & seg);
 
             void handle_async(
                 boost::system::error_code const & ecc, 
@@ -196,7 +189,7 @@ namespace ppbox
             void dump();
 
         private:
-            ppbox::data::SegmentSource * source_;
+            ppbox::data::SegmentSource & source_;
             boost::uint32_t prepare_size_;  // 下载一次，最大的读取数据大小
 
             segment_t base_;
@@ -204,8 +197,8 @@ namespace ppbox
             segment_t read_;
             segment_t write_;
 
-            BytesStream * read_stream_;    // 读Buffer
-            BytesStream * write_stream_;   // 写Buffer
+            BytesStream * read_stream_;    // 读Stream
+            BytesStream * write_stream_;   // 写Stream
 
             prepare_response_type resp_;
 

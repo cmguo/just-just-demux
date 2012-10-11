@@ -103,8 +103,8 @@ namespace ppbox
             {
                 boost::uint64_t beg = write_.offset;
                 boost::uint64_t end = beg + size;
-                if (end > beg + buffer_size_)
-                    end = beg + buffer_size_;
+                if (end > read_.offset + buffer_size_)
+                    end = read_.offset + buffer_size_;
                 if (end > write_hole_.this_end)
                     end = write_hole_.this_end;
                 return write_buffer(beg, end);
@@ -113,14 +113,14 @@ namespace ppbox
             bool commit(
                 size_t size)
             {
-                write_.offset += size;
+                move_front(write_, size);
                 assert(write_.offset <= read_.offset + buffer_size_ 
                     && write_.offset <= write_hole_.this_end);
                 if (write_.offset <= read_.offset + buffer_size_ 
                     && write_.offset <= write_hole_.this_end) {
                     return true;
                 }
-                write_.offset -= size;
+                move_back(write_, size);
                 return false;
             }
 
@@ -164,16 +164,30 @@ namespace ppbox
             bool consume(
                 size_t size)
             {
-                read_.offset += size;
+                move_front(read_, size);
                 assert(read_.offset <= write_.offset);
                 if (read_.offset <= write_.offset) {
                     return true;
                 }
-                read_.offset -= size;
+                move_back(read_, size);
                 return false;
             }
 
         public:
+            bool check_hole()
+            {
+                if (write_.offset < write_hole_.this_end)
+                    return false;
+                next_write_hole(write_, write_hole_);
+                return true;
+            }
+
+            boost::uint64_t write_hole_size() const
+            {
+                return write_hole_.this_end == boost::uint64_t(-1) 
+                    ? boost::uint64_t(-1) : write_hole_.this_end - write_.offset;
+            }
+
             // 返回是否移动了write指针
             bool seek(
                 boost::uint64_t offset);
@@ -182,10 +196,6 @@ namespace ppbox
 
             void reset(
                 boost::uint64_t offset);
-
-            bool next_write_hole(
-                Position & pos, 
-                Hole & hole);
 
         private:
             void dump();
@@ -236,7 +246,7 @@ namespace ppbox
                 if (end == beg)
                     return read_buffer_t();
                 char const * buffer = buffer_move_front(read_.buffer, beg - read_.offset);
-                if (end - beg < (boost::uint32_t)(buffer_end() - buffer)) {
+                if (end - beg <= (boost::uint32_t)(buffer_end() - buffer)) {
                     buffers[0] = boost::asio::const_buffer(buffer, (size_t)(end - beg));
                     return read_buffer_t(buffers, 1);
                 } else {
@@ -257,7 +267,7 @@ namespace ppbox
                 if (end == beg)
                     return write_buffer_t();
                 char * buffer = buffer_move_front(write_.buffer, beg - write_.offset);
-                if (end - beg < (boost::uint32_t)(buffer_end() - buffer)) {
+                if (end - beg <= (boost::uint32_t)(buffer_end() - buffer)) {
                     buffers[0] = boost::asio::mutable_buffer(buffer, (size_t)(end - beg));
                     return write_buffer_t(buffers, 1);
                 } else {
@@ -271,6 +281,10 @@ namespace ppbox
             }
 
         private:
+            bool next_write_hole(
+                Position & pos, 
+                Hole & hole);
+
             // 循环前移
             char * buffer_move_front(
                 char * buffer, 
@@ -334,25 +348,48 @@ namespace ppbox
                 boost::uint32_t size, 
                 void const * src);
 
-            void move_back(
+            void Buffer::move_back(
                 Position & position, 
-                boost::uint64_t offset) const;
+                boost::uint64_t offset) const
+            {
+                position.buffer = buffer_move_back(position.buffer, offset);
+                position.offset -= offset;
+            }
 
-            void move_front(
+            void Buffer::move_front(
                 Position & position, 
-                boost::uint64_t offset) const;
+                boost::uint64_t offset) const
+            {
+                position.buffer = buffer_move_front(position.buffer, offset);
+                position.offset += offset;
+            }
 
-            void move_back_to(
+            void Buffer::move_back_to(
                 Position & position, 
-                boost::uint64_t offset) const;
+                boost::uint64_t offset) const
+            {
+                position.buffer = buffer_move_back(position.buffer, position.offset - offset);
+                position.offset = offset;
+            }
 
-            void move_front_to(
+            void Buffer::move_front_to(
                 Position & position, 
-                boost::uint64_t offset) const;
+                boost::uint64_t offset) const
+            {
+                position.buffer = buffer_move_front(position.buffer, offset - position.offset);
+                position.offset = offset;
+            }
 
-            void move_to(
+            void Buffer::move_to(
                 Position & position, 
-                boost::uint64_t offset) const;
+                boost::uint64_t offset) const
+            {
+                if (offset < position.offset) {
+                    move_back_to(position, offset);
+                } else if (position.offset < offset) {
+                    move_front_to(position, offset);
+                }
+            }
 
         private:
             framework::memory::PrivateMemory memory_;

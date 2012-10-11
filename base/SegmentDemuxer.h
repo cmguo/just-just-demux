@@ -6,11 +6,8 @@
 #include "ppbox/demux/base/DemuxError.h"
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
-#include "ppbox/demux/base/BufferStatistic.h"
-#include "ppbox/demux/base/DemuxStrategy.h"
 
 #include <ppbox/data/MediaBase.h>
-#include <ppbox/data/SourceBase.h>
 
 #include <util/event/Event.h>
 
@@ -30,14 +27,9 @@ namespace ppbox
 
         class SegmentBuffer;
         class BytesStream;
-
-        struct DemuxerInfo
-        {
-            SegmentPosition segment;
-            DemuxerBase * demuxer;
-            bool is_read_stream;
-            boost::uint32_t nref;
-        };
+        class DemuxStrategy;
+        struct DemuxerInfo;
+        struct SegmentPosition;
 
         class SegmentDemuxer
             : public DemuxStatistic
@@ -175,7 +167,7 @@ namespace ppbox
 
             DemuxerInfo * alloc_demuxer(
                 SegmentPosition const & segment, 
-                bool read, 
+                bool is_read, 
                 boost::system::error_code & ec);
 
             void free_demuxer(
@@ -206,7 +198,6 @@ namespace ppbox
             boost::uint64_t seek_time_;
 
             StateEnum open_state_;
-            SegmentPosition open_segment_;
             open_response_type resp_;
 
         private:

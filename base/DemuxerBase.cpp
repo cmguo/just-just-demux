@@ -7,7 +7,7 @@
 #include <framework/logger/StreamRecord.h>
 using namespace framework::logger;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxerBase", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxerBase", Debug);
 
 namespace ppbox
 {

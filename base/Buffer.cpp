@@ -11,7 +11,9 @@ namespace ppbox
     namespace demux
     {
 
-        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("Buffer", 0)
+        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Buffer", framework::logger::Debug);
+
+        static boost::uint64_t const invalid_size = boost::uint64_t(-1);
 
         Buffer::Buffer(
             boost::uint32_t buffer_size)
@@ -44,7 +46,8 @@ namespace ppbox
 
             read_hole_.this_end = offset;
             read_hole_.next_beg = offset;
-            write_hole_ = read_hole_;
+            write_hole_.this_end = invalid_size;
+            write_hole_.next_beg = invalid_size;
 
             data_beg_ = offset;
             data_end_ = offset;
@@ -64,8 +67,8 @@ namespace ppbox
                 write_.offset = offset;
                 write_.buffer = buffer_beg();
                 data_beg_ = data_end_ = offset;
-                write_hole_.this_end = write_.offset;
-                write_hole_.next_beg = boost::uint64_t(-1);
+                write_hole_.this_end = invalid_size;
+                write_hole_.next_beg = invalid_size;
                 read_hole_.next_beg = offset;
             } else if (offset < read_.offset) {
                 // e    b-^--e    b----R----Wb    e-----E
@@ -197,7 +200,7 @@ namespace ppbox
             offset = write_.offset;
             while (1) {
                 LOG_TRACE("write_hole:" << offset << "-" << hole.this_end);
-                if (hole.next_beg == boost::uint64_t(-1))
+                if (hole.next_beg == invalid_size)
                     break;
                 offset = read_write_hole(hole.next_beg, hole);
             }
@@ -209,21 +212,21 @@ namespace ppbox
         {
             if (offset > data_end_) {
                 // next_beg 失效，实际空洞从data_end_开始
-                hole.this_end = hole.next_beg = boost::uint64_t(-1);
+                hole.this_end = hole.next_beg = invalid_size;
                 return data_end_;
             } else if (offset + sizeof(hole) > data_end_) {
                 // 下一个Hole不可读
-                hole.this_end = hole.next_beg = boost::uint64_t(-1);
+                hole.this_end = hole.next_beg = invalid_size;
                 return offset;
             } else {
                 read(offset, sizeof(hole), &hole);
                 if (hole.this_end > data_end_) {
-                    hole.this_end = hole.next_beg = boost::uint64_t(-1);
+                    hole.this_end = hole.next_beg = invalid_size;
                 }
                 assert(hole.next_beg >= hole.this_end);
-                if (hole.this_end != boost::uint64_t(-1))
+                if (hole.this_end != invalid_size)
                     hole.this_end += offset;
-                if (hole.next_beg != boost::uint64_t(-1))
+                if (hole.next_beg != invalid_size)
                     hole.next_beg += offset;
                 return offset;
             }
@@ -243,16 +246,16 @@ namespace ppbox
                     // 如果这个空洞太小，而且下一个空洞紧接在后面，那么合并两个空洞
                     read_write_hole(hole.next_beg, hole);
                 }
-                if (hole.this_end != boost::uint64_t(-1))
+                if (hole.this_end != invalid_size)
                     hole.this_end -= offset;
-                if (hole.next_beg != boost::uint64_t(-1))
+                if (hole.next_beg != invalid_size)
                     hole.next_beg -= offset;
                 // 可以正常插入
                 write(offset, sizeof(hole), &hole);
                 return offset;
             } else {
                 // 没有下一个空洞
-                return boost::uint64_t(-1);
+                return invalid_size;
             }
         }
 
@@ -376,49 +379,6 @@ namespace ppbox
                 size_t size1 = buffer_end() - p.buffer;
                 memcpy(p.buffer, src, size1);
                 memcpy(buffer_beg(), (char const *)src + size1, size - size1);
-            }
-        }
-
-        void Buffer::move_back(
-            Position & position, 
-            boost::uint64_t offset) const
-        {
-            position.buffer = buffer_move_back(position.buffer, offset);
-            position.offset -= offset;
-        }
-
-        void Buffer::move_front(
-            Position & position, 
-            boost::uint64_t offset) const
-        {
-            position.buffer = buffer_move_front(position.buffer, offset);
-            position.offset += offset;
-        }
-
-        void Buffer::move_back_to(
-            Position & position, 
-            boost::uint64_t offset) const
-        {
-            position.buffer = buffer_move_back(position.buffer, position.offset - offset);
-            position.offset = offset;
-        }
-
-        void Buffer::move_front_to(
-            Position & position, 
-            boost::uint64_t offset) const
-        {
-            position.buffer = buffer_move_front(position.buffer, offset - position.offset);
-            position.offset = offset;
-        }
-
-        void Buffer::move_to(
-            Position & position, 
-            boost::uint64_t offset) const
-        {
-            if (offset < position.offset) {
-                move_back_to(position, offset);
-            } else if (position.offset < offset) {
-                move_front_to(position, offset);
             }
         }
 

@@ -24,7 +24,7 @@ using namespace framework::network;
 #include <boost/bind.hpp>
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxerModule", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxerModule", Debug);
 
 #ifndef PPBOX_DNS_VOD_JUMP
 #define PPBOX_DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"

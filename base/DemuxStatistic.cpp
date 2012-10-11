@@ -9,7 +9,7 @@
 #include <framework/logger/Section.h>
 using namespace framework::logger;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("DemuxStatistic", 0);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxStatistic", Debug);
 
 namespace ppbox
 {

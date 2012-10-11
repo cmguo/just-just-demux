@@ -5,8 +5,7 @@
 
 #include "ppbox/demux/base/SourceTreeItem.h"
 
-#include <ppbox/data/MediaBase.h>
-#include <ppbox/data/strategy/Strategy.h>
+#include <ppbox/data/SegmentStrategy.h>
 
 #include <framework/timer/TimeCounter.h>
 
@@ -15,38 +14,44 @@ namespace ppbox
     namespace demux
     {
 
-        class DemuxerBase;
-
         struct SegmentPosition
-            : SourceTreePosition
-            , ppbox::data::SegmentInfoEx
+            : ppbox::data::SegmentPosition
         {
-            boost::uint64_t big_time;
-            boost::uint64_t time_beg;
-            boost::uint64_t time_end;
-
-            SegmentPosition()
-                : big_time(0)
-                , time_beg(0)
-                , time_end(0)
+            bool valid() const
             {
+                return item_context != NULL;
             }
 
-            boost::uint64_t big_time_beg() const
+            SourceTreeItem * item() const
             {
-                return big_time + time_beg;
+                return (SourceTreeItem *)item_context;
             }
 
-            boost::uint64_t big_time_end() const
+            DemuxStrategy * owner() const
             {
-                return (time_end == boost::uint64_t(-1)) 
-                    ? boost::uint64_t(-1) : (big_time + time_end);
+                return item()->owner();
+            }
+
+            SourceTreeItem * next_item() const
+            {
+                return item()->next();
+            }
+
+            DemuxStrategy * next_owner() const
+            {
+                return next_item()->owner();
+            }
+
+            bool is_inserted() const
+            {
+                // next_item()->parent_ 不一定 == this
+                return next_item() != NULL && next_item()->parent()->owner() == owner();
             }
 
             bool is_same_segment( 
                 SegmentPosition const & r) const
             {
-                return ((SourceTreePosition const &)(*this) == (SourceTreePosition const &)r 
+                return (this->item_context == r.item_context 
                     && this->index == r.index);
             }
 
@@ -54,17 +59,17 @@ namespace ppbox
                 SegmentPosition const & l, 
                 SegmentPosition const & r)
             {
-                return ((SourceTreePosition const &)l < (SourceTreePosition const &)r 
-                    || ((SourceTreePosition const &)l == (SourceTreePosition const &)r 
-                    && (ppbox::data::SegmentInfoEx const &)l < (ppbox::data::SegmentInfoEx const &)r));
+                SourceTreeItem const & li = *(SourceTreeItem const *)l.item_context;
+                SourceTreeItem const & ri = *(SourceTreeItem const *)r.item_context;
+                return (li < ri
+                    || (&li == &ri && (ppbox::data::SegmentPosition const &)l < (ppbox::data::SegmentPosition const &)r));
             }
 
             friend bool operator==(
                 SegmentPosition const & l, 
                 SegmentPosition const & r)
             {
-                return ((SourceTreePosition const &)l == (SourceTreePosition const &)r 
-                    && (ppbox::data::SegmentInfoEx const &)l == (ppbox::data::SegmentInfoEx const &)r);
+                return (l.item_context== r.item_context && (ppbox::data::SegmentPosition const &)l == (ppbox::data::SegmentPosition const &)r);
             }
 
             friend bool operator!=(
@@ -85,7 +90,7 @@ namespace ppbox
         //  5、打开（range）、关闭、读取、取消功能（若不提供分段大小，则打开成功后获取分段大小）；
         //  6、提供插入和删除源
         class DemuxStrategy
-            : ppbox::data::Strategy
+            : public ppbox::data::SegmentStrategy
         {
         public:
 
@@ -108,35 +113,33 @@ namespace ppbox
                 DemuxStrategy & child, 
                 boost::system::error_code & ec);
 
-            ppbox::data::MediaBase & media()
-            {
-                return media_;
-            }
-
         public:
             virtual bool next_segment(
-                ppbox::data::SegmentInfoEx & info)
-            {
-                return false;
-            }
-
-            virtual boost::system::error_code byte_seek(
-                size_t offset,
-                ppbox::data::SegmentInfoEx & info, 
+                ppbox::data::SegmentPosition & pos, 
                 boost::system::error_code & ec)
             {
-                return ec;
+                return next_segment((SegmentPosition &)pos, ec);
             }
 
-            virtual boost::system::error_code time_seek(
-                boost::uint32_t time_ms, 
-                ppbox::data::SegmentInfoEx & info, 
+            //virtual bool byte_seek(
+            //    boost::uint64_t offset, 
+            //    ppbox::data::SegmentPosition & pos, 
+            //    boost::system::error_code & ec)
+            //{
+            //    SegmentPosition base;
+            //    return ec;
+            //}
+
+            virtual bool time_seek(
+                boost::uint64_t offset, 
+                ppbox::data::SegmentPosition & pos, 
                 boost::system::error_code & ec)
             {
-                return ec;
+                SegmentPosition base;
+                return time_seek(offset, base, (SegmentPosition &)pos, ec);
             }
 
-            virtual std::size_t size(void)
+            virtual boost::uint64_t size(void)
             {
                 return 0;
             }
@@ -146,13 +149,13 @@ namespace ppbox
                 boost::uint64_t & time, 
                 boost::system::error_code & ec);
 
-            virtual bool time_seek(
-                boost::uint64_t time, 
-                SegmentPosition & base,
+            virtual bool next_segment(
                 SegmentPosition & pos, 
                 boost::system::error_code & ec);
 
-            virtual bool next_segment(
+            virtual bool time_seek(
+                boost::uint64_t time, 
+                SegmentPosition & base,
                 SegmentPosition & pos, 
                 boost::system::error_code & ec);
 
@@ -174,7 +177,7 @@ namespace ppbox
 
         private:
             SourceTreeItem tree_item_;
-            ppbox::data::MediaBase & media_;
+            SourceTreeItem insert_item_;    // 代表父节点被切割的后面一个部分
             framework::timer::TimeCounter counter_; 
             DemuxerInfo * insert_demuxer_;  // 父节点的demuxer
             size_t insert_segment_;         // 插入在父节点的分段

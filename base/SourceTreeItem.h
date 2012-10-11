@@ -8,48 +8,7 @@ namespace ppbox
     namespace demux
     {
 
-        class SourceTreeItem;
         class DemuxStrategy;
-
-        struct SourceTreePosition
-        {
-            SourceTreePosition()
-                : current(NULL)
-                , prev_child(NULL)
-                , next_child(NULL)
-            {
-            }
-
-            SourceTreeItem * current;   // 处理流程中的当前
-            SourceTreeItem * prev_child;// 处理流程中的上一个子节点
-            SourceTreeItem * next_child;// 处理流程中的下一个子节点
-
-            friend bool operator==(
-                SourceTreePosition const & l, 
-                SourceTreePosition const & r)
-            {
-                return l.current == r.current
-                    && l.next_child == r.next_child
-                    && l.prev_child == r.prev_child;
-            }
-
-            friend bool operator<(
-                SourceTreePosition const & l, 
-                SourceTreePosition const & r)
-            {
-                return false;
-            }
-
-            friend bool operator!=(
-                SourceTreePosition const & l, 
-                SourceTreePosition const & r)
-            {
-                return l.current != r.current
-                    || l.next_child != r.next_child
-                    || l.prev_child != r.prev_child;
-            }
-
-        };
 
         class SourceTreeItem
         {
@@ -58,10 +17,8 @@ namespace ppbox
                 DemuxStrategy * owner)
                 : owner_(owner)
                 , parent_(NULL)
-                , first_child_(NULL)
-                , last_child_(NULL)
-                , prev_sibling_(NULL)
-                , next_sibling_(NULL)
+                , prev_(NULL)
+                , next_(NULL)
             {
             }
 
@@ -73,14 +30,16 @@ namespace ppbox
             void remove_child(
                 SourceTreeItem * child);
 
-            // 返回下一个Source
-            void next_source(
-                SourceTreePosition & position);
+            SourceTreeItem * parent()
+            {
+                return parent_;
+            }
 
-            void seek(
-                SourceTreePosition & position, 
-                SourceTreeItem * where_prev, 
-                SourceTreeItem * where);
+            // 返回下一个Source
+            SourceTreeItem * next()
+            {
+                return next_;
+            }
 
             void remove_self()
             {
@@ -94,12 +53,28 @@ namespace ppbox
             }
 
         public:
+            friend bool operator<(
+                SourceTreeItem const & l, 
+                SourceTreeItem const & r);
+
+        private:
+            void insert_list(
+                SourceTreeItem * item, 
+                SourceTreeItem * prev, 
+                SourceTreeItem * next);
+
+            void remove_list(
+                SourceTreeItem * item);
+
+        private:
             DemuxStrategy * owner_;         // 对应的Strategy对象，包含该Item的对象
             SourceTreeItem * parent_;       // 父节点
-            SourceTreeItem * first_child_;  // 第一个子节点
-            SourceTreeItem * last_child_;   // 最后一个子节点
-            SourceTreeItem * prev_sibling_; // 前一个兄弟节点
-            SourceTreeItem * next_sibling_; // 下一个兄弟节点
+            //SourceTreeItem * first_child_;  // 第一个子节点
+            //SourceTreeItem * last_child_;   // 最后一个子节点
+            //SourceTreeItem * prev_sibling_; // 前一个兄弟节点
+            //SourceTreeItem * next_sibling_; // 下一个兄弟节点
+            SourceTreeItem * prev_;         // 前一个节点
+            SourceTreeItem * next_;         // 下一个节点
         };
 
     } // namespace demux

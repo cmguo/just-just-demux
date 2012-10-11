@@ -1,4 +1,4 @@
-// FlvDemuxerBase.cpp
+// FlvDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/flv/FlvDemuxer.h"
@@ -13,7 +13,7 @@ using namespace framework::logger;
 using namespace framework::system;
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("FlvDemuxerBase", 0)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", Debug)
 
 #include <iostream>
 

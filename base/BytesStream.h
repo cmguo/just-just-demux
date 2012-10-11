@@ -32,21 +32,14 @@ namespace ppbox
 
         public:
             BytesStream(
-                SegmentBuffer & buffer,
-                SegmentBuffer::segment_t & segment)
+                SegmentBuffer & buffer)
                 : buffer_(buffer)
-                , segment_(segment)
+                , segment_(NULL)
                 , pos_(0)
                 , buf_(*this)
             {
                 setg(NULL, NULL, NULL);
                 // TODO: 有可能已经有数据了
-            }
-
-        public:
-            const segment_t & segment() const
-            {
-                return segment_;
             }
 
         private:
@@ -58,7 +51,7 @@ namespace ppbox
                 boost::uint64_t off32 = 0;
                 boost::asio::const_buffer buf;;
                 boost::system::error_code ec;
-                ec = buffer_.segment_buffer(segment_, type, pos64, off32, buf);
+                ec = buffer_.segment_buffer(*segment_, type, pos64, off32, buf);
                 pos_ = pos64;
                 buf_ = buf;
                 gbump(off32);
@@ -93,6 +86,13 @@ namespace ppbox
                 boost::uint64_t pos)
             {
                 update(SegmentBuffer::PositionType::set, pos);
+            }
+
+            void change_to(
+                SegmentBuffer::segment_t & segment)
+            {
+                segment_ = &segment;
+                update(SegmentBuffer::PositionType::set, 0);
             }
 
         private:
@@ -150,7 +150,7 @@ namespace ppbox
 
         private:
             SegmentBuffer & buffer_;
-            SegmentBuffer::segment_t & segment_;
+            SegmentBuffer::segment_t * segment_;
             pos_type pos_;          // 与iter_对应分段的开头
             buffer_type buf_;       // 当前的内存段
         };
