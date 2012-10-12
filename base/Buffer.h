@@ -174,18 +174,29 @@ namespace ppbox
             }
 
         public:
-            bool check_hole()
+            bool check_hole(
+                boost::system::error_code & ec)
             {
-                if (write_.offset < write_hole_.this_end)
+                if (write_.offset < write_hole_.this_end && write_.offset < read_.offset + buffer_size_)
                     return false;
-                next_write_hole(write_, write_hole_);
+                if (write_.offset >= read_.offset + buffer_size_) {
+                    ec = boost::asio::error::no_buffer_space;
+                } else {
+                    ec = boost::asio::error::eof;
+                }
                 return true;
             }
 
-            boost::uint64_t write_hole_size() const
+            boost::uint64_t write_hole_size()
             {
                 return write_hole_.this_end == boost::uint64_t(-1) 
                     ? boost::uint64_t(-1) : write_hole_.this_end - write_.offset;
+            }
+
+            boost::uint64_t next_write_hole()
+            {
+                next_write_hole(write_, write_hole_);
+                return write_hole_size();
             }
 
             // 返回是否移动了write指针

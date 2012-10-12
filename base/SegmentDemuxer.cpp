@@ -424,6 +424,7 @@ namespace ppbox
                     if (!ec) {
                         ec = boost::asio::error::would_block;
                     }
+                    break;
                 }
             }
             if (!ec) {

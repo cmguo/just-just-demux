@@ -2,9 +2,6 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SegmentBuffer.h"
-//#include "ppbox/demux/base/DemuxStrategy.h"
-#include "ppbox/demux/base/BufferStatistic.h"
-#include "ppbox/demux/base/SourceError.h"
 #include "ppbox/demux/base/BytesStream.h"
 
 #include <ppbox/data/SegmentSource.h>
@@ -15,7 +12,6 @@
 #include <framework/logger/StreamRecord.h>
 
 #include <boost/asio/io_service.hpp>
-#include <boost/asio/read.hpp>
 #include <boost/bind.hpp>
 
 namespace ppbox
@@ -115,12 +111,17 @@ namespace ppbox
             size_t amount, 
             boost::system::error_code & ec)
         {
-            if (check_hole()) {
-                find_segment(out_position(), write_);
-                source_.seek(write_, write_hole_size(), ec);
+            if (check_hole(ec)) {
+                if (ec == boost::asio::error::eof) {
+                    boost::uint64_t hole_size = next_write_hole();
+                    find_segment(out_position(), write_);
+                    source_.seek(write_, hole_size, ec);
+                }
+                if (ec) {
+                    return 0;
+                }
             }
-            amount = boost::asio::read(
-                source_, Buffer::prepare(amount), boost::asio::transfer_all(), ec);
+            amount = source_.read_some(Buffer::prepare(amount), ec);
             commit(amount);
             last_ec_ = ec;
             return amount;
@@ -131,13 +132,19 @@ namespace ppbox
             prepare_response_type const & resp)
         {
             resp_ = resp;
-            if (check_hole()) {
-                find_segment(out_position(), write_);
-                boost::system::error_code ec;
-                source_.seek(write_, write_hole_size(), ec);
+            boost::system::error_code ec;
+            if (check_hole(ec)) {
+                if (ec == boost::asio::error::eof) {
+                    boost::uint64_t hole_size = next_write_hole();
+                    find_segment(out_position(), write_);
+                    source_.seek(write_, hole_size, ec);
+                }
             }
-            boost::asio::async_read(
-                source_, Buffer::prepare(amount), boost::asio::transfer_all(), 
+            if (ec) {
+                resp_(ec, 0);
+                return;
+            }
+            source_.async_read_some(Buffer::prepare(amount), 
                 boost::bind(&SegmentBuffer::handle_async, this, _1, _2));
         }
 
@@ -333,7 +340,8 @@ namespace ppbox
                     }
                     if (pos > out_position()) {
                         boost::system::error_code ec1 = last_ec_;
-                        ec1 || prepare((size_t)(pos - out_position()), ec1);
+                        while (!ec1 && pos > out_position())
+                            prepare((size_t)(pos - out_position()), ec1);
                         if (pos > out_position()) {
                             pos = out_position();
                             if (!ec) ec = ec1;
