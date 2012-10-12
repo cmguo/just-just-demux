@@ -23,20 +23,17 @@ namespace ppbox
             }
 
         public:
-            void reset(
-                std::vector<boost::uint64_t> const & time_scale, 
-                boost::uint64_t time = 0) // time miliseconds
+            void set_scale(
+                std::vector<boost::uint64_t> const & time_scale)
             {
                 using framework::system::ScaleTransform;
 
-                smoth_begin_ = false;
-                dts_offset_.clear();
-                time_trans_.clear();
-                ustime_trans_.clear();
+                if (!time_trans_.empty()) // 只能设置一次
+                    return;
                 for (size_t i = 0; i < time_scale.size(); ++i) {
                     time_trans_.push_back(ScaleTransform(time_scale[i], 1000));
                     ustime_trans_.push_back(ScaleTransform(time_scale[i], 1000000));
-                    dts_offset_.push_back(ScaleTransform::static_transfer(1000, time_scale[i], time));
+                    dts_offset_.push_back(ScaleTransform::static_transfer(1000, time_scale[i], time_offset_));
                 }
             }
 
@@ -46,8 +43,9 @@ namespace ppbox
                 using framework::system::ScaleTransform;
 
                 smoth_begin_ = false;
+                time_offset_ = time; // 保存下来，可能set_scale后面才会调用
                 for (size_t i = 0; i < dts_offset_.size(); ++i) {
-                    dts_offset_[i] = ScaleTransform::static_transfer(1000, time_trans_[i].scale_in(), time);
+                    dts_offset_[i] = ScaleTransform::static_transfer(1000, time_trans_[i].scale_in(), time_offset_);
                 }
             }
 
@@ -91,12 +89,14 @@ namespace ppbox
                 assert(sample.itrack < dts_offset_.size());
                 sample.dts += dts_offset_[sample.itrack];
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
-                sample.time = ustime_trans_[sample.itrack].transfer(sample.dts);
+                sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
+                sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
             }
 
         protected:
             bool smoth_;
             bool smoth_begin_; // 是否已经有一次begin
+            boost::uint64_t time_offset_; // 毫秒
             std::vector<boost::uint64_t> dts_offset_;
             std::vector<framework::system::ScaleTransform> time_trans_; // dts -> time
             std::vector<framework::system::ScaleTransform> ustime_trans_; // dts -> ustime

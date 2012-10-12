@@ -22,7 +22,7 @@ namespace ppbox
 
         AsfDemuxer::AsfDemuxer(
             std::basic_streambuf<boost::uint8_t> & buf)
-            : DemuxerBase(buf)
+            : Demuxer(buf)
             , archive_(buf)
             , open_step_(size_t(-1))
             , object_parse_(file_prop_)

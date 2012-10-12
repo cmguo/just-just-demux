@@ -1,9 +1,9 @@
-// Mp4DemuxerBase.h
+// Mp4Demuxer.h
 
-#ifndef _PPBOX_DEMUX_MP4_MP4_DEMUXER_BASE_H_
-#define _PPBOX_DEMUX_MP4_MP4_DEMUXER_BASE_H_
+#ifndef _PPBOX_DEMUX_MP4_MP4_DEMUXER_H_
+#define _PPBOX_DEMUX_MP4_MP4_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 
 #include <framework/container/OrderedUnidirList.h>
 
@@ -20,7 +20,7 @@ namespace ppbox
         class Track;
 
         class Mp4Demuxer
-            : public DemuxerBase
+            : public Demuxer
         {
         public:
             typedef framework::container::OrderedUnidirList<
@@ -125,4 +125,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_MP4_MP4_DEMUXER_BASE_H_
+#endif // _PPBOX_DEMUX_MP4_MP4_DEMUXER_H_

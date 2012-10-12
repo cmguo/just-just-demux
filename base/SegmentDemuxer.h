@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_BASE_BUFFER_DEMUXER_H_
 
 #include "ppbox/demux/base/DemuxError.h"
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
 
 #include <ppbox/data/MediaBase.h>
@@ -172,6 +172,7 @@ namespace ppbox
 
             void free_demuxer(
                 DemuxerInfo * info, 
+                bool is_read, 
                 boost::system::error_code & ec);
 
             void update_stat();

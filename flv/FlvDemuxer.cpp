@@ -24,7 +24,7 @@ namespace ppbox
 
         FlvDemuxer::FlvDemuxer(
             std::basic_streambuf<boost::uint8_t> & buf)
-            : DemuxerBase(buf)
+            : Demuxer(buf)
             , archive_(buf)
             , open_step_((boost::uint64_t)-1)
             , header_offset_(0)

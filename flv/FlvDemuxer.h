@@ -1,9 +1,9 @@
-// FlvDemuxerBase.h
+// FlvDemuxer.h
 
-#ifndef _PPBOX_DEMUX_FLV_FLV_DEMUXER_BASE_H_
-#define _PPBOX_DEMUX_FLV_FLV_DEMUXER_BASE_H_
+#ifndef _PPBOX_DEMUX_FLV_FLV_DEMUXER_H_
+#define _PPBOX_DEMUX_FLV_FLV_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 
 #include "ppbox/demux/flv/FlvStream.h"
 
@@ -14,7 +14,7 @@ namespace ppbox
     namespace demux
     {
         class FlvDemuxer
-            : public DemuxerBase
+            : public Demuxer
         {
         public:
             FlvDemuxer(
@@ -113,4 +113,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_FLV_FLV_DEMUXER_BASE_H_
+#endif // _PPBOX_DEMUX_FLV_FLV_DEMUXER_H_

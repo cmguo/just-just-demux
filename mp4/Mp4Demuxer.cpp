@@ -31,7 +31,7 @@ namespace ppbox
 
         Mp4Demuxer::Mp4Demuxer(
             std::basic_streambuf<boost::uint8_t> & buf)
-            : DemuxerBase(buf)
+            : Demuxer(buf)
             , is_(& buf)
             , head_size_(24)
             , open_step_((boost::uint64_t)-1)
@@ -102,8 +102,10 @@ namespace ppbox
                 head_size_ = mp4_head_size(is_, ec);
                 if (!ec) {
                     parse_head(ec);
-                    if (!ec)
+                    if (!ec) {
                         open_step_ = 1;
+                        on_open();
+                    }
                 }
             }
             return !ec;
@@ -281,11 +283,12 @@ namespace ppbox
             sample.flags = 0;
             if (ap4_sample.IsSync())
                 sample.flags |= Sample::sync;
-            sample.time = ap4_sample.time;
-            sample.ustime = ap4_sample.ustime;
+            //sample.time = ap4_sample.time;
+            //sample.ustime = ap4_sample.ustime;
             sample.dts = ap4_sample.GetDts();
             sample.cts_delta = ap4_sample.GetCtsDelta();
-            sample.us_delta = (boost::uint64_t)1000000*sample.cts_delta/tracks_[ap4_sample.itrack]->time_scale;
+            adjust_timestamp(sample);
+            //sample.us_delta = (boost::uint64_t)1000000*sample.cts_delta/tracks_[ap4_sample.itrack]->time_scale;
             sample.size = ap4_sample.GetSize();
             sample.blocks.clear();
             sample.blocks.push_back(FileBlock(ap4_sample.GetOffset(), ap4_sample.GetSize()));
@@ -436,7 +439,7 @@ namespace ppbox
                 return file_->GetMovie()->GetDurationMs();
             } else {
                 ec = error_code();
-                return sample_list_->first()->time;
+                return sample_list_->first()->ustime / 1000;
             }
         }
 

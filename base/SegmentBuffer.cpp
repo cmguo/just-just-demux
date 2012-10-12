@@ -42,10 +42,6 @@ namespace ppbox
         {
             source_.un<ppbox::data::SegmentStartEvent>(boost::bind(&SegmentBuffer::on_event, this, _1));
             source_.un<ppbox::data::SegmentStopEvent>(boost::bind(&SegmentBuffer::on_event, this, _1));
-            if (read_stream_)
-                delete read_stream_;
-            if (write_stream_)
-                delete write_stream_;
         }
 
         // 目前只发生在，seek到一个分段，还没有该分段头部数据时，

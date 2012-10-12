@@ -1,26 +1,26 @@
-// DemuxerBase.cpp
+// Demuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 using namespace framework::logger;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxerBase", Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Demuxer", Debug);
 
 namespace ppbox
 {
     namespace demux
     {
 
-        std::map<std::string, DemuxerBase::register_type> & DemuxerBase::demuxer_map()
+        std::map<std::string, Demuxer::register_type> & Demuxer::demuxer_map()
         {
-            static std::map<std::string, DemuxerBase::register_type> g_map;
+            static std::map<std::string, Demuxer::register_type> g_map;
             return g_map;
         }
 
-        void DemuxerBase::register_demuxer(
+        void Demuxer::register_demuxer(
             std::string const & format,
             register_type func)
         {
@@ -28,7 +28,7 @@ namespace ppbox
             return;
         }
 
-        DemuxerBase * DemuxerBase::create(
+        Demuxer * Demuxer::create(
             std::string const & format, 
             std::basic_streambuf<boost::uint8_t> & buf)
         {
@@ -38,19 +38,29 @@ namespace ppbox
                 return NULL;
             } else {
                 register_type func = iter->second;
-                DemuxerBase * demuxer = func(buf);
+                Demuxer * demuxer = func(buf);
                 return demuxer;
             }
         }
 
-        void DemuxerBase::destory(
-            DemuxerBase* & demuxer)
+        Demuxer::Demuxer(
+            std::basic_streambuf<boost::uint8_t> & buf)
+            : helper_(&default_helper_)
+        {
+        }
+
+        Demuxer::~Demuxer()
+        {
+        }
+
+        void Demuxer::destory(
+            Demuxer* & demuxer)
         {
             delete demuxer;
             demuxer = NULL;
         }
 
-        void DemuxerBase::demux_begin(
+        void Demuxer::demux_begin(
             TimestampHelper & helper)
         {
             helper_ = &helper;
@@ -70,7 +80,7 @@ namespace ppbox
             helper_->begin(dts);
         }
 
-        void DemuxerBase::demux_end()
+        void Demuxer::demux_end()
         {
             boost::system::error_code ec;
             size_t n = get_stream_count(ec);
@@ -80,11 +90,11 @@ namespace ppbox
                 get_stream_info(i, info, ec);
                 dts.push_back(info.start_time + info.duration);
             }
-            helper_->begin(dts);
+            helper_->end(dts);
             helper_ = &default_helper_;
         }
 
-        void DemuxerBase::on_open()
+        void Demuxer::on_open()
         {
             demux_begin(*helper_);
         }

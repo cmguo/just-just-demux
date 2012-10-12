@@ -1,9 +1,9 @@
-// AsfDemuxerBase.h
+// AsfDemuxer.h
 
-#ifndef _PPBOX_DEMUX_ASF_ASF_DEMUXER_BASE_H_
-#define _PPBOX_DEMUX_ASF_ASF_DEMUXER_BASE_H_
+#ifndef _PPBOX_DEMUX_ASF_ASF_DEMUXER_H_
+#define _PPBOX_DEMUX_ASF_ASF_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 #include "ppbox/demux/asf/AsfStream.h"
 
 #include <ppbox/avformat/asf/AsfObjectType.h>
@@ -18,7 +18,7 @@ namespace ppbox
 
         class AsfDemuxer
             : public ASF_Object_Header
-            , public DemuxerBase
+            , public Demuxer
         {
 
         public:
@@ -148,7 +148,7 @@ namespace ppbox
 
         PPBOX_REGISTER_DEMUXER(asf, AsfDemuxer);
 
-    }
-}
+    } // namespace demux
+} // namespace ppbox
 
-#endif // _PPBOX_DEMUX_ASF_ASF_DEMUXER_BASE_H_
+#endif // _PPBOX_DEMUX_ASF_ASF_DEMUXER_H_

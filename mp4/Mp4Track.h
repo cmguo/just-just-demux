@@ -48,7 +48,6 @@ namespace ppbox
 
         public:
             size_t itrack;
-            boost::uint32_t time; // ºÁÃë
             boost::uint64_t ustime; // Î¢Ãë
         };
 
@@ -136,7 +135,6 @@ namespace ppbox
 #else
                         sample.ustime = sample.GetCts() * 1000000 / track_->GetMediaTimeScale();
 #endif // PPBOX_DEMUX_MP4_USE_CTS
-                        sample.time = (boost::uint32_t)(sample.ustime / 1000);
                     }
                     return ret;
                 }
@@ -158,7 +156,6 @@ namespace ppbox
 #else
                         sample_.ustime = sample_.GetCts() * 1000000 / track_->GetMediaTimeScale();
 #endif // PPBOX_DEMUX_MP4_USE_CTS
-                        sample_.time = (boost::uint32_t)(sample_.ustime / 1000);
                     } else {
                         total_index_ = next_index_;
                     }
@@ -182,8 +179,7 @@ namespace ppbox
 #else
                     sample.ustime = sample.GetCts() * 1000000 / track_->GetMediaTimeScale();
 #endif // PPBOX_DEMUX_MP4_USE_CTS
-                    sample.time = (boost::uint32_t)(sample.ustime / 1000);
-                    time = sample.time;
+                    time = (boost::uint32_t)(sample.ustime / 1000);
                 } else {
                     time = track_->GetDurationMs();
                     next_index = track_->GetSampleCount();
@@ -331,6 +327,8 @@ namespace ppbox
             {
                 StreamInfo & media_info = *this;
                 media_info.time_scale = track_->GetMediaTimeScale();
+                media_info.start_time = 0;
+                media_info.duration = track_->GetMediaDuration();
                 ec = bad_file_format;
                 if (AP4_Atom* avc1Atom = track_->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/avc1")) {
                     AP4_Avc1SampleEntry* avc1 = static_cast<AP4_Avc1SampleEntry*>(avc1Atom);
