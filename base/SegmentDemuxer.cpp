@@ -8,6 +8,7 @@
 
 #include <ppbox/data/MediaBase.h>
 #include <ppbox/data/SegmentSource.h>
+#include <ppbox/data/SourceError.h>
 
 using namespace ppbox::avformat;
 
@@ -258,10 +259,10 @@ namespace ppbox
             if (!ec && read_demuxer_->demuxer->is_open(ec)) {
                 assert(time >= pos.time_range.big_beg() && pos.time_range.big_end() >= time);
                 boost::uint64_t time_t = time - pos.time_range.big_beg();
-                boost::uint64_t offset = read_demuxer_->demuxer->seek(time_t, ec);
+                pos.byte_range.pos = read_demuxer_->demuxer->seek(time_t, ec);
                 if (!ec) {
                     time = pos.time_range.big_beg() + time_t;
-                    if (buffer_->seek(base, pos, offset, ec)) {
+                    if (buffer_->seek(base, pos, ec)) {
                         seek_time_ = 0;
                         if (write_demuxer_)
                             free_demuxer(write_demuxer_, false, ec);
@@ -426,6 +427,8 @@ namespace ppbox
                 } else {
                     ec = buffer_->last_error();
                     assert(ec);
+                    if (ec == ppbox::data::source_error::no_more_segment)
+                        ec = error::no_more_sample;
                     if (!ec) {
                         ec = boost::asio::error::would_block;
                     }
@@ -512,7 +515,9 @@ namespace ppbox
                 DemuxerInfo & info = *demuxer_infos_[i];
                 if (info.segment.is_same_segment(segment)) {
                     info.attach();
-                    if (is_read) {
+                    if (info.nref == 1) {
+                        buffer_->attach_stream(info.stream, is_read);
+                    } else if (is_read) {
                         buffer_->change_stream(info.stream, true);
                     }
                     ec.clear();

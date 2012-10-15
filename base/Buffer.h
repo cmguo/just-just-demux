@@ -118,6 +118,8 @@ namespace ppbox
                     && write_.offset <= write_hole_.this_end);
                 if (write_.offset <= read_.offset + buffer_size_ 
                     && write_.offset <= write_hole_.this_end) {
+                        if (write_.offset > data_end_)
+                            data_end_ = write_.offset;
                     return true;
                 }
                 move_back(write_, size);
@@ -201,12 +203,14 @@ namespace ppbox
 
             // 返回是否移动了write指针
             bool seek(
-                boost::uint64_t offset);
+                boost::uint64_t offset, 
+                boost::uint64_t size = invalid_size);
 
             void clear();
 
             void reset(
-                boost::uint64_t offset);
+                boost::uint64_t offset, 
+                boost::uint64_t size = invalid_size);
 
         private:
             void dump();
@@ -402,6 +406,9 @@ namespace ppbox
                 }
             }
 
+        protected:
+            static boost::uint64_t const invalid_size = boost::uint64_t(-1);
+
         private:
             framework::memory::PrivateMemory memory_;
             char * buffer_;
@@ -409,6 +416,7 @@ namespace ppbox
 
             boost::uint64_t data_beg_;
             boost::uint64_t data_end_;
+            boost::uint64_t seek_end_;
 
             Position read_;
             Hole read_hole_;

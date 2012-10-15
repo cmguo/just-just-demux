@@ -175,6 +175,8 @@ namespace ppbox
                 util::event::Event const & event);
 
         private:
+            void clear_segments();
+
             void insert_segment(
                 segment_t const & seg);
 

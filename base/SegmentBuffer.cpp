@@ -6,6 +6,7 @@
 
 #include <ppbox/data/SegmentSource.h>
 #include <ppbox/data/SourceEvent.h>
+#include <ppbox/data/SourceError.h>
 
 #include <framework/system/LogicError.h>
 #include <framework/logger/Logger.h>
@@ -20,8 +21,6 @@ namespace ppbox
     {
 
         FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.SegmentBuffer", framework::logger::Debug);
-
-        static boost::uint64_t const invalid_size = boost::uint64_t(-1);
 
         SegmentBuffer::SegmentBuffer(
             ppbox::data::SegmentSource & source, 
@@ -60,26 +59,20 @@ namespace ppbox
                 return !ec;
             }
 
-            bool write_change = Buffer::seek(pos.byte_range.big_pos());
-
-            while (!segments_.empty() && segments_.front().byte_range.big_end() <= data_begin()) {
-                segments_.pop_front();
-            }
-            while (!segments_.empty() && segments_.back().byte_range.big_beg() >= data_end()) {
-                segments_.pop_back();
-            }
+            bool write_change = Buffer::seek(pos.byte_range.big_pos(), size);
 
             insert_segment(pos);
             read_ = pos;
-            if (read_stream_)
-                read_stream_->seek(pos.byte_range.pos);
 
             if (write_change || !write_.valid()) {
                 find_segment(out_position(), write_);
+                source_.seek(write_, write_hole_size(), ec);
                 if (write_stream_)
                     write_stream_->seek(write_.byte_range.pos);
-                source_.seek(write_, write_hole_size(), ec);
             }
+
+            if (read_stream_)
+                read_stream_->seek(read_.byte_range.pos);
 
             return !ec;
         }
@@ -112,6 +105,9 @@ namespace ppbox
                     boost::uint64_t hole_size = next_write_hole();
                     find_segment(out_position(), write_);
                     source_.seek(write_, hole_size, ec);
+                    if (hole_size == 0) {
+                        ec = ppbox::data::source_error::at_end_point;
+                    }
                 }
                 if (ec) {
                     return 0;
@@ -208,9 +204,8 @@ namespace ppbox
             // source_.drop_all();
             //}
             if (consume((size_t)(read_.byte_range.big_end() - in_position()))) {
-                // TODO
-                segments_.pop_front();
-                read_ = segments_.front();
+                clear_segments();
+                find_segment(in_position(), read_);
                 // 读缓冲DropAll
                 read_stream_->drop_all();
             } else {
@@ -329,16 +324,16 @@ namespace ppbox
                 if (pos < beg) {
                    pos = beg;
                    ec = framework::system::logic_error::out_of_range;
-                } else if (pos > end) {
+                } else if (pos >= end) {
                     if (pos > segment.byte_range.big_end()) {
                         pos = segment.byte_range.big_end();
                         ec = framework::system::logic_error::out_of_range;
                     }
-                    if (pos > out_position()) {
+                    if (pos >= out_position()) {
                         boost::system::error_code ec1 = last_ec_;
-                        while (!ec1 && pos > out_position())
-                            prepare((size_t)(pos - out_position()), ec1);
-                        if (pos > out_position()) {
+                        while (!ec1 && pos >= out_position())
+                            prepare_at_least((size_t)(pos - out_position()), ec1);
+                        if (pos > out_position()) { // 如果 pos == out_position()，也不算失败
                             pos = out_position();
                             if (!ec) ec = ec1;
                         }
@@ -364,6 +359,16 @@ namespace ppbox
                 find_segment(out_position(), write_);
             } else if (ppbox::data::SegmentStopEvent const * event = e.as<ppbox::data::SegmentStopEvent>()) {
                 insert_segment((segment_t const &)event->segment);
+            }
+        }
+
+        void SegmentBuffer::clear_segments()
+        {
+            while (!segments_.empty() && segments_.front().byte_range.big_end() <= data_begin()) {
+                segments_.pop_front();
+            }
+            while (!segments_.empty() && segments_.back().byte_range.big_beg() > data_end()) {
+                segments_.pop_back();
             }
         }
 
@@ -411,6 +416,9 @@ namespace ppbox
             seg.byte_range.end = 0;
             std::deque<segment_t>::iterator iter = 
                 std::upper_bound(segments_.begin(), segments_.end(), seg, comp_big_end());
+            if (iter == segments_.end()) { // 有可能不存在。。。
+                iter = std::lower_bound(segments_.begin(), segments_.end(), seg, comp_big_end());
+            }
             assert (iter != segments_.end() && !comp_big_beg()(seg, *iter));
             if (iter != segments_.end() && !comp_big_beg()(seg, *iter)) {
                 seg = *iter;

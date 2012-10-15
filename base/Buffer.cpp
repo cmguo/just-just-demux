@@ -21,6 +21,7 @@ namespace ppbox
             , buffer_size_(framework::memory::MemoryPage::align_page(buffer_size))
             , data_beg_(0)
             , data_end_(0)
+            , seek_end_(0)
         {
             buffer_ = (char *)memory_.alloc_block(buffer_size_);
             reset(0);
@@ -38,7 +39,8 @@ namespace ppbox
         }
 
         void Buffer::reset(
-            boost::uint64_t offset)
+            boost::uint64_t offset, 
+            boost::uint64_t size)
         {
             read_ = Position(offset);
             read_.buffer = buffer_beg();
@@ -51,10 +53,12 @@ namespace ppbox
 
             data_beg_ = offset;
             data_end_ = offset;
+            seek_end_ = size == invalid_size ? invalid_size : offset + size;
         }
 
         bool Buffer::seek(
-            boost::uint64_t offset)
+            boost::uint64_t offset, 
+            boost::uint64_t size)
         {
             LOG_TRACE("seek " << offset);
             if (data_end_ > data_beg_ + buffer_size_)
@@ -161,6 +165,16 @@ namespace ppbox
                 // lay a read hole
                 read_hole_.next_beg = write_read_hole(read_hole_next_beg, read_hole_);
             }
+            seek_end_ = size == invalid_size ? invalid_size : offset + size;
+            if (write_offset != write_.offset) {
+                // 修正下一个下载Hole
+                if (seek_end_ < write_hole_.this_end) {
+                    if (write_write_hole(seek_end_, write_hole_) == boost::uint64_t(-1))
+                        data_end_ = write_.offset;
+                    write_hole_.this_end = seek_end_;
+                    write_hole_.next_beg = seek_end_;
+                }
+            }
             LOG_TRACE("after seek " << offset);
             dump();
             return write_offset != write_.offset;
@@ -173,11 +187,26 @@ namespace ppbox
             boost::uint64_t next_offset = 
                 read_write_hole(hole.next_beg, hole);
 
+            if (pos.offset >= seek_end_) {
+                hole.this_end = hole.next_beg = pos.offset;
+                return false;
+            }
+
             if (pos.buffer != NULL) {
                 move_front_to(pos, next_offset);
             } else {
                 pos.offset = next_offset;
             }
+
+            // W     e^b    e----b      e---
+            // 如果当这个分段不能完全填充当前空洞，会切分出一个小空洞，需要插入
+            if (seek_end_ < hole.this_end) {
+                if (write_write_hole(seek_end_, hole) == boost::uint64_t(-1))
+                    data_end_ = pos.offset;
+                hole.this_end = seek_end_;
+                hole.next_beg = seek_end_;
+            }
+
             return true;
         }
 
