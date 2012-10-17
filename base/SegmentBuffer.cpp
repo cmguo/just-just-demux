@@ -390,6 +390,14 @@ namespace ppbox
             if (iter == segments_.end()) {
                 segments_.push_back(seg);
             } else if (!comp_big_beg()(seg, *iter)) { // ÏàµÈ
+                if (iter->byte_range.end == invalid_size) {
+                    if (read_ == seg) {
+                        read_ = seg;
+                    }
+                    if (write_ == seg) {
+                        write_ = seg;
+                    }
+                }
                 *iter = seg;
             } else {
                 assert(seg.byte_range.big_end() <= iter->byte_range.big_beg());

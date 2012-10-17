@@ -54,30 +54,6 @@ namespace ppbox
                 return (this->item_context == r.item_context 
                     && this->index == r.index);
             }
-
-            friend bool operator<(
-                SegmentPosition const & l, 
-                SegmentPosition const & r)
-            {
-                SourceTreeItem const & li = *(SourceTreeItem const *)l.item_context;
-                SourceTreeItem const & ri = *(SourceTreeItem const *)r.item_context;
-                return (li < ri
-                    || (&li == &ri && (ppbox::data::SegmentPosition const &)l < (ppbox::data::SegmentPosition const &)r));
-            }
-
-            friend bool operator==(
-                SegmentPosition const & l, 
-                SegmentPosition const & r)
-            {
-                return (l.item_context== r.item_context && (ppbox::data::SegmentPosition const &)l == (ppbox::data::SegmentPosition const &)r);
-            }
-
-            friend bool operator!=(
-                SegmentPosition const & l, 
-                SegmentPosition const & r)
-            {
-                return !(l == r);
-            }
         };
 
         struct DemuxerInfo;

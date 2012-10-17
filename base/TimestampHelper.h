@@ -77,6 +77,12 @@ namespace ppbox
             }
 
         public:
+            void smoth(
+                bool b)
+            {
+                smoth_ = b;
+            }
+
             bool smoth() const
             {
                 return smoth_;

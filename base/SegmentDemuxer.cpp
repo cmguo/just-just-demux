@@ -183,6 +183,8 @@ namespace ppbox
                     open_state_ = demuxer_open;
                     media_.get_info(media_info_, ec);
                     if (!ec) {
+                        // TODO:
+                        timestamp_helper_.smoth(media_info_.is_live);
                         buffer_->pause_stream();
                         reset(ec);
                     }
@@ -270,7 +272,7 @@ namespace ppbox
                     }
                 }
             }
-            if (&time != &seek_time_) {
+            if (&time != &seek_time_ && open_state_ == open_finished) {
                 DemuxStatistic::seek(!ec, time);
             }
             if (ec) {

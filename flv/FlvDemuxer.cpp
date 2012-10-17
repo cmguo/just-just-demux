@@ -137,7 +137,10 @@ namespace ppbox
                 }
                 if (!ec) {
                     archive_.seekg(parse_offset_, std::ios_base::beg);
-                    timestamp_offset_ms_ = flv_tag_.Timestamp;
+                    current_time_ = timestamp_offset_ms_ = flv_tag_.Timestamp;
+                    for (size_t i = 0; i < stream_map_.size(); ++i) {
+                        streams_[stream_map_[i]].start_time = timestamp_offset_ms_;
+                    }
                     header_offset_ = parse_offset_;
                     open_step_ = 3;
                 }
@@ -149,6 +152,7 @@ namespace ppbox
                 return false;
             } else {
                 if (3 == open_step_) {
+                    on_open();
                     boost::uint64_t duration = 0;
                     boost::uint64_t filesize = 0;
                     if (metadata_.duration != 0) {
@@ -166,7 +170,7 @@ namespace ppbox
         error_code FlvDemuxer::close(error_code & ec)
         {
             header_offset_ = 0;
-            timestamp_offset_ms_ = 0;
+            current_time_ = timestamp_offset_ms_ = 0;
             parse_offset_ = 0;
             ec.clear();
             open_step_ = boost::uint64_t(-1);
@@ -185,14 +189,16 @@ namespace ppbox
             boost::uint64_t & time, 
             error_code & ec)
         {
-            if (time == 0) {
+            //if (time == 0) {
                 ec.clear();
+                time = 0;
+                current_time_ = timestamp_offset_ms_;
                 parse_offset_ = header_offset_;
                 return header_offset_;
-            } else {
-                ec = error::not_support;
-                return 0;
-            }
+            //} else {
+            //    ec = error::not_support;
+            //    return 0;
+            //}
         }
 
         boost::uint64_t FlvDemuxer::get_duration(
@@ -256,13 +262,10 @@ namespace ppbox
                 sample.flags = 0;
                 if (flv_tag_.is_sync)
                     sample.flags |= Sample::sync;
-                boost::uint64_t timestamp = timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
-                sample.time = (boost::uint64_t)timestamp - timestamp_offset_ms_;
-                sample.ustime = (timestamp - timestamp_offset_ms_) * 1000;
-                sample.dts = timestamp - timestamp_offset_ms_;
+                sample.dts = timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);;
                 sample.cts_delta = flv_tag_.cts_delta;
-                sample.us_delta = 1000*sample.cts_delta;
                 sample.duration = 0;
+                Demuxer::adjust_timestamp(sample);
                 sample.size = flv_tag_.DataSize;
                 sample.blocks.clear();
                 sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
@@ -308,7 +311,7 @@ namespace ppbox
             if (flv_tag_.Timestamp - timestamp_offset_ms_ > 1000) {
                 time = (flv_tag_.Timestamp - timestamp_offset_ms_) * end / parse_offset_;
             } else if (metadata_.datarate) {
-                time = end / metadata_.datarate;
+                time = end * 8 / metadata_.datarate;
             } else {
                 time = 0;
             }
