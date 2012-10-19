@@ -66,15 +66,6 @@ namespace ppbox
             ~Buffer();
 
         public:
-            typedef util::buffers::Buffers<
-                boost::asio::const_buffer, 2
-            > read_buffer_t;
-
-            typedef util::buffers::Buffers<
-                boost::asio::mutable_buffer, 2
-            > write_buffer_t;
-
-        public:
             // Ð´Ö¸ÕëÆ«ÒÆ
             boost::uint64_t out_position() const
             {
@@ -89,17 +80,25 @@ namespace ppbox
                 return (size_t)(end - write_.offset);
             }
 
-            write_buffer_t prepare()
+            template <
+                typename BufferSequence
+            >
+            void prepare(
+                BufferSequence & buffers)
             {
                 boost::uint64_t beg = write_.offset;
                 boost::uint64_t end = write_hole_.this_end;
                 if (end > beg + buffer_size_)
                     end = beg + buffer_size_;
-                return write_buffer(beg, end);
+                return write_buffer(beg, end, buffers);
             }
 
-            write_buffer_t prepare(
-                boost::uint32_t size)
+            template <
+                typename BufferSequence
+            >
+            void prepare(
+                boost::uint32_t size, 
+                BufferSequence & buffers)
             {
                 boost::uint64_t beg = write_.offset;
                 boost::uint64_t end = beg + size;
@@ -107,7 +106,7 @@ namespace ppbox
                     end = read_.offset + buffer_size_;
                 if (end > write_hole_.this_end)
                     end = write_hole_.this_end;
-                return write_buffer(beg, end);
+                return write_buffer(beg, end, buffers);
             }
 
             bool commit(
@@ -148,19 +147,27 @@ namespace ppbox
                 return data_end_;
             }
 
-            read_buffer_t data()
+            template <
+                typename BufferSequence
+            >
+            void data(
+                BufferSequence & buffers)
             {
-                return read_buffer(read_.offset, write_.offset);
+                return read_buffer(read_.offset, write_.offset, buffers);
             }
 
-            read_buffer_t data(
-                boost::uint32_t size)
+            template <
+                typename BufferSequence
+            >
+            void data(
+                boost::uint32_t size, 
+                BufferSequence & buffers)
             {
                 boost::uint64_t beg = read_.offset;
                 boost::uint64_t end = beg + size;
                 if (end > write_.offset)
                     end = write_.offset;
-                return read_buffer(beg, end);
+                return read_buffer(beg, end, buffers);
             }
 
             bool consume(
@@ -253,45 +260,47 @@ namespace ppbox
                 return ptr;
             }
 
-            read_buffer_t read_buffer(
+            template <
+                typename BufferSequence
+            >
+            void read_buffer(
                 boost::uint64_t beg, 
-                boost::uint64_t end) const
+                boost::uint64_t end, 
+                BufferSequence & buffers) const
             {
-                boost::asio::const_buffer buffers[2];
                 if (end == beg)
-                    return read_buffer_t();
+                    return;
                 char const * buffer = buffer_move_front(read_.buffer, beg - read_.offset);
                 if (end - beg <= (boost::uint32_t)(buffer_end() - buffer)) {
-                    buffers[0] = boost::asio::const_buffer(buffer, (size_t)(end - beg));
-                    return read_buffer_t(buffers, 1);
+                    buffers.push_back(boost::asio::const_buffer(buffer, (size_t)(end - beg)));
                 } else {
                     size_t size = buffer_end() - buffer;
-                    buffers[0] = boost::asio::const_buffer(buffer, size);
+                    buffers.push_back(boost::asio::const_buffer(buffer, size));
                     buffer = buffer_beg();
                     beg += size;
-                    buffers[1] = boost::asio::const_buffer(buffer, (size_t)(end - beg));
-                    return read_buffer_t(buffers, 2);
+                    buffers.push_back(boost::asio::const_buffer(buffer, (size_t)(end - beg)));
                 }
             }
 
-            write_buffer_t write_buffer(
+            template <
+                typename BufferSequence
+            >
+            void write_buffer(
                 boost::uint64_t beg, 
-                boost::uint64_t end)
+                boost::uint64_t end, 
+                BufferSequence & buffers)
             {
-                boost::asio::mutable_buffer buffers[2];
                 if (end == beg)
-                    return write_buffer_t();
+                    return;
                 char * buffer = buffer_move_front(write_.buffer, beg - write_.offset);
                 if (end - beg <= (boost::uint32_t)(buffer_end() - buffer)) {
-                    buffers[0] = boost::asio::mutable_buffer(buffer, (size_t)(end - beg));
-                    return write_buffer_t(buffers, 1);
+                    buffers.push_back(boost::asio::mutable_buffer(buffer, (size_t)(end - beg)));
                 } else {
                     size_t size = buffer_end() - buffer;
-                    buffers[0] = boost::asio::mutable_buffer(buffer, size);
+                    buffers.push_back(boost::asio::mutable_buffer(buffer, size));
                     buffer = buffer_beg();
                     beg += size;
-                    buffers[1] = boost::asio::mutable_buffer(buffer, (size_t)(end - beg));
-                    return write_buffer_t(buffers, 2);
+                    buffers.push_back(boost::asio::mutable_buffer(buffer, (size_t)(end - beg)));
                 }
             }
 

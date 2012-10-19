@@ -7,8 +7,6 @@
 
 #include <ppbox/data/SegmentStrategy.h>
 
-#include <framework/timer/TimeCounter.h>
-
 namespace ppbox
 {
     namespace demux
@@ -154,7 +152,6 @@ namespace ppbox
         private:
             SourceTreeItem tree_item_;
             SourceTreeItem insert_item_;    // 代表父节点被切割的后面一个部分
-            framework::timer::TimeCounter counter_; 
             DemuxerInfo * insert_demuxer_;  // 父节点的demuxer
             size_t insert_segment_;         // 插入在父节点的分段
             boost::uint64_t insert_size_;   // 插入在分段上的偏移位置，相对于分段起始位置（无法）

@@ -89,6 +89,8 @@ namespace ppbox
                 pos.time_range.beg = 0;
                 pos.time_range.pos = 0;
                 pos.time_range.end = pos.duration;
+                pos.byte_range.after_next();
+                pos.time_range.after_next();
                 if (pos.is_inserted() && pos.next_owner()->insert_segment_ == pos.index) {
                     pos.byte_range.end = pos.next_owner()->insert_size_;
                     pos.time_range.end = pos.next_owner()->insert_time_;
@@ -103,11 +105,11 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             ppbox::data::MediaInfo media_info;
-            if (media_.get_info(media_info, ec))
+            if (!media_.get_info(media_info, ec))
                 return false;
             assert(media_info.duration >= media_info.delay);
             time = media_info.is_live 
-                ? media_info.duration - media_info.delay + counter_.elapse() : 0;
+                ? media_info.current - media_info.delay : 0;
             return true;
         }
 
@@ -139,6 +141,8 @@ namespace ppbox
                     return false;
                 }
             }
+
+            pos.time_range.pos = time - pos.time_range.big_offset;
 
             media_.segment_url(pos.index, pos.url, ec);
 

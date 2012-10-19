@@ -119,14 +119,19 @@ namespace ppbox
                 boost::system::error_code & ec_buf);
 
         public:
-            SegmentBuffer const & buffer() const
+            ppbox::data::MediaBase const & media() const
             {
-                return *buffer_;
+                return media_;
             }
 
             ppbox::data::SegmentSource const & source() const
             {
                 return *source_;
+            }
+
+            SegmentBuffer const & buffer() const
+            {
+                return *buffer_;
             }
 
         public:

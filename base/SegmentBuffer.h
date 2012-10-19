@@ -7,6 +7,7 @@
 #include "ppbox/demux/base/Buffer.h"
 
 #include <util/event/Event.h>
+#include <util/stream/StreamBuffers.h>
 
 #include <framework/system/LogicError.h>
 
@@ -96,11 +97,12 @@ namespace ppbox
                 丢弃当前分段的所有剩余数据，并且更新当前分段信息
              */
             bool drop_all(
+                boost::uint64_t duration, 
                 boost::system::error_code & ec);
 
-            void reset(
-                segment_t const & base, 
-                segment_t const & pos);
+            bool write_next(
+                segment_t & segment, 
+                boost::system::error_code & ec);
 
         public:
             ppbox::data::SegmentSource const & source() const
@@ -175,9 +177,14 @@ namespace ppbox
                 util::event::Event const & event);
 
         private:
+            void reset(
+                segment_t const & base, 
+                segment_t const & pos);
+
             void clear_segments();
 
             void insert_segment(
+                bool is_read, 
                 segment_t const & seg);
 
             void find_segment(
@@ -193,6 +200,7 @@ namespace ppbox
         private:
             ppbox::data::SegmentSource & source_;
             boost::uint32_t prepare_size_;  // 下载一次，最大的读取数据大小
+            util::stream::StreamMutableBuffers prepare_buffers_;
 
             segment_t base_;
             std::deque<segment_t> segments_;

@@ -23,10 +23,6 @@ namespace ppbox
 
             typedef SegmentBuffer::segment_t segment_t;
 
-            typedef SegmentBuffer::read_buffer_t read_buffer_t;
-
-            typedef read_buffer_t::const_iterator const_iterator;
-
             typedef util::buffers::StlBuffer<
                 util::buffers::detail::_read, boost::uint8_t, std::char_traits<boost::uint8_t> > buffer_type;
 
@@ -92,7 +88,7 @@ namespace ppbox
                 SegmentBuffer::segment_t & segment)
             {
                 segment_ = &segment;
-                update(SegmentBuffer::PositionType::set, 0);
+                update(SegmentBuffer::PositionType::set, segment.byte_range.pos);
             }
 
         private:

@@ -66,6 +66,7 @@ namespace ppbox
 
             if (open_step_ == 0) {
                 archive_.seekg(0, std::ios_base::beg);
+                assert(archive_);
                 archive_ >> flv_header_;
                 if (archive_) {
                     streams_.clear();
@@ -87,17 +88,20 @@ namespace ppbox
                     } else {
                         ec = error::file_stream_error;
                     }
+                    archive_.clear();
                 }
             }
 
             if (open_step_ == 1) {
                 archive_.seekg(parse_offset_, std::ios_base::beg);
+                assert(archive_);
                 while (!get_tag(flv_tag_, ec)) {
                     if (flv_tag_.Type == FlvTagType::META) {
                         parse_metadata(flv_tag_);
                     }
                     std::vector<boost::uint8_t> codec_data;
                     archive_.seekg(std::streamoff(flv_tag_.data_offset), std::ios_base::beg);
+                    assert(archive_);
                     util::serialization::serialize_collection(archive_, codec_data, (boost::uint64_t)flv_tag_.DataSize);
                     archive_.seekg(4, std::ios_base::cur);
                     assert(archive_);
@@ -137,6 +141,7 @@ namespace ppbox
                 }
                 if (!ec) {
                     archive_.seekg(parse_offset_, std::ios_base::beg);
+                    assert(archive_);
                     current_time_ = timestamp_offset_ms_ = flv_tag_.Timestamp;
                     for (size_t i = 0; i < stream_map_.size(); ++i) {
                         streams_[stream_map_[i]].start_time = timestamp_offset_ms_;
@@ -149,6 +154,7 @@ namespace ppbox
             if (ec) {
                 archive_.clear();
                 archive_.seekg(parse_offset_, std::ios_base::beg);
+                assert(archive_);
                 return false;
             } else {
                 if (3 == open_step_) {
@@ -240,10 +246,11 @@ namespace ppbox
                 return ec;
             }
             archive_.seekg(parse_offset_, std::ios_base::beg);
-            //assert(archive_);
+            assert(archive_);
             framework::timer::TimeCounter tc;
             if (get_tag(flv_tag_, ec)) {
                 archive_.seekg(parse_offset_, std::ios_base::beg);
+                assert(archive_);
                 return ec;
             }
             if (flv_tag_.Type == FlvTagType::VIDEO) {
@@ -304,6 +311,7 @@ namespace ppbox
             }
             boost::uint64_t beg = archive_.tellg();
             archive_.seekg(0, std::ios_base::end);
+            assert(archive_);
             boost::uint64_t end = archive_.tellg();
             archive_.seekg(beg, std::ios_base::beg);
             assert(archive_);
