@@ -36,6 +36,7 @@ namespace ppbox
             , buffer_(NULL)
             , root_content_(NULL)
             , seek_time_(0)
+            , seek_pending_(false)
             , read_demuxer_(NULL)
             , write_demuxer_(NULL)
             , max_demuxer_infos_(5)
@@ -241,8 +242,7 @@ namespace ppbox
             boost::uint64_t & time, 
             boost::system::error_code & ec)
         {
-            ec.clear();
-            if (&time != &seek_time_) {
+            if (&time != &seek_time_ && (!seek_pending_ || time != seek_time_)) {
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
                 if (!root_content_->time_seek(time, base, pos, ec) 
@@ -259,7 +259,8 @@ namespace ppbox
                 read_demuxer_->demuxer->demux_begin(timestamp_helper_);
             }
             while (true) {
-                read_demuxer_->segment.byte_range.pos = read_demuxer_->demuxer->seek(read_demuxer_->segment.time_range.pos, ec);
+                read_demuxer_->segment.byte_range.pos = 
+                    read_demuxer_->demuxer->seek(read_demuxer_->segment.time_range.pos, ec);
                 /* 可能失败原因
                     1. 数据不够 file_stream_error
                         a. 没有下载到足够数据（使用下载错误作为错误码）
@@ -274,7 +275,7 @@ namespace ppbox
                     SegmentPosition pos(buffer_->read_segment());
                     pos.byte_range.pos = read_demuxer_->segment.byte_range.pos;
                     if (buffer_->seek(base, pos, ec)) {
-                        seek_time_ = 0;
+                        seek_pending_ = false;
                         boost::system::error_code ec1;
                         if (write_demuxer_)
                             free_demuxer(write_demuxer_, false, ec1);
@@ -318,6 +319,7 @@ namespace ppbox
                 DemuxStatistic::seek(!ec, time);
             }
             if (ec) {
+                seek_pending_ = true;
                 seek_time_ = time; // 用户连续seek，以最后一次为准
                 last_error(ec);
             }
@@ -380,7 +382,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             buffer_->prepare_at_least(0, ec);
-            if (seek_time_ && seek(seek_time_, ec)) {
+            if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
                 }
@@ -407,7 +409,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             buffer_->prepare_at_least(0, ec);
-            if (seek_time_ && seek(seek_time_, ec)) {
+            if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     return buffer_->write_segment().time_range.big_beg();
                 }
@@ -447,13 +449,13 @@ namespace ppbox
         {
             buffer_->drop(ec);
             buffer_->prepare_at_least(0, ec);
-            if (seek_time_ && seek(seek_time_, ec)) {
+            if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     block_on();
                 }
                 return ec;
             }
-            assert(seek_time_ == 0);
+            assert(!seek_pending_);
 
             while (read_demuxer_->demuxer->get_sample(sample, ec)) {
                 if (ec != error::file_stream_error && ec != error::no_more_sample) {
@@ -468,6 +470,9 @@ namespace ppbox
                         free_demuxer(read_demuxer_, true, ec);
                         read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
                         read_demuxer_->demuxer->demux_begin(timestamp_helper_);
+                        if (!ec) { // 已经打开，需要回滚到开始位置
+                            read_demuxer_->demuxer->seek(seek_time_, ec);
+                        }
                         continue;
                     } else {
                         ec = error::no_more_sample;

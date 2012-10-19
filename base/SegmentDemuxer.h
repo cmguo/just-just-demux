@@ -202,6 +202,7 @@ namespace ppbox
 
             framework::timer::Ticker * ticker_;
             boost::uint64_t seek_time_;
+            bool seek_pending_;
 
             StateEnum open_state_;
             open_response_type resp_;
