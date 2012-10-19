@@ -252,11 +252,11 @@ namespace ppbox
                 if (hole.this_end > data_end_) {
                     hole.this_end = hole.next_beg = invalid_size;
                 }
-                assert(hole.next_beg >= hole.this_end);
                 if (hole.this_end != invalid_size)
                     hole.this_end += offset;
                 if (hole.next_beg != invalid_size)
                     hole.next_beg += offset;
+                assert(hole.next_beg >= hole.this_end);
                 return offset;
             }
         }
@@ -307,11 +307,11 @@ namespace ppbox
                     hole.this_end = 0;
                     hole.next_beg = 0;
                 }
-                assert(hole.next_beg <= hole.this_end);
                 if (hole.this_end != 0)
                     hole.this_end = offset - hole.this_end;
                 if (hole.next_beg != 0)
                     hole.next_beg = offset - hole.next_beg;
+                assert(hole.next_beg <= hole.this_end);
                 return offset;
             }
         }
@@ -331,11 +331,11 @@ namespace ppbox
                     read_read_hole(hole.next_beg, hole);
                 }
                 // 可以正常插入
-                back_write(offset - sizeof(hole), sizeof(hole), &hole);
                 if (hole.this_end != 0)
                     hole.this_end = offset - hole.this_end;
                 if (hole.next_beg != 0)
                     hole.next_beg = offset - hole.next_beg;
+                back_write(offset - sizeof(hole), sizeof(hole), &hole);
                 return offset;
             } else {
                 // 没有下一个空洞
