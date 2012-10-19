@@ -415,7 +415,7 @@ namespace ppbox
             }
 
             AP4_UI32 time_hint = 0;
-            if (bitrate_ != 0) {
+            if (bitrate_ != 0 && offset > head_size_) {
                 time_hint = (AP4_UI32)((offset - head_size_) * 8 / bitrate_);
             }
             {

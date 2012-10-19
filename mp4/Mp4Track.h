@@ -248,20 +248,20 @@ namespace ppbox
                 if (AP4_SUCCEEDED(stco_->GetChunkOffset(chunk_index_, cur_offset))) {
                     // 找到offset所在的chunk index 和这个块的开起位置
                     if (offset < cur_offset ) {
-                        if (1 == chunk_index_) {
-                            cur_offset = 0;
-                        } else {
-                            for (AP4_Ordinal index = chunk_index_ - 1; index > 0; --index) {
-                                if (AP4_SUCCEEDED(stco_->GetChunkOffset(index, cur_offset))){
-                                    if (offset >= cur_offset) {
-                                        chunk_index_ = index;
-                                        break;
-                                    }
-                                } else {
-                                    time = 0;
-                                    return AP4_SUCCESS;
+                        for (AP4_Ordinal index = chunk_index_ - 1; index > 0; --index) {
+                            if (AP4_SUCCEEDED(stco_->GetChunkOffset(index, cur_offset))){
+                                if (offset >= cur_offset) {
+                                    chunk_index_ = index;
+                                    break;
                                 }
+                            } else {
+                                time = 0;
+                                return AP4_SUCCESS;
                             }
+                        }
+                        if (offset < cur_offset ) {
+                            time = 0;
+                            return AP4_SUCCESS;
                         }
                     } else if (offset > cur_offset) {
                         for (AP4_Ordinal index = chunk_index_+1; index <= chunk_sum_; ++index) {
