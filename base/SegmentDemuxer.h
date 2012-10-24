@@ -42,7 +42,7 @@ namespace ppbox
             enum StateEnum
             {
                 not_open,
-                source_open,
+                media_open,
                 demuxer_open,
                 open_finished,
                 canceling,
@@ -189,7 +189,7 @@ namespace ppbox
             ppbox::data::MediaBase & media_;
             ppbox::data::SegmentSource * source_;
             SegmentBuffer * buffer_;
-            DemuxStrategy * root_content_;
+            DemuxStrategy * strategy_;
 
             ppbox::data::MediaInfo media_info_;
             std::vector<ppbox::avformat::StreamInfo> stream_infos_;

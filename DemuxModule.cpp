@@ -14,21 +14,11 @@ using namespace ppbox::demux;
 #include <framework/timer/Timer.h>
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
-#include <framework/network/Resolver.h>
-using namespace framework::logger;
-using namespace framework::network;
-
-#include <util/archive/TextIArchive.h>
-#include <util/archive/TextOArchive.h>
 
 #include <boost/bind.hpp>
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxerModule", Debug);
-
-#ifndef PPBOX_DNS_VOD_JUMP
-#define PPBOX_DNS_VOD_JUMP "(tcp)(v4)jump.150hi.com:80"
-#endif
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxerModule", framework::logger::Debug);
 
 namespace ppbox
 {

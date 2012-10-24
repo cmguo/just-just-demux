@@ -225,6 +225,8 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             insert_segment(true, segment);
+            if (segment.byte_range.big_end() == invalid_size)
+                find_segment(segment.byte_range.big_beg(), segment);
             find_segment(segment.byte_range.big_end(), segment);
             ec.clear();
             return true;
@@ -420,6 +422,7 @@ namespace ppbox
                     }
                 } else if (is_read && segment.time_range.end == invalid_size) {
                     segment.time_range = seg.time_range;
+                    seg.byte_range = segment.byte_range;
                     if (read_ == seg) {
                         read_.time_range.end = seg.time_range.end;
                     }

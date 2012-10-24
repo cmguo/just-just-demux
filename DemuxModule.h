@@ -59,7 +59,7 @@ namespace ppbox
             SegmentDemuxer * find(
                 framework::string::Url const & play_link);
 
-        public:
+        private:
             struct DemuxInfo;
 
         private:
@@ -67,11 +67,6 @@ namespace ppbox
                 framework::string::Url const & play_link, 
                 open_response_type const & resp, 
                 boost::system::error_code & ec);
-
-            SegmentDemuxer * create(
-                boost::uint32_t buffer_size,
-                boost::uint32_t prepare_size,
-                Strategy * source);
 
             void async_open(
                 boost::mutex::scoped_lock & lock, 

@@ -6,7 +6,7 @@
 #include <ppbox/avformat/flv/FlvFormat.h>
 #include <ppbox/avformat/flv/FlvDataType.h>
 #include <ppbox/avformat/flv/FlvTagType.h>
-#include <ppbox/avformat/codec/AacConfig.h>
+#include <ppbox/avformat/codec/aac/AacConfig.h>
 using namespace ppbox::avformat;
 
 namespace ppbox

@@ -34,7 +34,7 @@ namespace ppbox
             , media_(media)
             , source_(NULL)
             , buffer_(NULL)
-            , root_content_(NULL)
+            , strategy_(NULL)
             , seek_time_(0)
             , seek_pending_(false)
             , read_demuxer_(NULL)
@@ -45,11 +45,12 @@ namespace ppbox
             ticker_ = new framework::timer::Ticker(1000);
             events_.reset(new EventQueue);
 
-            root_content_ = new DemuxStrategy(media);
-            ppbox::data::SourceBase * source = ppbox::data::SourceBase::create(io_svc, media);
+            strategy_ = new DemuxStrategy(media);
+            ppbox::data::SourceBase * source = 
+                ppbox::data::SourceBase::create(io_svc, media);
             error_code ec;
             source->set_non_block(true, ec);
-            source_ = new ppbox::data::SegmentSource(*root_content_, *source);
+            source_ = new ppbox::data::SegmentSource(*strategy_, *source);
             buffer_ = new SegmentBuffer(*source_, 10 * 1024 * 1024, 10240);
         }
 
@@ -60,6 +61,12 @@ namespace ppbox
             if (buffer_) {
                 delete buffer_;
                 buffer_ = NULL;
+            }
+            if (source_) {
+                ppbox::data::SourceBase * source = (ppbox::data::SourceBase *)&source_->source();
+                ppbox::data::SourceBase::destory(source);
+                delete source_;
+                source_ = NULL;
             }
             if (ticker_) {
                 delete ticker_;
@@ -134,10 +141,10 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             open_state_ = canceling;
-            if (source_open == open_state_) {
-                media_.cancel();
+            if (media_open == open_state_) {
+                media_.cancel(ec);
             } else if (demuxer_open == open_state_) {
-                //buffer_->cancel(ec);
+                source_->cancel(ec);
             }
             return ec;
         }
@@ -175,12 +182,12 @@ namespace ppbox
 
             switch(open_state_) {
                 case not_open:
-                    open_state_ = source_open;
+                    open_state_ = media_open;
                     DemuxStatistic::open_beg();
                     media_.async_open(
                         boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
                     break;
-                case source_open:
+                case media_open:
                     open_state_ = demuxer_open;
                     media_.get_info(media_info_, ec);
                     if (!ec) {
@@ -231,7 +238,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             boost::uint64_t time; 
-            if (!root_content_->reset(time, ec)) {
+            if (!strategy_->reset(time, ec)) {
                 last_error(ec);
                 return ec;
             }
@@ -245,7 +252,7 @@ namespace ppbox
             if (&time != &seek_time_ && (!seek_pending_ || time != seek_time_)) {
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
-                if (!root_content_->time_seek(time, base, pos, ec) 
+                if (!strategy_->time_seek(time, base, pos, ec) 
                     || !buffer_->seek(base, pos, pos.head_size, ec)) {
                         last_error(ec);
                         return ec;
@@ -303,7 +310,7 @@ namespace ppbox
                     SegmentPosition base(buffer_->base_segment());
                     SegmentPosition pos(buffer_->read_segment());
                     pos.duration = pos.time_range.end = read_demuxer_->demuxer->get_duration(ec);
-                    if (root_content_->time_seek(time, base, pos, ec) 
+                    if (strategy_->time_seek(time, base, pos, ec) 
                         && buffer_->seek(base, pos, pos.head_size, ec)) {
                             free_demuxer(read_demuxer_, true, ec);
                             read_demuxer_->demuxer->demux_end();

@@ -15,11 +15,6 @@ namespace ppbox
         struct SegmentPosition
             : ppbox::data::SegmentPosition
         {
-            bool valid() const
-            {
-                return item_context != NULL;
-            }
-
             SourceTreeItem * item() const
             {
                 return (SourceTreeItem *)item_context;
@@ -44,13 +39,6 @@ namespace ppbox
             {
                 // next_item()->parent_ ²»Ò»¶¨ == this
                 return next_item() != NULL && next_item()->parent()->owner() == owner();
-            }
-
-            bool is_same_segment( 
-                SegmentPosition const & r) const
-            {
-                return (this->item_context == r.item_context 
-                    && this->index == r.index);
             }
         };
 

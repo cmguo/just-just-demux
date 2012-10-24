@@ -12,7 +12,7 @@ namespace ppbox
 
             enum errors
             {
-                already_open,   // demux已经打开连接
+                already_open = 1,   // demux已经打开连接
                 not_open,       // demux连接未打开
                 no_more_sample, 
                 empty_name, 
