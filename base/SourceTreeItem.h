@@ -46,6 +46,17 @@ namespace ppbox
                 return parent_->remove_child(this);
             }
 
+            bool is_inserted() const
+            {
+                // next_->parent_ ²»Ò»¶¨ == this
+                return next_ != NULL && next_->parent_->owner_ == owner_;
+            }
+
+            DemuxStrategy * next_owner() const
+            {
+                return next_->owner();
+            }
+
         public:
             DemuxStrategy * owner() const
             {

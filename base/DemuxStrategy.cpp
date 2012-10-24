@@ -48,24 +48,32 @@ namespace ppbox
         }
 
         bool DemuxStrategy::next_segment(
-            SegmentPosition & pos, 
+            ppbox::data::SegmentPosition & pos, 
             boost::system::error_code & ec)
         {
-            if (!pos.item()) {
+            if (!pos.item_context) {
                 pos.item_context = &tree_item_;
                 pos.index = -1;
-                return pos.owner()->next_segment(pos, ec);
-            } else if (pos.owner() != this) { // 转发请求
-                return pos.owner()->next_segment(pos, ec);
-            } else if (pos.is_inserted() && pos.next_owner()->insert_segment_ == pos.index) { // 父切子
-                pos.item_context = pos.next_item();
+                return next_segment(pos, ec);
+            }
+
+            SourceTreeItem * tree_item = (SourceTreeItem *)pos.item_context;
+            DemuxStrategy * strategy = tree_item->owner();
+            if (strategy != this) { // 转发请求
+                return strategy->next_segment(pos, ec);
+            }
+            
+            if (tree_item->is_inserted() && tree_item->next_owner()->insert_segment_ == pos.index) { // 父切子
+                pos.item_context = tree_item->next();
+                strategy = tree_item->next()->owner();
                 pos.index = (size_t)-1;
-                return pos.owner()->next_segment(pos, ec);
+                return strategy->next_segment(pos, ec);
             } else if (++pos.index == media_.segment_count()) { // 子切父
-                pos.item_context = pos.next_item();
+                pos.item_context = tree_item->next();
+                strategy = tree_item->next()->owner();
                 if (pos.item_context) {
                     pos.index = insert_segment_ - 1;
-                    pos.owner()->next_segment(pos, ec);
+                    strategy->next_segment(pos, ec);
                     pos.byte_range.beg = insert_size_ - insert_delta_; // 调整begin，big_offset也要相应调整
                     pos.byte_range.pos = pos.byte_range.beg;
                     pos.byte_range.big_offset -= pos.byte_range.beg;
@@ -91,9 +99,9 @@ namespace ppbox
                 pos.time_range.end = pos.duration;
                 pos.byte_range.after_next();
                 pos.time_range.after_next();
-                if (pos.is_inserted() && pos.next_owner()->insert_segment_ == pos.index) {
-                    pos.byte_range.end = pos.next_owner()->insert_size_;
-                    pos.time_range.end = pos.next_owner()->insert_time_;
+                if (tree_item->is_inserted() && tree_item->next_owner()->insert_segment_ == pos.index) {
+                    pos.byte_range.end = tree_item->next_owner()->insert_size_;
+                    pos.time_range.end = tree_item->next_owner()->insert_time_;
                 }
                 ec.clear();
                 return true;
@@ -115,17 +123,17 @@ namespace ppbox
 
         bool DemuxStrategy::time_seek (
             boost::uint64_t time, 
-            SegmentPosition & base,
-            SegmentPosition & pos, 
+            ppbox::data::SegmentPosition & base,
+            ppbox::data::SegmentPosition & pos, 
             boost::system::error_code & ec)
         {
-            SegmentPosition old_base = base;
+            ppbox::data::SegmentPosition old_base = base;
 
             pos.url.protocol("");
 
             if (time < pos.time_range.big_beg()) {
-                base = SegmentPosition();
-                pos = SegmentPosition();
+                base = ppbox::data::SegmentPosition();
+                pos = ppbox::data::SegmentPosition();
                 if (!next_segment(pos, ec)) {
                     assert(0);
                     return false;
@@ -148,7 +156,7 @@ namespace ppbox
 
             return true;
         }
-
+/*
         boost::system::error_code DemuxStrategy::insert(
             SegmentPosition const & pos, 
             DemuxStrategy & child, 
@@ -161,7 +169,7 @@ namespace ppbox
             child.insert_time_ = pos.time_range.beg;   // 插入分段上的时间位置（相对）
             return ec;
         }
-
+*/
 /*
         bool DemuxStrategy::size_seek (
             boost::uint64_t size, 

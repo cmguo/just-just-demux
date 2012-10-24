@@ -4,8 +4,8 @@
 #define _PPBOX_DEMUX_BASE_DEMUXER_INFO_H_
 
 #include "ppbox/demux/base/Demuxer.h"
-#include "ppbox/demux/base/BytesStream.h"
-#include "ppbox/demux/base/SegmentBuffer.h"
+#include "ppbox/data/BytesStream.h"
+#include "ppbox/data/SegmentBuffer.h"
 
 namespace ppbox
 {
@@ -15,12 +15,12 @@ namespace ppbox
         struct DemuxerInfo
         {
             boost::uint32_t nref;
-            SegmentPosition segment;
-            BytesStream stream;
+            ppbox::data::SegmentPosition segment;
+            ppbox::data::BytesStream stream;
             Demuxer * demuxer;
 
             DemuxerInfo(
-                SegmentBuffer & buffer)
+                ppbox::data::SegmentBuffer & buffer)
                 : nref(1)
                 , stream(buffer)
                 , demuxer(NULL)

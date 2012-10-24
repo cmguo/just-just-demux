@@ -20,16 +20,16 @@ namespace ppbox
     namespace data
     {
         class SegmentSource;
+        class SegmentBuffer;
+        struct SegmentPosition;
+        class BytesStream;
     }
 
     namespace demux
     {
 
-        class SegmentBuffer;
-        class BytesStream;
         class DemuxStrategy;
         struct DemuxerInfo;
-        struct SegmentPosition;
 
         class SegmentDemuxer
             : public DemuxStatistic
@@ -129,7 +129,7 @@ namespace ppbox
                 return *source_;
             }
 
-            SegmentBuffer const & buffer() const
+            ppbox::data::SegmentBuffer const & buffer() const
             {
                 return *buffer_;
             }
@@ -171,7 +171,7 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
             DemuxerInfo * alloc_demuxer(
-                SegmentPosition const & segment, 
+                ppbox::data::SegmentPosition const & segment, 
                 bool is_read, 
                 boost::system::error_code & ec);
 
@@ -188,7 +188,7 @@ namespace ppbox
         private:
             ppbox::data::MediaBase & media_;
             ppbox::data::SegmentSource * source_;
-            SegmentBuffer * buffer_;
+            ppbox::data::SegmentBuffer * buffer_;
             DemuxStrategy * strategy_;
 
             ppbox::data::MediaInfo media_info_;

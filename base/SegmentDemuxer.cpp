@@ -3,12 +3,13 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/SegmentDemuxer.h"
 #include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/base/BytesStream.h"
 #include "ppbox/demux/base/DemuxerInfo.h"
+#include "ppbox/demux/base/DemuxStrategy.h"
 
 #include <ppbox/data/MediaBase.h>
 #include <ppbox/data/SegmentSource.h>
 #include <ppbox/data/SourceError.h>
+using ppbox::data::SegmentPosition;
 
 using namespace ppbox::avformat;
 
@@ -51,7 +52,7 @@ namespace ppbox
             error_code ec;
             source->set_non_block(true, ec);
             source_ = new ppbox::data::SegmentSource(*strategy_, *source);
-            buffer_ = new SegmentBuffer(*source_, 10 * 1024 * 1024, 10240);
+            buffer_ = new ppbox::data::SegmentBuffer(*source_, 10 * 1024 * 1024, 10240);
         }
 
         SegmentDemuxer::~SegmentDemuxer()
@@ -212,7 +213,7 @@ namespace ppbox
                         response(ec);
                     } else if (ec == boost::asio::error::would_block || (ec == error::file_stream_error 
                         && buffer_->last_error() == boost::asio::error::would_block)) {
-                            buffer_->async_prepare_at_least(0, 
+                            buffer_->async_prepare_some(0, 
                                 boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
                     } else {
                         open_state_ = open_finished;
@@ -499,7 +500,7 @@ namespace ppbox
                 play_on(sample.time);
                 sample.data.clear();
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
-                    buffer_->data(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
+                    buffer_->fetch(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {
                         last_error(ec);
                         break;

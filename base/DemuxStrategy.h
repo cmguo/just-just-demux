@@ -12,36 +12,6 @@ namespace ppbox
     namespace demux
     {
 
-        struct SegmentPosition
-            : ppbox::data::SegmentPosition
-        {
-            SourceTreeItem * item() const
-            {
-                return (SourceTreeItem *)item_context;
-            }
-
-            DemuxStrategy * owner() const
-            {
-                return item()->owner();
-            }
-
-            SourceTreeItem * next_item() const
-            {
-                return item()->next();
-            }
-
-            DemuxStrategy * next_owner() const
-            {
-                return next_item()->owner();
-            }
-
-            bool is_inserted() const
-            {
-                // next_item()->parent_ 不一定 == this
-                return next_item() != NULL && next_item()->parent()->owner() == owner();
-            }
-        };
-
         struct DemuxerInfo;
 
         // 功能需求:
@@ -68,20 +38,17 @@ namespace ppbox
                 ppbox::data::MediaBase & media);
 
             ~DemuxStrategy();
-
+/*
         public:
             boost::system::error_code insert(
-                SegmentPosition const & pos, 
+                ppbox::data::SegmentPosition const & pos, 
                 DemuxStrategy & child, 
                 boost::system::error_code & ec);
-
+*/
         public:
             virtual bool next_segment(
                 ppbox::data::SegmentPosition & pos, 
-                boost::system::error_code & ec)
-            {
-                return next_segment((SegmentPosition &)pos, ec);
-            }
+                boost::system::error_code & ec);
 
             //virtual bool byte_seek(
             //    boost::uint64_t offset, 
@@ -97,8 +64,8 @@ namespace ppbox
                 ppbox::data::SegmentPosition & pos, 
                 boost::system::error_code & ec)
             {
-                SegmentPosition base;
-                return time_seek(offset, base, (SegmentPosition &)pos, ec);
+                ppbox::data::SegmentPosition base;
+                return time_seek(offset, base, pos, ec);
             }
 
             virtual boost::uint64_t size(void)
@@ -111,31 +78,11 @@ namespace ppbox
                 boost::uint64_t & time, 
                 boost::system::error_code & ec);
 
-            virtual bool next_segment(
-                SegmentPosition & pos, 
-                boost::system::error_code & ec);
-
             virtual bool time_seek(
                 boost::uint64_t time, 
-                SegmentPosition & base,
-                SegmentPosition & pos, 
+                ppbox::data::SegmentPosition & base,
+                ppbox::data::SegmentPosition & pos, 
                 boost::system::error_code & ec);
-
-        public:
-            boost::system::error_code time_insert(
-                boost::uint32_t time, 
-                DemuxStrategy * source, 
-                SegmentPosition & pos, 
-                boost::system::error_code & ec);
-
-            void update_insert(
-                SegmentPosition const & pos, 
-                boost::uint32_t time, 
-                boost::uint64_t offset, 
-                boost::uint64_t delta);
-
-            boost::uint64_t next_end(
-                SegmentPosition & segment);
 
         private:
             SourceTreeItem tree_item_;
