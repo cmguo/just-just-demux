@@ -70,8 +70,8 @@ namespace ppbox
                 return strategy->next_segment(pos, ec);
             } else if (++pos.index == media_.segment_count()) { // 子切父
                 pos.item_context = tree_item->next();
-                strategy = tree_item->next()->owner();
                 if (pos.item_context) {
+                    strategy = tree_item->next()->owner();
                     pos.index = insert_segment_ - 1;
                     strategy->next_segment(pos, ec);
                     pos.byte_range.beg = insert_size_ - insert_delta_; // 调整begin，big_offset也要相应调整

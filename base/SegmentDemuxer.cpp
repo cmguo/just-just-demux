@@ -254,7 +254,7 @@ namespace ppbox
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
                 if (!strategy_->time_seek(time, base, pos, ec) 
-                    || !buffer_->seek(base, pos, pos.head_size, ec)) {
+                    || !buffer_->seek(base, pos, pos.time_range.pos == 0 ? ppbox::data::invalid_size : pos.head_size, ec)) {
                         last_error(ec);
                         return ec;
                 }
@@ -389,7 +389,7 @@ namespace ppbox
         boost::uint64_t SegmentDemuxer::get_cur_time(
             boost::system::error_code & ec)
         {
-            buffer_->prepare_at_least(0, ec);
+            buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
@@ -416,7 +416,7 @@ namespace ppbox
         boost::uint64_t SegmentDemuxer::get_end_time(
             boost::system::error_code & ec)
         {
-            buffer_->prepare_at_least(0, ec);
+            buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     return buffer_->write_segment().time_range.big_beg();
@@ -456,7 +456,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             buffer_->drop(ec);
-            buffer_->prepare_at_least(0, ec);
+            buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     block_on();
