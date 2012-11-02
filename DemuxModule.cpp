@@ -4,6 +4,7 @@
 #include "ppbox/demux/DemuxModule.h"
 #include "ppbox/demux/Version.h"
 //#include "ppbox/demux/CommonDemuxer.h"
+#include "ppbox/demux/EmptyDemuxer.h"
 #include "ppbox/demux/base/DemuxerTypes.h"
 #include "ppbox/demux/base/SegmentDemuxer.h"
 using namespace ppbox::demux;
@@ -200,8 +201,13 @@ namespace ppbox
             error_code & ec)
         {
             ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), play_link);
-            SegmentDemuxer * demuxer = new SegmentDemuxer(io_svc(), *media);
-            boost::mutex::scoped_lock lock(mutex_);
+            SegmentDemuxer * demuxer = NULL;
+            if (media == NULL) {
+                ec = error::bad_file_type;
+                //demuxer = new EmptyDemuxer(io_svc());
+            } else {
+                demuxer = new SegmentDemuxer(io_svc(), *media);
+            }
             DemuxInfo * info = new DemuxInfo(demuxer);
             info->play_link = play_link;
             info->resp = resp;
@@ -279,7 +285,8 @@ namespace ppbox
             error_code & ec)
         {
             SegmentDemuxer * demuxer = info->demuxer;
-            demuxer->cancel(ec);
+            if (demuxer)
+                demuxer->cancel(ec);
             cond_.notify_all();
             return ec;
         }
@@ -289,7 +296,8 @@ namespace ppbox
             error_code & ec)
         {
             SegmentDemuxer * demuxer = info->demuxer;
-            demuxer->close(ec);
+            if (demuxer)
+                demuxer->close(ec);
             return ec;
         }
 
@@ -297,8 +305,8 @@ namespace ppbox
             DemuxInfo * info)
         {
             SegmentDemuxer * demuxer = info->demuxer;
-            delete demuxer;
-            demuxer = NULL;
+            if (demuxer)
+                delete demuxer;
             demuxers_.erase(
                 std::remove(demuxers_.begin(), demuxers_.end(), info), 
                 demuxers_.end());

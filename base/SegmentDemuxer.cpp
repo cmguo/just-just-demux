@@ -141,7 +141,6 @@ namespace ppbox
         boost::system::error_code SegmentDemuxer::cancel(
             boost::system::error_code & ec)
         {
-            open_state_ = canceling;
             if (media_open == open_state_) {
                 media_.cancel(ec);
             } else if (demuxer_open == open_state_) {

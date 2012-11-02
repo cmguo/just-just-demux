@@ -5,28 +5,84 @@
 
 #include "ppbox/demux/base/SegmentDemuxer.h"
 
+#include <boost/bind.hpp>
+#include <boost/utility/base_from_member.hpp>
+
 namespace ppbox
 {
     namespace demux
     {
 
-        class EmptySource()
-            : public SourceBase
+        class EmptyMedia
+            : public ppbox::data::MediaBase
         {
-        private:
-            virtual void next_segment(
-                SegmentPosition &)
+        public:
+            EmptyMedia(
+                boost::asio::io_service & io_svc)
+                : MediaBase(io_svc)
+                , proto_("http")
             {
             }
-        }
+
+            std::string const & get_protocol() const
+            {
+                return proto_;
+            }
+
+            virtual void async_open(
+                response_type const & resp)
+            {
+            }
+
+            virtual void cancel(
+                boost::system::error_code & ec)
+            {
+            }
+
+            virtual void close(
+                boost::system::error_code & ec)
+            {
+            }
+
+            virtual bool get_info(
+                ppbox::data::MediaInfo & info,
+                boost::system::error_code & ec) const
+            {
+                return false;
+            }
+
+            virtual size_t segment_count() const
+            {
+                return 0;
+            }
+
+            virtual bool segment_url(
+                size_t segment, 
+                framework::string::Url & url,
+                boost::system::error_code & ec) const
+            {
+                return false;
+            }
+
+            virtual void segment_info(
+                size_t segment, 
+                ppbox::data::SegmentInfo & info) const
+            {
+            }
+
+        private:
+            std::string proto_;
+        };
 
         class EmptyDemuxer
-            : public SegmentDemuxer
+            : boost::base_from_member<EmptyMedia>
+            , public SegmentDemuxer
         {
         public:
             EmptyDemuxer(
                 boost::asio::io_service & io_svc)
-                : SegmentDemuxer(io_svc, &source_)
+                : boost::base_from_member<EmptyMedia>(boost::ref(io_svc))
+                , SegmentDemuxer(io_svc, member)
             {
             }
 
@@ -58,9 +114,6 @@ namespace ppbox
                 ec = framework::system::logic_error::not_supported;
                 return ec;
             }
-
-        private:
-            EmptySource source_;
         };
     } // namespace demux
 } // namespace ppbox
