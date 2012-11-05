@@ -36,11 +36,11 @@ namespace ppbox
             , source_(NULL)
             , buffer_(NULL)
             , strategy_(NULL)
-            , seek_time_(0)
-            , seek_pending_(false)
             , read_demuxer_(NULL)
             , write_demuxer_(NULL)
             , max_demuxer_infos_(5)
+            , seek_time_(0)
+            , seek_pending_(false)
             , open_state_(not_open)
         {
             ticker_ = new framework::timer::Ticker(1000);
