@@ -195,16 +195,20 @@ namespace ppbox
             boost::uint64_t & time, 
             error_code & ec)
         {
-            //if (time == 0) {
-                ec.clear();
-                time = 0;
-                current_time_ = timestamp_offset_ms_;
-                parse_offset_ = header_offset_;
-                return header_offset_;
-            //} else {
-            //    ec = error::not_support;
-            //    return 0;
-            //}
+            if (is_open(ec)) {
+                //if (time == 0) {
+                    ec.clear();
+                    time = 0;
+                    current_time_ = timestamp_offset_ms_;
+                    parse_offset_ = header_offset_;
+                    return header_offset_;
+                //} else {
+                //    ec = error::not_support;
+                //    return 0;
+                //}
+            } else {
+                return 0;
+            }
         }
 
         boost::uint64_t FlvDemuxer::get_duration(
