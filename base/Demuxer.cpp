@@ -14,35 +14,6 @@ namespace ppbox
     namespace demux
     {
 
-        std::map<std::string, Demuxer::register_type> & Demuxer::demuxer_map()
-        {
-            static std::map<std::string, Demuxer::register_type> g_map;
-            return g_map;
-        }
-
-        void Demuxer::register_demuxer(
-            std::string const & format,
-            register_type func)
-        {
-            demuxer_map().insert(std::make_pair(format, func));
-            return;
-        }
-
-        Demuxer * Demuxer::create(
-            std::string const & format, 
-            std::basic_streambuf<boost::uint8_t> & buf)
-        {
-            std::map<std::string, register_type>::iterator iter = 
-                demuxer_map().find(format);
-            if (demuxer_map().end() == iter) {
-                return NULL;
-            } else {
-                register_type func = iter->second;
-                Demuxer * demuxer = func(buf);
-                return demuxer;
-            }
-        }
-
         Demuxer::Demuxer(
             std::basic_streambuf<boost::uint8_t> & buf)
             : helper_(&default_helper_)
@@ -51,13 +22,6 @@ namespace ppbox
 
         Demuxer::~Demuxer()
         {
-        }
-
-        void Demuxer::destory(
-            Demuxer* & demuxer)
-        {
-            delete demuxer;
-            demuxer = NULL;
         }
 
         void Demuxer::demux_begin(

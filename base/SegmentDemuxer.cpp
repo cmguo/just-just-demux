@@ -65,7 +65,7 @@ namespace ppbox
             }
             if (source_) {
                 ppbox::data::SourceBase * source = (ppbox::data::SourceBase *)&source_->source();
-                ppbox::data::SourceBase::destory(source);
+                ppbox::data::SourceBase::destroy(source);
                 delete source_;
                 source_ = NULL;
             }
@@ -192,7 +192,7 @@ namespace ppbox
                     media_.get_info(media_info_, ec);
                     if (!ec) {
                         // TODO:
-                        timestamp_helper_.smoth(media_info_.is_live);
+                        timestamp_helper_.smoth(media_info_.type == ppbox::data::MediaInfo::live);
                         buffer_->pause_stream();
                         reset(ec);
                     }
