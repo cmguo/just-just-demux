@@ -3,15 +3,12 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_BASE_H_
 #define _PPBOX_DEMUX_DEMUXER_BASE_H_
 
-#include <ppbox/avformat/Format.h>
+#include "ppbox/demux/base/DemuxBase.h"
 
 namespace ppbox
 {
     namespace demux
     {
-
-        using ppbox::avformat::StreamInfo;
-        using ppbox::avformat::Sample;
 
         class DemuxerBase
         {

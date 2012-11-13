@@ -296,9 +296,9 @@ namespace ppbox
 
             min_offset_ = ap4_sample.GetOffset();
 #ifndef PPBOX_DEMUX_MP4_NO_TIME_ORDER
-            for (SampleListItem * sample = sample_list_->next(&ap4_sample); sample; sample = sample_list_->next(sample)) {
-                if (sample->GetOffset() < min_offset_) {
-                    min_offset_ = sample->GetOffset();
+            for (SampleListItem * sample1 = sample_list_->next(&ap4_sample); sample1; sample1 = sample_list_->next(sample1)) {
+                if (sample1->GetOffset() < min_offset_) {
+                    min_offset_ = sample1->GetOffset();
                 }
             }
 #endif
