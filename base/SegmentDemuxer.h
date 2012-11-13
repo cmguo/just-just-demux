@@ -7,7 +7,7 @@
 #include "ppbox/demux/base/Demuxer.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
 
-#include <ppbox/data/MediaBase.h>
+#include <ppbox/data/SegmentMedia.h>
 
 #include <util/event/Event.h>
 
@@ -51,7 +51,7 @@ namespace ppbox
         public:
             SegmentDemuxer(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::MediaBase & media);
+                ppbox::data::SegmentMedia & media);
 
             virtual ~SegmentDemuxer();
 
@@ -119,7 +119,7 @@ namespace ppbox
                 boost::system::error_code & ec_buf);
 
         public:
-            ppbox::data::MediaBase const & media() const
+            ppbox::data::SegmentMedia const & media() const
             {
                 return media_;
             }
@@ -186,7 +186,7 @@ namespace ppbox
             boost::asio::io_service & io_svc_;
 
         private:
-            ppbox::data::MediaBase & media_;
+            ppbox::data::SegmentMedia & media_;
             ppbox::data::SegmentSource * source_;
             ppbox::data::SegmentBuffer * buffer_;
             DemuxStrategy * strategy_;

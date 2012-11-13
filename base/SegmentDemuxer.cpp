@@ -30,7 +30,7 @@ namespace ppbox
 
         SegmentDemuxer::SegmentDemuxer(
             boost::asio::io_service & io_svc, 
-            ppbox::data::MediaBase & media)
+            ppbox::data::SegmentMedia & media)
             : io_svc_(io_svc)
             , media_(media)
             , source_(NULL)

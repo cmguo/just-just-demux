@@ -32,7 +32,7 @@ namespace ppbox
         }
 
         DemuxStrategy::DemuxStrategy(
-            ppbox::data::MediaBase & media)
+            ppbox::data::SegmentMedia & media)
             : ppbox::data::SegmentStrategy(media)
             , tree_item_(this)
             , insert_item_(NULL)

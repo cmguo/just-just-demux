@@ -35,7 +35,7 @@ namespace ppbox
 
         public:
             DemuxStrategy(
-                ppbox::data::MediaBase & media);
+                ppbox::data::SegmentMedia & media);
 
             ~DemuxStrategy();
 /*
