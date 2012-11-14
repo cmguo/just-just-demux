@@ -120,7 +120,7 @@ namespace ppbox
             //const_pointer copy_from_;
         };
 
-        PPBOX_REGISTER_DEMUXER(mp4, Mp4Demuxer);
+        PPBOX_REGISTER_DEMUXER("mp4", Mp4Demuxer);
 
     } // namespace demux
 } // namespace ppbox

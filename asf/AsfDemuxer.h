@@ -146,7 +146,7 @@ namespace ppbox
             boost::uint64_t timestamp_offset_ms_;
         };
 
-        PPBOX_REGISTER_DEMUXER(asf, AsfDemuxer);
+        PPBOX_REGISTER_DEMUXER("asf", AsfDemuxer);
 
     } // namespace demux
 } // namespace ppbox

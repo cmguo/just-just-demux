@@ -108,7 +108,7 @@ namespace ppbox
             boost::uint64_t current_time_;
         };
 
-        PPBOX_REGISTER_DEMUXER(flv, FlvDemuxer);
+        PPBOX_REGISTER_DEMUXER("flv", FlvDemuxer);
 
     } // namespace demux
 } // namespace ppbox
