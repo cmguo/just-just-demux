@@ -1,7 +1,7 @@
-// SegmentsBase.h
+// SourceTreeItem.h
 
-#ifndef _PPBOX_DEMUX_BASE_SOURCE_TREE_ITEM_H_
-#define _PPBOX_DEMUX_BASE_SOURCE_TREE_ITEM_H_
+#ifndef _PPBOX_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
+#define _PPBOX_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
 
 namespace ppbox
 {
@@ -91,4 +91,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASE_SOURCE_TREE_ITEM_H_
+#endif // _PPBOX_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_

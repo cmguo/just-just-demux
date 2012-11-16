@@ -1,7 +1,7 @@
 // DemuxerInfo.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUXER_INFO_H_
-#define _PPBOX_DEMUX_BASE_DEMUXER_INFO_H_
+#ifndef _PPBOX_DEMUX_SEGMENT_DEMUXER_INFO_H_
+#define _PPBOX_DEMUX_SEGMENT_DEMUXER_INFO_H_
 
 #include "ppbox/demux/base/Demuxer.h"
 #include "ppbox/data/segment/SegmentStream.h"
@@ -39,8 +39,7 @@ namespace ppbox
             }
         };
 
-
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASE_DEMUXER_INFO_H_
+#endif // _PPBOX_DEMUX_SEGMENT_DEMUXER_INFO_H_

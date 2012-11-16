@@ -1,7 +1,7 @@
 // SegmentDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASE_BUFFER_DEMUXER_H_
-#define _PPBOX_DEMUX_BASE_BUFFER_DEMUXER_H_
+#ifndef _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
+#define _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
 
 #include "ppbox/demux/base/DemuxError.h"
 #include "ppbox/demux/base/DemuxerBase.h"
@@ -41,7 +41,6 @@ namespace ppbox
                 media_open,
                 demuxer_open,
                 open_finished,
-                canceling,
             };
 
         public:
@@ -103,13 +102,13 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-            boost::uint64_t get_cur_time(
+            virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec);
 
-            boost::uint64_t get_end_time(
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
-            boost::system::error_code get_sample(
+            virtual boost::system::error_code get_sample(
                 ppbox::avformat::Sample & sample, 
                 boost::system::error_code & ec);
 
@@ -218,4 +217,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BUFFER_DEMUXER_H_
+#endif // _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_

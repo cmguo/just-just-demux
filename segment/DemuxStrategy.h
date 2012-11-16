@@ -1,7 +1,7 @@
 // DemuxStrategy.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUX_STRATEGY_H_
-#define _PPBOX_DEMUX_BASE_DEMUX_STRATEGY_H_
+#ifndef _PPBOX_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
+#define _PPBOX_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
 
 #include "ppbox/demux/segment/SourceTreeItem.h"
 
@@ -97,4 +97,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASE_DEMUX_STRATEGY_H_
+#endif // _PPBOX_DEMUX_SEGMENT_DEMUX_STRATEGY_H_

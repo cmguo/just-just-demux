@@ -7,6 +7,7 @@
 //#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/EmptyDemuxer.h"
 #include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/SingleDemuxer.h"
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 using namespace ppbox::demux;
 
@@ -39,15 +40,16 @@ namespace ppbox
 
             size_t id;
             StatusEnum status;
+            ppbox::data::MediaBase * media;
             DemuxerBase * demuxer;
             framework::string::Url play_link;
             DemuxModule::open_response_type resp;
             error_code ec;
 
-            DemuxInfo(
-                DemuxerBase * demuxer)
+            DemuxInfo()
                 : status(closed)
-                , demuxer(demuxer)
+                , media(NULL)
+                , demuxer(NULL)
             {
                 static size_t sid = 0;
                 id = ++sid;
@@ -201,15 +203,24 @@ namespace ppbox
             open_response_type const & resp, 
             error_code & ec)
         {
-            ppbox::data::SegmentMedia * media = (ppbox::data::SegmentMedia *)ppbox::data::SegmentMedia::create(io_svc(), play_link);
+            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), play_link);
             DemuxerBase * demuxer = NULL;
             if (media == NULL) {
                 ec = error::bad_file_type;
                 //demuxer = new EmptyDemuxer(io_svc());
             } else {
-                demuxer = new SegmentDemuxer(io_svc(), *media);
+                ppbox::data::MediaInfo info;
+                if (media->get_info(info, ec)) {
+                    if (info.flags & ppbox::data::MediaInfo::f_segment) {
+                        demuxer = new SegmentDemuxer(io_svc(), *(ppbox::data::SegmentMedia *)media);
+                    } else {
+                        demuxer = new SingleDemuxer(io_svc(), *media);
+                    }
+                }
             }
-            DemuxInfo * info = new DemuxInfo(demuxer);
+            DemuxInfo * info = new DemuxInfo;
+            info->media = media;
+            info->demuxer = demuxer;
             info->play_link = play_link;
             info->resp = resp;
             return info;
