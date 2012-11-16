@@ -1,7 +1,7 @@
 // DemuxStrategy.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/DemuxStrategy.h"
+#include "ppbox/demux/segment/DemuxStrategy.h"
 #include "ppbox/demux/base/SourceError.h"
 
 #include <framework/system/LogicError.h>

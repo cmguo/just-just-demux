@@ -23,6 +23,7 @@ namespace ppbox
 
         public:
             AsfDemuxer(
+                boost::asio::io_service & io_svc, 
                 std::basic_streambuf<boost::uint8_t> & buf);
 
             ~AsfDemuxer();
@@ -38,23 +39,24 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
+            virtual boost::uint64_t get_duration(
+                boost::system::error_code & ec) const;
+
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec) const;
+
+            virtual boost::system::error_code get_stream_info(
+                size_t index, 
+                StreamInfo & info, 
+                boost::system::error_code & ec) const;
+
+        public:
             virtual boost::system::error_code reset(
                 boost::system::error_code & ec);
 
             virtual boost::uint64_t seek(
                 boost::uint64_t & time, 
-                boost::system::error_code & ec);
-
-        public:
-            virtual boost::uint64_t get_duration(
-                boost::system::error_code & ec);
-
-            virtual size_t get_stream_count(
-                boost::system::error_code & ec);
-
-            virtual boost::system::error_code get_stream_info(
-                size_t index, 
-                StreamInfo & info, 
+                boost::uint64_t & delta, 
                 boost::system::error_code & ec);
 
         public:
@@ -68,16 +70,10 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
-        public:
-            virtual void set_stream(
-                std::basic_streambuf<boost::uint8_t> & buf);
-
-            virtual boost::uint64_t get_offset(
-                boost::uint64_t & time, 
-                boost::uint64_t & delta, 
-                boost::system::error_code & ec);
-
         private:
+            bool is_open(
+                boost::system::error_code & ec) const;
+
             boost::system::error_code get_real_sample(
                 Sample & sample, 
                 boost::system::error_code & ec);

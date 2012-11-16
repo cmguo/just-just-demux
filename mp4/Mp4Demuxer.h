@@ -43,63 +43,49 @@ namespace ppbox
 
         public:
             Mp4Demuxer(
+                boost::asio::io_service & io_svc, 
                 std::basic_streambuf<boost::uint8_t> & buf);
 
-            //Mp4DemuxerBase(
-            //    Mp4DemuxerBase * from, 
-            //    std::basic_streambuf<boost::uint8_t> & buf);
-
             ~Mp4Demuxer();
-
-            //Mp4DemuxerBase * clone(
-            //    std::basic_streambuf<boost::uint8_t> & buf);
 
         public:
             virtual boost::system::error_code open(
                 boost::system::error_code & ec);
 
-            virtual boost::system::error_code close(
-                boost::system::error_code & ec);
-
             virtual bool is_open(
                 boost::system::error_code & ec);
 
-        public:
-            virtual boost::system::error_code reset(
-                boost::system::error_code & ec);
-
-            virtual boost::uint64_t seek(
-                boost::uint64_t & time, 
+            virtual boost::system::error_code close(
                 boost::system::error_code & ec);
 
         public:
             virtual boost::uint64_t get_duration(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec) const;
 
             virtual size_t get_stream_count(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec) const;
 
             virtual boost::system::error_code get_stream_info(
                 size_t index, 
                 StreamInfo & info, 
-                boost::system::error_code & ec);
+                boost::system::error_code & ec) const;
 
         public:
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
+                boost::system::error_code & ec);
+
             virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec);
 
-            virtual boost::system::error_code get_sample(
-                Sample & sample, 
-                boost::system::error_code & ec);
+        private:
+            bool is_open(
+                boost::system::error_code & ec) const;
 
-        public:
-            virtual void set_stream(
-                std::basic_streambuf<boost::uint8_t> & buf);
-
-            virtual boost::uint64_t get_offset(
+            virtual boost::uint64_t seek(
                 boost::uint64_t & time, 
                 boost::uint64_t & delta, 
                 boost::system::error_code & ec);

@@ -3,9 +3,9 @@
 #ifndef _PPBOX_DEMUX_BASE_DEMUX_STRATEGY_H_
 #define _PPBOX_DEMUX_BASE_DEMUX_STRATEGY_H_
 
-#include "ppbox/demux/base/SourceTreeItem.h"
+#include "ppbox/demux/segment/SourceTreeItem.h"
 
-#include <ppbox/data/SegmentStrategy.h>
+#include <ppbox/data/segment/SegmentStrategy.h>
 
 namespace ppbox
 {

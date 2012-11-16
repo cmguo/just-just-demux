@@ -23,8 +23,9 @@ namespace ppbox
     {
 
         FlvDemuxer::FlvDemuxer(
+            boost::asio::io_service & io_svc, 
             std::basic_streambuf<boost::uint8_t> & buf)
-            : Demuxer(buf)
+            : Demuxer(io_svc, buf)
             , archive_(buf)
             , open_step_((boost::uint64_t)-1)
             , header_offset_(0)
@@ -173,6 +174,18 @@ namespace ppbox
             return true;
         }
 
+        bool FlvDemuxer::is_open(
+            error_code & ec) const
+        {
+            if (open_step_ == 3) {
+                ec = error_code();
+                return true;
+            } else {
+                ec = error::not_open;
+                return false;
+            }
+        }
+
         error_code FlvDemuxer::close(error_code & ec)
         {
             header_offset_ = 0;
@@ -193,6 +206,7 @@ namespace ppbox
 
         boost::uint64_t FlvDemuxer::seek(
             boost::uint64_t & time, 
+            boost::uint64_t & delta, 
             error_code & ec)
         {
             if (is_open(ec)) {
@@ -212,13 +226,14 @@ namespace ppbox
         }
 
         boost::uint64_t FlvDemuxer::get_duration(
-            error_code & ec)
+            error_code & ec) const
         {
             ec = error::not_support;
             return 0;
         }
 
-        size_t FlvDemuxer::get_stream_count(error_code & ec)
+        size_t FlvDemuxer::get_stream_count(
+            error_code & ec) const
         {
             if (is_open(ec)) {
                 return stream_map_.size();
@@ -230,7 +245,7 @@ namespace ppbox
         error_code FlvDemuxer::get_stream_info(
             size_t index, 
             StreamInfo & info, 
-            error_code & ec)
+            error_code & ec) const
         {
             if (is_open(ec)) {
                 if (index >= stream_map_.size()) {
@@ -338,30 +353,6 @@ namespace ppbox
                  return current_time_ - timestamp_offset_ms_;
             }
             return 0;
-        }
-
-        boost::uint64_t FlvDemuxer::get_offset(
-            boost::uint64_t & time, 
-            boost::uint64_t & delta, 
-            error_code & ec)
-        {
-            ec = error::not_support;
-            return 0;
-        }
-
-        void FlvDemuxer::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
-        {
-            archive_.rdbuf(&buf);
-        }
-
-        void FlvDemuxer::set_time_offset(boost::uint64_t offset)
-        {
-            timestamp_offset_ms_ = boost::uint64_t(offset / 1000);
-        }
-
-        boost::uint64_t FlvDemuxer::get_time_offset() const
-        {
-            return (boost::uint64_t)timestamp_offset_ms_ * 1000;
         }
 
         error_code FlvDemuxer::get_tag(

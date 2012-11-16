@@ -30,8 +30,9 @@ namespace ppbox
     {
 
         Mp4Demuxer::Mp4Demuxer(
+            boost::asio::io_service & io_svc, 
             std::basic_streambuf<boost::uint8_t> & buf)
-            : Demuxer(buf)
+            : Demuxer(io_svc, buf)
             , is_(& buf)
             , head_size_(24)
             , open_step_((boost::uint64_t)-1)
@@ -109,6 +110,18 @@ namespace ppbox
                 }
             }
             return !ec;
+        }
+
+        bool Mp4Demuxer::is_open(
+            boost::system::error_code & ec) const
+        {
+            if (open_step_ == 1) {
+                ec= error_code();
+                return true;
+            } else {
+                ec = error::not_open;
+                return false;
+            }
         }
 
         error_code Mp4Demuxer::parse_head(
@@ -222,7 +235,7 @@ namespace ppbox
         }
 
         size_t Mp4Demuxer::get_stream_count(
-            error_code & ec)
+            error_code & ec) const
         {
             if (!is_open(ec)) {
                 return 0;
@@ -235,7 +248,7 @@ namespace ppbox
         boost::system::error_code Mp4Demuxer::get_stream_info(
             size_t index, 
             StreamInfo & info, 
-            boost::system::error_code & ec)
+            boost::system::error_code & ec) const
         {
             if (!is_open(ec)) {
             } else if (index >= tracks_.size()) {
@@ -248,7 +261,7 @@ namespace ppbox
         }
 
         boost::uint64_t Mp4Demuxer::get_duration(
-            boost::system::error_code & ec)
+            boost::system::error_code & ec) const
         {
             if (!is_open(ec)) {
                 return 0;
@@ -327,6 +340,7 @@ namespace ppbox
 
         boost::uint64_t Mp4Demuxer::seek(
             boost::uint64_t & time, 
+            boost::uint64_t & delta, 
             boost::system::error_code & ec)
         {
             if (!is_open(ec)) {
@@ -372,7 +386,7 @@ namespace ppbox
             }
             return seek_offset;
         }
-
+/*
         error_code Mp4Demuxer::reset(
             error_code & ec)
         {
@@ -395,7 +409,7 @@ namespace ppbox
             }
             return ec;
         }
-
+*/
         boost::uint64_t Mp4Demuxer::get_end_time(
             boost::system::error_code & ec)
         {
@@ -442,70 +456,6 @@ namespace ppbox
                 ec = error_code();
                 return sample_list_->first()->ustime / 1000;
             }
-        }
-
-        boost::uint64_t Mp4Demuxer::get_offset(
-            boost::uint64_t & time, 
-            boost::uint64_t & delta, 
-            boost::system::error_code & ec)
-        {
-            if (!is_open(ec)) {
-                return 0;
-            }
-            if (time > get_duration(ec))
-            {
-                ec = framework::system::logic_error::out_of_range;
-                return 0;
-            }
-            AP4_UI32 seek_time = (AP4_UI32)time + 1;
-            AP4_Position seek_offset = (AP4_Position)-1;
-            SampleListItem sample;
-            AP4_Ordinal next_index = 0;
-            AP4_Ordinal min_next_index = 0;
-            {
-                AP4_UI32 seek_time1 = (AP4_UI32)time;
-                size_t min_time_index  = 0;
-                for (size_t i = 0; i < tracks_.size(); ++i) {
-                    if (AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = (AP4_UI32)time, next_index, sample))) {
-                        if (seek_time1 < seek_time) {
-                            seek_time = seek_time1;
-                            seek_offset = sample.GetOffset();
-                            min_time_index = i;
-                            min_next_index = next_index;
-                        }
-                    }
-                }
-                delta = 0; // 记录offset最大值
-                next_index = min_next_index;
-                for (size_t i = 0; i < tracks_.size(); ++i) {
-                    if (i == min_time_index || 
-                        AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = seek_time, next_index, sample))) {
-                            if (sample.GetOffset() < seek_offset) {
-                                seek_offset = sample.GetOffset();
-                            }
-                            if (AP4_SUCCEEDED(tracks_[i]->GetSample(--next_index, sample))) {
-                                if (sample.GetOffset() + sample.GetSize() > delta) {
-                                    delta = sample.GetOffset() + sample.GetSize();
-                                }
-                            }
-                    }
-                }
-            }
-            if (seek_offset == 0) {
-                ec = framework::system::logic_error::out_of_range;
-            } else {
-                time = seek_time;
-                ec = error_code();
-                assert(delta >= seek_offset);
-                delta -= seek_offset;
-                seek_offset += delta;
-            }
-            return seek_offset;
-        }
-
-        void Mp4Demuxer::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
-        {
-            is_.rdbuf(&buf);
         }
 
     } // namespace demux

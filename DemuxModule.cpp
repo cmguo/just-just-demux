@@ -6,11 +6,12 @@
 #include "ppbox/demux/base/DemuxerTypes.h"
 //#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/EmptyDemuxer.h"
-#include "ppbox/demux/base/SegmentDemuxer.h"
+#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/segment/SegmentDemuxer.h"
 using namespace ppbox::demux;
 
-#include "ppbox/data/MediaBase.h"
-#include "ppbox/data/SourceBase.h"
+#include "ppbox/data/base/MediaBase.h"
+#include "ppbox/data/base/SourceBase.h"
 
 #include <framework/timer/Timer.h>
 #include <framework/logger/Logger.h>
@@ -19,7 +20,7 @@ using namespace ppbox::demux;
 #include <boost/bind.hpp>
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxerModule", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxModule", framework::logger::Debug);
 
 namespace ppbox
 {
@@ -38,13 +39,13 @@ namespace ppbox
 
             size_t id;
             StatusEnum status;
-            SegmentDemuxer * demuxer;
+            DemuxerBase * demuxer;
             framework::string::Url play_link;
             DemuxModule::open_response_type resp;
             error_code ec;
 
             DemuxInfo(
-                SegmentDemuxer * demuxer)
+                DemuxerBase * demuxer)
                 : status(closed)
                 , demuxer(demuxer)
             {
@@ -73,7 +74,7 @@ namespace ppbox
 
         DemuxModule::DemuxModule(
             util::daemon::Daemon & daemon)
-            : ppbox::common::CommonModuleBase<DemuxModule>(daemon, "DemuxerModule")
+            : ppbox::common::CommonModuleBase<DemuxModule>(daemon, "DemuxModule")
         {
             buffer_size_ = 20 * 1024 * 1024;
         }
@@ -105,7 +106,7 @@ namespace ppbox
         {
             SyncResponse(
                 error_code & ec, 
-                SegmentDemuxer *& demuxer, 
+                DemuxerBase *& demuxer, 
                 boost::condition_variable & cond, 
                 boost::mutex & mutex)
                 : ec_(ec)
@@ -118,7 +119,7 @@ namespace ppbox
 
             void operator()(
                 error_code const & ec, 
-                SegmentDemuxer * demuxer)
+                DemuxerBase * demuxer)
             {
                 boost::mutex::scoped_lock lock(mutex_);
                 ec_ = ec;
@@ -137,19 +138,19 @@ namespace ppbox
 
         private:
             error_code & ec_;
-            SegmentDemuxer *& demuxer_;
+            DemuxerBase *& demuxer_;
             boost::condition_variable & cond_;
 
             boost::mutex & mutex_;
             bool is_return_;
         };
 
-        SegmentDemuxer * DemuxModule::open(
+        DemuxerBase * DemuxModule::open(
             framework::string::Url const & play_link, 
             size_t & close_token, 
             error_code & ec)
         {
-            SegmentDemuxer * demuxer = NULL;
+            DemuxerBase * demuxer = NULL;
             SyncResponse resp(ec, demuxer, cond_, mutex_);
             DemuxInfo * info = create(play_link, boost::ref(resp), ec);
             close_token = info->id;
@@ -201,7 +202,7 @@ namespace ppbox
             error_code & ec)
         {
             ppbox::data::SegmentMedia * media = (ppbox::data::SegmentMedia *)ppbox::data::SegmentMedia::create(io_svc(), play_link);
-            SegmentDemuxer * demuxer = NULL;
+            DemuxerBase * demuxer = NULL;
             if (media == NULL) {
                 ec = error::bad_file_type;
                 //demuxer = new EmptyDemuxer(io_svc());
@@ -218,7 +219,7 @@ namespace ppbox
             boost::mutex::scoped_lock & lock, 
             DemuxInfo * info)
         {
-            SegmentDemuxer * demuxer = info->demuxer;
+            DemuxerBase * demuxer = info->demuxer;
             lock.unlock();
             demuxer->async_open(
                 boost::bind(&DemuxModule::handle_open, this, _1, info));
@@ -234,7 +235,7 @@ namespace ppbox
 
             error_code ec = ecc;
             
-            SegmentDemuxer * demuxer = info->demuxer;
+            DemuxerBase * demuxer = info->demuxer;
 
             open_response_type resp;
             resp.swap(info->resp);
@@ -284,7 +285,7 @@ namespace ppbox
             DemuxInfo * info, 
             error_code & ec)
         {
-            SegmentDemuxer * demuxer = info->demuxer;
+            DemuxerBase * demuxer = info->demuxer;
             if (demuxer)
                 demuxer->cancel(ec);
             cond_.notify_all();
@@ -295,7 +296,7 @@ namespace ppbox
             DemuxInfo * info, 
             error_code & ec)
         {
-            SegmentDemuxer * demuxer = info->demuxer;
+            DemuxerBase * demuxer = info->demuxer;
             if (demuxer)
                 demuxer->close(ec);
             return ec;
@@ -304,7 +305,7 @@ namespace ppbox
         void DemuxModule::destory(
             DemuxInfo * info)
         {
-            SegmentDemuxer * demuxer = info->demuxer;
+            DemuxerBase * demuxer = info->demuxer;
             if (demuxer)
                 delete demuxer;
             demuxers_.erase(
@@ -315,7 +316,7 @@ namespace ppbox
             cond_.notify_all();
         }
 
-        SegmentDemuxer * DemuxModule::find(
+        DemuxerBase * DemuxModule::find(
             framework::string::Url const & play_link)
         {
             boost::mutex::scoped_lock lock(mutex_);

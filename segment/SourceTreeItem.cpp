@@ -1,7 +1,7 @@
 // SourceTreeItem.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/SourceTreeItem.h"
+#include "ppbox/demux/segment/SourceTreeItem.h"
 
 #include <ppbox/data/SourceBase.h>
 

@@ -21,8 +21,9 @@ namespace ppbox
     {
 
         AsfDemuxer::AsfDemuxer(
+            boost::asio::io_service & io_svc, 
             std::basic_streambuf<boost::uint8_t> & buf)
-            : Demuxer(buf)
+            : Demuxer(io_svc, buf)
             , archive_(buf)
             , open_step_(size_t(-1))
             , object_parse_(file_prop_)
@@ -188,6 +189,18 @@ namespace ppbox
             }
         }
 
+        bool AsfDemuxer::is_open(
+            error_code & ec) const
+        {
+            if (open_step_ == 2) {
+                ec = error_code();
+                return true;
+            } else {
+                ec = not_open;
+                return false;
+            }
+        }
+
         error_code AsfDemuxer::close(
             error_code & ec)
         {
@@ -204,6 +217,7 @@ namespace ppbox
 
         boost::uint64_t AsfDemuxer::seek(
             boost::uint64_t & time, 
+            boost::uint64_t & delta, 
             error_code & ec)
         {
             ec = error::not_support;
@@ -211,14 +225,14 @@ namespace ppbox
         }
 
         boost::uint64_t AsfDemuxer::get_duration(
-            error_code & ec)
+            error_code & ec) const
         {
             ec = error::not_support;
             return 0;
         }
 
         size_t AsfDemuxer::get_stream_count(
-            error_code & ec)
+            error_code & ec) const
         {
             if (is_open(ec))
                 return stream_map_.size();
@@ -228,7 +242,7 @@ namespace ppbox
         error_code AsfDemuxer::get_stream_info(
             size_t index, 
             StreamInfo & info, 
-            error_code & ec)
+            error_code & ec) const
         {
             if (is_open(ec)) {
                 if (index >= stream_map_.size()) {
@@ -365,19 +379,6 @@ namespace ppbox
                 ec = bad_file_format;
                 return 0;
             }
-        }
-
-        boost::uint64_t AsfDemuxer::get_offset(
-            boost::uint64_t & time, 
-            boost::uint64_t & delta, 
-            boost::system::error_code & ec)
-        {
-            ec = error::not_support;
-            return 0;
-        }
-
-        void AsfDemuxer::set_stream(std::basic_streambuf<boost::uint8_t> & buf)
-        {
         }
 
         error_code AsfDemuxer::next_packet(

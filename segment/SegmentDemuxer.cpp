@@ -1,14 +1,13 @@
 // SegmentDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/SegmentDemuxer.h"
-#include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/base/DemuxerInfo.h"
-#include "ppbox/demux/base/DemuxStrategy.h"
+#include "ppbox/demux/segment/SegmentDemuxer.h"
+#include "ppbox/demux/segment/DemuxerInfo.h"
+#include "ppbox/demux/segment/DemuxStrategy.h"
 
-#include <ppbox/data/MediaBase.h>
-#include <ppbox/data/SegmentSource.h>
-#include <ppbox/data/SourceError.h>
+#include <ppbox/data/base/MediaBase.h>
+#include <ppbox/data/base/SourceError.h>
+#include <ppbox/data/segment/SegmentSource.h>
 using ppbox::data::SegmentPosition;
 
 using namespace ppbox::avformat;
@@ -31,7 +30,7 @@ namespace ppbox
         SegmentDemuxer::SegmentDemuxer(
             boost::asio::io_service & io_svc, 
             ppbox::data::SegmentMedia & media)
-            : io_svc_(io_svc)
+            : DemuxerBase(io_svc)
             , media_(media)
             , source_(NULL)
             , buffer_(NULL)
@@ -124,7 +123,7 @@ namespace ppbox
         }
 
         bool SegmentDemuxer::is_open(
-            boost::system::error_code & ec)
+            boost::system::error_code & ec) const
         {
             if (open_state_ == open_finished) {
                 ec.clear();
@@ -136,6 +135,12 @@ namespace ppbox
                 ec = boost::asio::error::would_block;
                 return false;
             }
+        }
+
+        bool SegmentDemuxer::is_open(
+            boost::system::error_code & ec)
+        {
+            return const_cast<SegmentDemuxer const *>(this)->is_open(ec);
         }
 
         boost::system::error_code SegmentDemuxer::cancel(
@@ -266,7 +271,7 @@ namespace ppbox
                 read_demuxer_->demuxer->demux_begin(timestamp_helper_);
             }
             while (true) {
-                read_demuxer_->segment.byte_range.pos = 
+                //read_demuxer_->segment.byte_range.pos = 
                     read_demuxer_->demuxer->seek(read_demuxer_->segment.time_range.pos, ec);
                 /* 可能失败原因
                     1. 数据不够 file_stream_error
@@ -277,17 +282,17 @@ namespace ppbox
                         a. 分段文件格式错误 bad_file_format
                  */
                 if (!ec) {
-                    time = read_demuxer_->segment.time_range.big_pos();
-                    SegmentPosition base(buffer_->base_segment());
-                    SegmentPosition pos(buffer_->read_segment());
-                    pos.byte_range.pos = read_demuxer_->segment.byte_range.pos;
-                    if (buffer_->seek(base, pos, ec)) {
+                    //time = read_demuxer_->segment.time_range.big_pos();
+                    //SegmentPosition base(buffer_->base_segment());
+                    //SegmentPosition pos(buffer_->read_segment());
+                    //pos.byte_range.pos = read_demuxer_->segment.byte_range.pos;
+                    //if (buffer_->seek(base, pos, ec)) {
                         seek_pending_ = false;
                         boost::system::error_code ec1;
                         if (write_demuxer_)
                             free_demuxer(write_demuxer_, false, ec1);
                         write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
-                    }
+                    //}
                 } else if (ec == error::file_stream_error) {
                     if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
@@ -337,22 +342,23 @@ namespace ppbox
         boost::system::error_code SegmentDemuxer::pause(
             boost::system::error_code & ec)
         {
-            //source_.pause(ec);
+            source_->pause();
             DemuxStatistic::pause();
+            ec.clear();
             return ec;
         }
 
         boost::system::error_code SegmentDemuxer::resume(
             boost::system::error_code & ec)
         {
+            buffer_->prepare_some(ec);
             DemuxStatistic::resume();
-            ec.clear();
             return ec;
         }
 
         boost::system::error_code SegmentDemuxer::get_media_info(
             ppbox::data::MediaInfo & info,
-            boost::system::error_code & ec)
+            boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
                 media_.get_info(info, ec);
@@ -361,7 +367,7 @@ namespace ppbox
         }
 
         size_t SegmentDemuxer::get_stream_count(
-            boost::system::error_code & ec)
+            boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
                 return stream_infos_.size();
@@ -373,7 +379,7 @@ namespace ppbox
         boost::system::error_code SegmentDemuxer::get_stream_info(
             size_t index, 
             StreamInfo & info, 
-            boost::system::error_code & ec)
+            boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
                 if (index < stream_infos_.size()) {
@@ -383,6 +389,25 @@ namespace ppbox
                 }
             }
             return ec;
+        }
+
+        boost::system::error_code SegmentDemuxer::get_play_info(
+            PlayInfo & info, 
+            boost::system::error_code & ec) const
+        {
+            if (is_open(ec)) {
+            }
+            return ec;
+        }
+
+        bool SegmentDemuxer::get_data_stat(
+            DataStatistic & stat, 
+            boost::system::error_code & ec) const
+        {
+            if (is_open(ec)) {
+                stat = *source_;
+            }
+            return !ec;
         }
 
         boost::uint64_t SegmentDemuxer::get_cur_time(
@@ -604,7 +629,7 @@ namespace ppbox
             DemuxerInfo * info = new DemuxerInfo(*buffer_);
             info->segment = segment;
             buffer_->attach_stream(info->stream, is_read);
-            info->demuxer = Demuxer::create(media_info_.format, info->stream);
+            info->demuxer = Demuxer::create(media_info_.format, get_io_service(), info->stream);
             info->demuxer->open(ec);
             demuxer_infos_.push_back(info);
             return info;

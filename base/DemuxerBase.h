@@ -13,7 +13,11 @@ namespace ppbox
         class DemuxerBase
         {
         public:
-            DemuxerBase() {};
+            DemuxerBase(
+                boost::asio::io_service & io_svc)
+                : io_svc_(io_svc)
+            {
+            };
 
             virtual ~DemuxerBase() {}
 
@@ -21,44 +25,71 @@ namespace ppbox
             virtual boost::system::error_code open(
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::system::error_code close(
-                boost::system::error_code & ec) = 0;
+            virtual void async_open(
+                open_response_type const & resp) = 0;
 
             virtual bool is_open(
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::uint64_t get_end_time(
+            virtual boost::system::error_code cancel(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code close(
+                boost::system::error_code & ec) = 0;
+
+        public:
+            virtual boost::system::error_code get_media_info(
+                MediaInfo & info, 
+                boost::system::error_code & ec) const = 0;
+
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec) const = 0;
+
+            virtual boost::system::error_code get_stream_info(
+                size_t index, 
+                StreamInfo & info, 
+                boost::system::error_code & ec) const = 0;
+
+            virtual boost::system::error_code get_play_info(
+                PlayInfo & info, 
+                boost::system::error_code & ec) const = 0;
+
+            virtual bool get_data_stat(
+                DataStatistic & stat, 
+                boost::system::error_code & ec) const = 0;
+
+        public:
+            virtual boost::system::error_code reset(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code seek(
+                boost::uint64_t & time, 
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code pause(
+                boost::system::error_code & ec) = 0;
+
+            virtual boost::system::error_code resume(
                 boost::system::error_code & ec) = 0;
 
             virtual boost::system::error_code get_sample(
                 Sample & sample, 
                 boost::system::error_code & ec) = 0;
 
-            virtual size_t get_stream_count(
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::system::error_code get_stream_info(
-                size_t index, 
-                StreamInfo & info, 
-                boost::system::error_code & ec) = 0;
-
-            virtual boost::uint64_t get_duration(
-                boost::system::error_code & ec) = 0;
-
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::uint64_t seek(
-                boost::uint64_t & time, 
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec) = 0;
 
-            //virtual boost::uint64_t get_offset(
-            //    boost::uint64_t & time, 
-            //    boost::uint64_t & delta, // 要重复下载的数据量 
-            //    boost::system::error_code & ec) = 0;
+        public:
+            boost::asio::io_service & get_io_service() const
+            {
+                return io_svc_;
+            };
 
-            //virtual void set_stream(
-            //    std::basic_streambuf<boost::uint8_t> & buf) = 0;
+        private:
+            boost::asio::io_service & io_svc_;
         };
 
     } // namespace demux

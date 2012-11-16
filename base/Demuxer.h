@@ -21,14 +21,53 @@ namespace ppbox
             , public ppbox::common::ClassFactory<
                 Demuxer, 
                 std::string, 
-                Demuxer * (std::basic_streambuf<boost::uint8_t> &)
+                Demuxer * (
+                    boost::asio::io_service &, 
+                    std::basic_streambuf<boost::uint8_t> &)
             >
         {
         public:
+            typedef std::basic_streambuf<boost::uint8_t> streambuffer_t;
+        public:
             Demuxer(
-                std::basic_streambuf<boost::uint8_t> & buf);
+                boost::asio::io_service & io_svc, 
+                streambuffer_t & buf);
 
             virtual ~Demuxer();
+
+        public:
+            virtual void async_open(
+                open_response_type const & resp);
+
+            virtual boost::system::error_code cancel(
+                boost::system::error_code & ec);
+
+        public:
+            virtual boost::system::error_code get_media_info(
+                MediaInfo & info, 
+                boost::system::error_code & ec) const;
+
+            virtual boost::system::error_code get_play_info(
+                PlayInfo & info, 
+                boost::system::error_code & ec) const;
+
+            virtual bool get_data_stat(
+                DataStatistic & stat, 
+                boost::system::error_code & ec) const;
+
+        public:
+            virtual boost::system::error_code reset(
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code seek(
+                boost::uint64_t & time, 
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code pause(
+                boost::system::error_code & ec);
+
+            virtual boost::system::error_code resume(
+                boost::system::error_code & ec);
 
         public:
             void demux_begin(
@@ -36,7 +75,15 @@ namespace ppbox
 
             void demux_end();
 
+            virtual boost::uint64_t get_duration(
+                boost::system::error_code & ec) const = 0;
+
         protected:
+            virtual boost::uint64_t seek(
+                boost::uint64_t & time, 
+                boost::uint64_t & delta, // 要重复下载的数据量 
+                boost::system::error_code & ec) = 0;
+
             void on_open();
 
             void adjust_timestamp(
@@ -46,6 +93,7 @@ namespace ppbox
             }
 
         private:
+            streambuffer_t & buf_;
             TimestampHelper * helper_;
             TimestampHelper default_helper_;
         };

@@ -14,7 +14,7 @@ namespace ppbox
     namespace demux
     {
 
-        class SegmentDemuxer;
+        class DemuxerBase;
         class Strategy;
 
         class DemuxModule
@@ -23,7 +23,7 @@ namespace ppbox
         public:
             typedef boost::function<void (
                 boost::system::error_code const &, 
-                SegmentDemuxer *)
+                DemuxerBase *)
             > open_response_type;
 
         public:
@@ -42,7 +42,7 @@ namespace ppbox
                 boost::uint32_t buffer_size);
 
         public:
-            SegmentDemuxer * open(
+            DemuxerBase * open(
                 framework::string::Url const & play_link, 
                 size_t & close_token, 
                 boost::system::error_code & ec);
@@ -56,7 +56,7 @@ namespace ppbox
                 size_t close_token, 
                 boost::system::error_code & ec);
 
-            SegmentDemuxer * find(
+            DemuxerBase * find(
                 framework::string::Url const & play_link);
 
         private:

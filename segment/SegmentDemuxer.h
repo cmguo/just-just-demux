@@ -4,16 +4,15 @@
 #define _PPBOX_DEMUX_BASE_BUFFER_DEMUXER_H_
 
 #include "ppbox/demux/base/DemuxError.h"
-#include "ppbox/demux/base/Demuxer.h"
+#include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
+#include "ppbox/demux/base/TimestampHelper.h"
 
-#include <ppbox/data/SegmentMedia.h>
+#include <ppbox/data/segment/SegmentMedia.h>
 
 #include <util/event/Event.h>
 
 #include <framework/timer/Ticker.h>
-
-#include <boost/function.hpp>
 
 namespace ppbox
 {
@@ -22,7 +21,7 @@ namespace ppbox
         class SegmentSource;
         class SegmentBuffer;
         struct SegmentPosition;
-        class BytesStream;
+        class SegmentStream;
     }
 
     namespace demux
@@ -32,13 +31,10 @@ namespace ppbox
         struct DemuxerInfo;
 
         class SegmentDemuxer
-            : public DemuxStatistic
+            : public DemuxerBase
+            , public DemuxStatistic
         {
         public:
-            typedef boost::function<void (
-                boost::system::error_code const &)
-            > open_response_type;
-
             enum StateEnum
             {
                 not_open,
@@ -62,7 +58,7 @@ namespace ppbox
             virtual void async_open(
                 open_response_type const & resp);
 
-            bool is_open(
+            virtual bool is_open(
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code cancel(
@@ -70,6 +66,27 @@ namespace ppbox
 
             virtual boost::system::error_code close(
                 boost::system::error_code & ec);
+
+        public:
+            virtual boost::system::error_code get_media_info(
+                ppbox::data::MediaInfo & info,
+                boost::system::error_code & ec) const;
+
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec) const;
+
+            virtual boost::system::error_code get_stream_info(
+                size_t index, 
+                ppbox::avformat::StreamInfo & info, 
+                boost::system::error_code & ec) const;
+
+            virtual boost::system::error_code get_play_info(
+                PlayInfo & info, 
+                boost::system::error_code & ec) const;
+
+            virtual bool get_data_stat(
+                DataStatistic & stat, 
+                boost::system::error_code & ec) const;
 
         public:
             virtual boost::system::error_code reset(
@@ -83,19 +100,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code resume(
-                boost::system::error_code & ec);
-
-        public:
-            boost::system::error_code get_media_info(
-                ppbox::data::MediaInfo & info,
-                boost::system::error_code & ec);
-
-            size_t get_stream_count(
-                boost::system::error_code & ec);
-
-            boost::system::error_code get_stream_info(
-                size_t index, 
-                ppbox::avformat::StreamInfo & info, 
                 boost::system::error_code & ec);
 
         public:
@@ -164,6 +168,9 @@ namespace ppbox
             void handle_events();
 
         private:
+            bool is_open(
+                boost::system::error_code & ec) const;
+
             void handle_async_open(
                 boost::system::error_code const & ecc);
 
@@ -181,9 +188,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             void update_stat();
-
-        protected:
-            boost::asio::io_service & io_svc_;
 
         private:
             ppbox::data::SegmentMedia & media_;
