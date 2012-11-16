@@ -94,6 +94,9 @@ namespace ppbox
             boost::system::error_code parse_head(
                 boost::system::error_code & ec);
 
+            boost::system::error_code reset2(
+                boost::system::error_code & ec);
+
         private:
             std::basic_istream<boost::uint8_t> is_;
             boost::uint64_t head_size_;

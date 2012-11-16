@@ -158,6 +158,7 @@ namespace ppbox
             source->set_non_block(true, ec);
             source_ = new ppbox::data::SingleSource(url_, *source);
             stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
+            media.get_info(media_info_, ec);
             Demuxer * demuxer = Demuxer::create(media_info_.format, io_svc, *stream_);
             return demuxer;
         }
@@ -182,14 +183,18 @@ namespace ppbox
                 case media_open:
                     open_state_ = demuxer_open;
                     media_.get_info(media_info_, ec);
+                    media_.get_url(url_, ec);
                     if (!ec) {
                         // TODO:
                         stream_->pause_stream();
+                        stream_->seek(0, ec);
+                        stream_->pause_stream();
+                        CustomDemuxer::open(ec);
                         CustomDemuxer::reset(ec);
                     }
                 case demuxer_open:
                     stream_->pause_stream();
-                    if (!ec && !CustomDemuxer::seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
+                    if (!ec && !seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
                         open_state_ = open_finished;
                         open_end();
                         response(ec);
@@ -252,7 +257,12 @@ namespace ppbox
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
+                ppbox::data::MediaInfo info1;
+                CustomDemuxer::get_media_info(info1, ec);
                 media_.get_info(info, ec);
+                if (info.duration == ppbox::data::invalid_size) {
+                    info.duration = info1.duration;
+                }
             }
             return ec;
         }

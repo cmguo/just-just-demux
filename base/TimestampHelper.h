@@ -19,6 +19,7 @@ namespace ppbox
                 bool smoth = false)
                 : smoth_(smoth)
                 , smoth_begin_(false)
+                , time_offset_(0)
             {
             }
 

@@ -229,7 +229,7 @@ namespace ppbox
             file_ = file;
 
             sample_list_ = new SampleList;
-            reset(ec);
+            reset2(ec);
 
             return ec;
         }
@@ -386,8 +386,8 @@ namespace ppbox
             }
             return seek_offset;
         }
-/*
-        error_code Mp4Demuxer::reset(
+
+        error_code Mp4Demuxer::reset2(
             error_code & ec)
         {
             if (!file_) {
@@ -409,7 +409,7 @@ namespace ppbox
             }
             return ec;
         }
-*/
+
         boost::uint64_t Mp4Demuxer::get_end_time(
             boost::system::error_code & ec)
         {
