@@ -209,8 +209,8 @@ namespace ppbox
                 ec = error::bad_file_type;
                 //demuxer = new EmptyDemuxer(io_svc());
             } else {
-                ppbox::data::MediaInfo info;
-                if (media->get_info(info, ec)) {
+                ppbox::data::MediaBasicInfo info;
+                if (media->get_basic_info(info, ec)) {
                     if (info.flags & ppbox::data::MediaInfo::f_segment) {
                         demuxer = new SegmentDemuxer(io_svc(), *(ppbox::data::SegmentMedia *)media);
                     } else {
