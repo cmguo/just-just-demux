@@ -158,7 +158,7 @@ namespace ppbox
             source->set_non_block(true, ec);
             source_ = new ppbox::data::SingleSource(url_, *source);
             stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
-            media.get_info(media_info_, ec);
+            media.get_basic_info(media_info_, ec);
             Demuxer * demuxer = Demuxer::create(media_info_.format, io_svc, *stream_);
             return demuxer;
         }
