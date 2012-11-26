@@ -8,5 +8,6 @@
 #include "ppbox/demux/mp4/Mp4Demuxer.h"
 #include "ppbox/demux/flv/FlvDemuxer.h"
 #include "ppbox/demux/asf/AsfDemuxer.h"
+#include "ppbox/demux/ts/TsDemuxer.h"
 
 #endif // _PPBOX_DEMUX_DEMUXER_TYPES_H_

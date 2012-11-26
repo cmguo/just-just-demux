@@ -84,14 +84,13 @@ namespace ppbox
             std::vector<size_t> stream_map_; // Map index to FlvStream
             FlvTag flv_tag_;
 
-            boost::uint64_t open_step_;
+            size_t open_step_;
             boost::uint64_t header_offset_;
-
             boost::uint64_t parse_offset_;
-            boost::uint64_t timestamp_offset_ms_;
-            framework::system::LimitNumber<32> timestamp_;
 
+            boost::uint64_t timestamp_offset_ms_;
             boost::uint64_t current_time_;
+            framework::system::LimitNumber<32> timestamp_;
         };
 
         PPBOX_REGISTER_DEMUXER("flv", FlvDemuxer);

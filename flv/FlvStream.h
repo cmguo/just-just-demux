@@ -6,7 +6,7 @@
 #include <ppbox/avformat/flv/FlvFormat.h>
 #include <ppbox/avformat/flv/FlvDataType.h>
 #include <ppbox/avformat/flv/FlvTagType.h>
-#include <ppbox/avformat/codec/aac/AacConfig.h>
+#include <ppbox/avformat/codec/aac/AacConfigHelper.h>
 using namespace ppbox::avformat;
 
 namespace ppbox
@@ -80,9 +80,9 @@ namespace ppbox
                         audio_format.sample_size = size[AudioHeader.SoundSize];
                         audio_format.channel_count = channel[AudioHeader.SoundType];
                         if (sub_type == AUDIO_TYPE_MP4A) {
-                            ppbox::avformat::AacConfig ac(codec_data);
+                            ppbox::avformat::AacConfigHelper ac(codec_data);
                             audio_format.sample_rate = ac.get_frequency();
-                            audio_format.channel_count = ac.channel_configuration;
+                            audio_format.channel_count = ac.get_channel_count();
                         }
                         if (metadata.audiosamplerate > 0)
                             audio_format.sample_rate = metadata.audiosamplerate;
