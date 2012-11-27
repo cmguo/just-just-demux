@@ -8,6 +8,8 @@ using namespace ppbox::demux::error;
 #include <ppbox/avformat/codec/avc/AvcNalu.h>
 using namespace ppbox::avformat;
 
+#include <util/serialization/Array.h>
+
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 using namespace framework::logger;
@@ -264,7 +266,7 @@ namespace ppbox
                 }
                 if (pes_.PTS_DTS_flags == 3) {
                     sample.dts = pes_.dts_bits.value(); // timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
-                    sample.cts_delta = pes_.pts_bits.value() - pes_.dts_bits.value();
+                    sample.cts_delta = (boost::uint32_t)(pes_.pts_bits.value() - pes_.dts_bits.value());
                 } else if (pes_.PTS_DTS_flags == 2) {
                     pes_.dts_bits = pes_.pts_bits;
                     sample.dts = pes_.pts_bits.value(); // timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
@@ -356,7 +358,7 @@ namespace ppbox
                         pes_pid_ = pkt_.pid;
                         pes_size_ = pes_left_ = pes_.payload_length();
                         boost::uint64_t offset1 = archive_.tellg();
-                        size -= offset1 - offset;
+                        size -= (boost::uint32_t)(offset1 - offset);
                         offset = offset1;
                     } else {
                         if (pes_left_ != 0) {

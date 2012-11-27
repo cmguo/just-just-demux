@@ -5,10 +5,8 @@
 
 #include <ppbox/avformat/ts/PmtPacket.h>
 #include <ppbox/avformat/ts/PesPacket.h>
-#include <ppbox/avformat/codec/avc/AvcConfig.h>
-#include <ppbox/avformat/codec/aac/AacConfigHelper.h>
-
-#include <util/serialization/Array.h>
+#include <ppbox/avformat/codec/avc/AvcCodec.h>
+#include <ppbox/avformat/codec/aac/AacCodec.h>
 
 namespace ppbox
 {
@@ -47,16 +45,16 @@ namespace ppbox
                         break;
                     case TsStreamType::iso_13818_7_audio:
                         {
-                            AacConfigHelper config;
-                            config.from_adts_data(data);
-                            config.to_data(format_data);
+                            AacCodec * aac_codec = new AacCodec(data, AacCodec::from_adts_tag());
+                            aac_codec->config_helper().to_data(format_data);
+                            codec = aac_codec;
                         }
                         break;
                     case TsStreamType::iso_13818_video:
                         {
-                            AvcConfig config;
-                            config.from_es_data(data);
-                            config.to_es_data(format_data);
+                            AvcCodec * avc_codec = new AvcCodec(data, AvcCodec::from_es_tag());
+                            avc_codec->config_helper().to_es_data(format_data);
+                            codec = avc_codec;
                         }
                         break;
                     default:
