@@ -2,6 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/ts/TsDemuxer.h"
+#include "ppbox/demux/ts/TsStream.h"
 using namespace ppbox::demux::error;
 
 #include <ppbox/avformat/codec/avc/AvcNaluHelper.h>

@@ -3,8 +3,6 @@
 #ifndef _PPBOX_DEMUX_TS_TS_STREAM_H_
 #define _PPBOX_DEMUX_TS_TS_STREAM_H_
 
-#include <ppbox/avformat/ts/PmtPacket.h>
-#include <ppbox/avformat/ts/PesPacket.h>
 #include <ppbox/avformat/codec/avc/AvcCodec.h>
 #include <ppbox/avformat/codec/aac/AacCodec.h>
 
@@ -32,6 +30,12 @@ namespace ppbox
                 index = (size_t)-1;
                 //time_offset_us = TimeOffset / 10;
                 parse();
+            }
+
+            ~TsStream()
+            {
+                if (codec)
+                    delete codec;
             }
 
         public:

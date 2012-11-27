@@ -4,9 +4,10 @@
 #define _PPBOX_DEMUX_TS_TS_DEMUXER_H_
 
 #include "ppbox/demux/base/Demuxer.h"
-#include "ppbox/demux/ts/TsStream.h"
 
 #include <ppbox/avformat/ts/PatPacket.h>
+#include <ppbox/avformat/ts/PmtPacket.h>
+#include <ppbox/avformat/ts/PesPacket.h>
 
 #include <framework/system/LimitNumber.h>
 
@@ -14,6 +15,8 @@ namespace ppbox
 {
     namespace demux
     {
+
+        class TsStream;
 
         class TsDemuxer
             : public Demuxer
