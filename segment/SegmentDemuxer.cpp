@@ -197,7 +197,7 @@ namespace ppbox
                     media_.get_info(media_info_, ec);
                     if (!ec) {
                         // TODO:
-                        timestamp_helper_.smoth(media_info_.type == ppbox::data::MediaInfo::live);
+                        timestamp_helper_.smoth(media_info_.flags & ppbox::data::MediaInfo::f_time_smoth);
                         buffer_->pause_stream();
                         reset(ec);
                     }
