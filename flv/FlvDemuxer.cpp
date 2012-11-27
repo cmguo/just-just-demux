@@ -27,7 +27,7 @@ namespace ppbox
             std::basic_streambuf<boost::uint8_t> & buf)
             : Demuxer(io_svc, buf)
             , archive_(buf)
-            , open_step_((boost::uint64_t)-1)
+            , open_step_((size_t)-1)
             , header_offset_(0)
             , parse_offset_(0)
             , timestamp_offset_ms_(0)
@@ -58,7 +58,7 @@ namespace ppbox
                 return true;
             }
 
-            if (open_step_ == (boost::uint64_t)-1) {
+            if (open_step_ == (size_t)-1) {
                 ec = error::not_open;
                 return false;
             }
@@ -192,7 +192,7 @@ namespace ppbox
             current_time_ = timestamp_offset_ms_ = 0;
             parse_offset_ = 0;
             ec.clear();
-            open_step_ = boost::uint64_t(-1);
+            open_step_ = size_t(-1);
             return ec;
         }
 
