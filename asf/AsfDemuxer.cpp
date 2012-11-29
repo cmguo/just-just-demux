@@ -137,7 +137,7 @@ namespace ppbox
                 buffer_parse_.payload.PresTime = streams_[buffer_parse_.payload.StreamNum].time_offset_ms;
 
                 ParseStatus status = object_parse_;
-                while (!next_payload(status, ec)) {
+                while (!next_payload(archive_, status, ec)) {
                     if (status.payload.StreamNum >= streams_.size()) {
                         open_step_ = (size_t)-1;
                         ec = bad_file_format;
@@ -228,7 +228,7 @@ namespace ppbox
             error_code & ec) const
         {
             ec = error::not_support;
-            return 0;
+            return ppbox::data::invalid_size;
         }
 
         size_t AsfDemuxer::get_stream_count(
@@ -273,7 +273,7 @@ namespace ppbox
             }
             */
             while (true) {
-                next_payload(object_parse_, ec);
+                next_payload(archive_, object_parse_, ec);
                 //if (fixed_packet_length_ && ec == bad_file_format) {
                 //    archive_.clear();
                 //    archive_.seekg(object_parse_.offset_packet + fixed_packet_length_, std::ios_base::beg);
@@ -338,10 +338,10 @@ namespace ppbox
         }
 
         boost::uint64_t AsfDemuxer::get_cur_time(
-            error_code & ec)
+            error_code & ec) const
         {
             if (is_open(ec) && object_parse_.payload.StreamNum < streams_.size()) {
-                AsfStream & stream = streams_[object_parse_.payload.StreamNum];
+                AsfStream const & stream = streams_[object_parse_.payload.StreamNum];
                 return object_parse_.payload.PresTime - stream.time_offset_ms;
             }
             return 0;
@@ -368,12 +368,12 @@ namespace ppbox
                 buffer_parse_.packet.PayloadNum = 0; // start from packet
                 buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 archive_.seekg(buffer_parse_.offset, std::ios_base::beg);
-                next_payload(buffer_parse_, ec);
+                next_payload(archive_, buffer_parse_, ec);
                 buffer_parse_.offset = off; // recover
             }
             archive_.seekg(beg, std::ios_base::beg);
             if (buffer_parse_.payload.StreamNum < streams_.size()) {
-                AsfStream & stream = streams_[buffer_parse_.payload.StreamNum];
+                AsfStream const & stream = streams_[buffer_parse_.payload.StreamNum];
                 return buffer_parse_.payload.PresTime - stream.time_offset_ms;
             } else {
                 ec = bad_file_format;
@@ -382,56 +382,58 @@ namespace ppbox
         }
 
         error_code AsfDemuxer::next_packet(
-            ParseStatus & parse_status,  
-            error_code & ec)
+            ASFIArchive & archive, 
+            ParseStatus & parse_status, 
+            error_code & ec) const
         {
-            if (archive_ >> parse_status.packet) {
+            if (archive >> parse_status.packet) {
                 ++parse_status.num_packet;
                 return ec = error_code();
-            } else if (archive_.failed()) {
-                archive_.clear();
+            } else if (archive.failed()) {
+                archive.clear();
                 return ec = bad_file_format;
             } else {
-                archive_.clear();
+                archive.clear();
                 return ec = file_stream_error;
             }
         }
 
         error_code AsfDemuxer::next_payload(
+            ASFIArchive & archive, 
             ParseStatus & parse_status,  
-            error_code & ec)
+            error_code & ec) const
         {
             if (parse_status.packet.PayloadNum == 0) {
                 if (parse_status.packet.PayLoadParseInfo.PaddingLength) {
-                    archive_.seekg(parse_status.packet.PayLoadParseInfo.PaddingLength, std::ios_base::cur);
-                    if (archive_) {
+                    archive.seekg(parse_status.packet.PayLoadParseInfo.PaddingLength, std::ios_base::cur);
+                    if (archive) {
                         parse_status.offset += parse_status.packet.PayLoadParseInfo.PaddingLength;
                         parse_status.packet.PayLoadParseInfo.PaddingLength = 0;
                     } else {
-                        archive_.clear();
+                        archive.clear();
                         return ec = file_stream_error;
                     }
                 }
                 parse_status.offset_packet = parse_status.offset;
-                if (next_packet(parse_status, ec)) {
+                if (next_packet(archive, parse_status, ec)) {
                     parse_status.packet.PayloadNum = 0;
                     parse_status.packet.PayLoadParseInfo.PaddingLength = 0;
                     return ec;
                 } else {
-                    parse_status.offset = archive_.tellg();
+                    parse_status.offset = archive.tellg();
                 }
             }
             parse_status.payload.set_packet(parse_status.packet);
-            if (archive_ >> parse_status.payload) {
+            if (archive >> parse_status.payload) {
                 parse_status.offset = parse_status.payload.data_offset + parse_status.payload.PayloadLength;
                 --parse_status.packet.PayloadNum;
                 ++parse_status.num_payload;
                 return ec = error_code();
-            } else if (archive_.failed()) {
-                archive_.clear();
+            } else if (archive.failed()) {
+                archive.clear();
                 return ec = bad_file_format;
             } else {
-                archive_.clear();
+                archive.clear();
                 return ec = file_stream_error;
             }
         }

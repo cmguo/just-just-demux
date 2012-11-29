@@ -70,11 +70,11 @@ namespace ppbox
             return demuxer_.get_stream_info(index, info, ec);
         }
 
-        boost::system::error_code CustomDemuxer::get_play_info(
-            PlayInfo & info, 
+        bool CustomDemuxer::get_stream_status(
+            StreamStatus & info, 
             boost::system::error_code & ec) const
         {
-            return demuxer_.get_play_info(info, ec);
+            return demuxer_.get_stream_status(info, ec);
         }
 
         bool CustomDemuxer::get_data_stat(
@@ -107,18 +107,6 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             return demuxer_.resume(ec);
-        }
-
-        boost::uint64_t CustomDemuxer::get_cur_time(
-            boost::system::error_code & ec)
-        {
-            return demuxer_.get_cur_time(ec);
-        }
-
-        boost::uint64_t CustomDemuxer::get_end_time(
-            boost::system::error_code & ec)
-        {
-            return demuxer_.get_end_time(ec);
         }
 
         boost::system::error_code CustomDemuxer::get_sample(

@@ -9,15 +9,13 @@
 #include <ppbox/avformat/asf/AsfObjectType.h>
 #include <framework/system/LimitNumber.h>
 
-using namespace ppbox::avformat;
-
 namespace ppbox
 {
     namespace demux
     {
 
         class AsfDemuxer
-            : public ASF_Object_Header
+            : public ppbox::avformat::ASF_Object_Header
             , public Demuxer
         {
 
@@ -60,14 +58,14 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-            virtual boost::uint64_t get_end_time(
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             virtual boost::uint64_t get_cur_time(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec) const;
 
-            virtual boost::system::error_code get_sample(
-                Sample & sample, 
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
         private:
@@ -96,15 +94,15 @@ namespace ppbox
             struct ParseStatus
             {
                 ParseStatus(
-                    ASF_File_Properties_Object_Data const & FileProperties)
+                    ppbox::avformat::ASF_File_Properties_Object_Data const & FileProperties)
                     : packet(FileProperties.MaximumDataPacketSize)
                     , num_packet(0)
                     , num_payload(0)
                 {
                 }
 
-                ASF_Packet packet;
-                ASF_PayloadHeader payload;
+                ppbox::avformat::ASF_Packet packet;
+                ppbox::avformat::ASF_PayloadHeader payload;
                 boost::uint64_t offset_packet;
                 boost::uint64_t offset;
                 boost::uint64_t num_packet;
@@ -113,30 +111,32 @@ namespace ppbox
             };
 
             boost::system::error_code next_packet(
-                ParseStatus & parse_status,  
-                boost::system::error_code & ec);
+                ppbox::avformat::ASFIArchive & archive, 
+                ParseStatus & parse_status, 
+                boost::system::error_code & ec) const;
 
             boost::system::error_code next_payload(
-                ParseStatus & parse_status,  
-                boost::system::error_code & ec);
+                ppbox::avformat::ASFIArchive & archive, 
+                ParseStatus & parse_status, 
+                boost::system::error_code & ec) const;
 
         public:
-            ASFIArchive archive_;
+            ppbox::avformat::ASFIArchive archive_;
 
             size_t open_step_;
-            ASF_Header_Object header_;
-            ASF_File_Properties_Object_Data file_prop_;
+            ppbox::avformat::ASF_Header_Object header_;
+            ppbox::avformat::ASF_File_Properties_Object_Data file_prop_;
             std::vector<AsfStream> streams_;
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order
             ParseStatus object_parse_; 
-            std::vector<ASF_PayloadHeader> object_payloads_;
+            std::vector<ppbox::avformat::ASF_PayloadHeader> object_payloads_;
             boost::uint64_t next_object_offset_; // not offset in file, just offset of this object
             bool is_discontinuity_;
 
             // for calc end time
             boost::uint64_t fixed_packet_length_;
-            ParseStatus buffer_parse_;
+            mutable ParseStatus buffer_parse_;
 
             // for calc sample timestamp
             boost::uint64_t timestamp_offset_ms_;

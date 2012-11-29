@@ -7,7 +7,6 @@
 #include <ppbox/avformat/flv/FlvDataType.h>
 #include <ppbox/avformat/flv/FlvTagType.h>
 #include <ppbox/avformat/codec/aac/AacConfigHelper.h>
-using namespace ppbox::avformat;
 
 namespace ppbox
 {
@@ -28,7 +27,7 @@ namespace ppbox
             FlvStream(
                 FlvTag const & tag, 
                 std::vector<boost::uint8_t> const & codec_data,
-                FlvMetadata const & metadata)
+                ppbox::avformat::FlvMetadata const & metadata)
                 : FlvTag(tag)
                 , ready(false)
             {
@@ -39,8 +38,10 @@ namespace ppbox
         private:
             void parse(
                 std::vector<boost::uint8_t> const & codec_data,
-                FlvMetadata const & metadata)
+                ppbox::avformat::FlvMetadata const & metadata)
             {
+                using namespace ppbox::avformat;
+
                 if (DataSize > 0) {
                     if (FlvTagType::VIDEO == Type) { 
                         type = MEDIA_TYPE_VIDE;

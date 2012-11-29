@@ -48,8 +48,8 @@ namespace ppbox
                 ppbox::avformat::StreamInfo & info, 
                 boost::system::error_code & ec) const;
 
-            virtual boost::system::error_code get_play_info(
-                PlayInfo & info, 
+            virtual bool get_stream_status(
+                StreamStatus & info, 
                 boost::system::error_code & ec) const;
 
             virtual bool get_data_stat(
@@ -68,13 +68,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code resume(
-                boost::system::error_code & ec);
-
-        public:
-            virtual boost::uint64_t get_cur_time(
-                boost::system::error_code & ec);
-
-            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code get_sample(

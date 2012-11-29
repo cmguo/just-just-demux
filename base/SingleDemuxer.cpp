@@ -228,12 +228,25 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             CustomDemuxer::seek(time, ec);
+            seek_time_ = time;
             if (ec == boost::asio::error::would_block) {
                 seek_pending_ = true;
             } else {
                 seek_pending_ = false;
             }
             return ec;
+        }
+
+        boost::uint64_t SingleDemuxer::check_seek(
+            boost::system::error_code & ec)
+        {
+            stream_->prepare_some(ec);
+            if (seek_pending_) {
+                seek(seek_time_, ec);
+            } else {
+                ec.clear();
+            }
+            return seek_time_;
         }
 
         boost::system::error_code SingleDemuxer::pause(
@@ -268,13 +281,23 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code SingleDemuxer::get_play_info(
-            PlayInfo & info, 
-            boost::system::error_code & ec) const
+        bool SingleDemuxer::fill_data(
+            boost::system::error_code & ec)
+        {
+            stream_->prepare_some(ec);
+            return !ec;
+        }
+
+        bool SingleDemuxer::get_stream_status(
+            StreamStatus & info, 
+            boost::system::error_code & ec)
         {
             if (is_open(ec)) {
+                CustomDemuxer::get_stream_status(info, ec);
+                info.byte_range.end = media_info_.file_size;
+                return !ec;
             }
-            return ec;
+            return false;
         }
 
         bool SingleDemuxer::get_data_stat(
@@ -283,8 +306,9 @@ namespace ppbox
         {
             if (is_open(ec)) {
                 stat = *source_;
+                return true;
             }
-            return !ec;
+            return false;
         }
 
         boost::system::error_code SingleDemuxer::get_sample(
@@ -328,11 +352,6 @@ namespace ppbox
                 last_error(ec);
             }
             return ec;
-        }
-
-        void SingleDemuxer::on_event(
-            util::event::Event const & event)
-        {
         }
 
     } // namespace demux

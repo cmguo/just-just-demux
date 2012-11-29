@@ -75,10 +75,10 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
-            virtual boost::uint64_t get_end_time(
-                boost::system::error_code & ec);
-
             virtual boost::uint64_t get_cur_time(
+                boost::system::error_code & ec) const;
+
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
         private:

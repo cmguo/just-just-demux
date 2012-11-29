@@ -58,10 +58,10 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
-            virtual boost::uint64_t get_end_time(
-                boost::system::error_code & ec);
-
             virtual boost::uint64_t get_cur_time(
+                boost::system::error_code & ec) const;
+
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
         private:
@@ -69,20 +69,20 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
             void parse_metadata(
-                FlvTag const & metadata_tag);
+                ppbox::avformat::FlvTag const & metadata_tag);
 
             boost::system::error_code get_tag(
-                FlvTag & flv_tag,
+                ppbox::avformat::FlvTag & flv_tag,
                 boost::system::error_code & ec);
 
         private:
-            FLVArchive archive_;
+            ppbox::avformat::FlvIArchive archive_;
 
-            FlvHeader flv_header_;
-            FlvMetadata     metadata_;
+            ppbox::avformat::FlvHeader flv_header_;
+            ppbox::avformat::FlvMetadata metadata_;
             std::vector<FlvStream> streams_;
             std::vector<size_t> stream_map_; // Map index to FlvStream
-            FlvTag flv_tag_;
+            ppbox::avformat::FlvTag flv_tag_;
 
             size_t open_step_;
             boost::uint64_t header_offset_;

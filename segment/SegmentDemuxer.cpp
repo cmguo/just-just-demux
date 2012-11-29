@@ -282,17 +282,12 @@ namespace ppbox
                         a. 分段文件格式错误 bad_file_format
                  */
                 if (!ec) {
-                    //time = read_demuxer_->segment.time_range.big_pos();
-                    //SegmentPosition base(buffer_->base_segment());
-                    //SegmentPosition pos(buffer_->read_segment());
-                    //pos.byte_range.pos = read_demuxer_->segment.byte_range.pos;
-                    //if (buffer_->seek(base, pos, ec)) {
-                        seek_pending_ = false;
-                        boost::system::error_code ec1;
-                        if (write_demuxer_)
-                            free_demuxer(write_demuxer_, false, ec1);
-                        write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
-                    //}
+                    time = read_demuxer_->segment.time_range.big_pos();
+                    seek_pending_ = false;
+                    boost::system::error_code ec1;
+                    if (write_demuxer_)
+                        free_demuxer(write_demuxer_, false, ec1);
+                    write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
                 } else if (ec == error::file_stream_error) {
                     if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
@@ -330,13 +325,25 @@ namespace ppbox
             if (&time != &seek_time_ && open_state_ == open_finished) {
                 DemuxStatistic::seek(!ec, time);
             }
+            seek_time_ = time; // 用户连续seek，以最后一次为准
             if (ec) {
                 seek_pending_ = true;
-                seek_time_ = time; // 用户连续seek，以最后一次为准
                 last_error(ec);
             }
             buffer_->resume_stream();
             return ec;
+        }
+
+        boost::uint64_t SegmentDemuxer::check_seek(
+            boost::system::error_code & ec)
+        {
+            buffer_->prepare_some(ec);
+            if (seek_pending_) {
+                seek(seek_time_, ec);
+            } else {
+                ec.clear();
+            }
+            return seek_time_;
         }
 
         boost::system::error_code SegmentDemuxer::pause(
@@ -391,13 +398,33 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code SegmentDemuxer::get_play_info(
-            PlayInfo & info, 
-            boost::system::error_code & ec) const
+        bool SegmentDemuxer::fill_data(
+            boost::system::error_code & ec)
         {
+            buffer_->prepare_some(ec);
+            return !ec;
+        }
+
+        bool SegmentDemuxer::get_stream_status(
+            StreamStatus & info, 
+            boost::system::error_code & ec)
+        {
+            using ppbox::data::invalid_size;
+
             if (is_open(ec)) {
+                info.byte_range.beg = 0;
+                info.byte_range.end = invalid_size;
+                info.byte_range.pos = buffer_->in_position();
+                info.byte_range.buf = buffer_->out_position();
+
+                info.time_range.beg = 0;
+                info.time_range.end = media_info_.duration;
+                info.time_range.pos = get_cur_time(ec);
+                info.time_range.buf = get_end_time(ec);
+
+                info.buf_ec = buffer_->last_error();
             }
-            return ec;
+            return !ec;
         }
 
         bool SegmentDemuxer::get_data_stat(
@@ -408,71 +435,6 @@ namespace ppbox
                 stat = *source_;
             }
             return !ec;
-        }
-
-        boost::uint64_t SegmentDemuxer::get_cur_time(
-            boost::system::error_code & ec)
-        {
-            buffer_->prepare_some(ec);
-            if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
-                }
-            }
-
-            boost::uint64_t time = 0;
-            if (read_demuxer_->demuxer) {
-                time = buffer_->read_segment().time_range.big_beg() + read_demuxer_->demuxer->get_cur_time(ec);
-                if (ec) {
-                    last_error(ec);
-                    if (ec == error::file_stream_error) {
-                        ec = buffer_->last_error();
-                    }
-                }
-            } else {
-                ec.clear();
-                time = buffer_->read_segment().time_range.big_end();
-            }
-
-            return time;
-        }
-
-        boost::uint64_t SegmentDemuxer::get_end_time(
-            boost::system::error_code & ec)
-        {
-            buffer_->prepare_some(ec);
-            if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    return buffer_->write_segment().time_range.big_beg();
-                }
-            }
-
-            boost::uint64_t time = 0;
-            if (write_demuxer_->demuxer) {
-                while (write_demuxer_->segment != buffer_->write_segment()) {
-                    if (buffer_->write_segment().valid()) {
-                        SegmentPosition seg = write_demuxer_->segment;
-                        seg.time_range.end = write_demuxer_->demuxer->get_duration(ec);
-                        buffer_->write_next(seg, ec);
-                        free_demuxer(write_demuxer_, false, ec);
-                        write_demuxer_ = alloc_demuxer(seg, false, ec);
-                    } else {
-                        break;
-                    }
-                }
-                time = buffer_->write_segment().time_range.big_beg() + write_demuxer_->demuxer->get_end_time(ec);
-                if (ec == error::file_stream_error) {
-                    ec.clear();
-                }
-                if (ec) {
-                    last_error(ec);
-                }
-            } else {
-                ec.clear();
-                time = buffer_->write_segment().time_range.big_beg();
-            }
-
-            return time;
         }
 
         boost::system::error_code SegmentDemuxer::get_sample(
@@ -539,54 +501,69 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code SegmentDemuxer::get_sample_buffered(
-            Sample & sample, 
+        boost::uint64_t SegmentDemuxer::get_cur_time(
             boost::system::error_code & ec)
         {
-            if (state_ == buffering && play_position_ > seek_position_ + 30000) {
-                boost::system::error_code ec_buf;
-                boost::uint64_t time = get_buffer_time(ec, ec_buf);
-                if (ec && ec != boost::asio::error::would_block) {
-                } else {
-                    if (ec_buf
-                        && ec_buf != boost::asio::error::would_block
-                        && ec_buf != boost::asio::error::eof) {
-                            ec = ec_buf;
-                    } else {
-                        if (time < 2000 && ec_buf != boost::asio::error::eof) {
-                            ec = boost::asio::error::would_block;
-                        } else {
-                            ec.clear();
-                        }
+            buffer_->prepare_some(ec);
+            if (seek_pending_ && seek(seek_time_, ec)) {
+                if (ec == boost::asio::error::would_block) {
+                    return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
+                }
+            }
+
+            boost::uint64_t time = 0;
+            if (read_demuxer_->demuxer) {
+                time = buffer_->read_segment().time_range.big_beg() + read_demuxer_->demuxer->get_cur_time(ec);
+                if (ec) {
+                    last_error(ec);
+                    if (ec == error::file_stream_error) {
+                        ec = buffer_->last_error();
                     }
                 }
+            } else {
+                ec.clear();
+                time = buffer_->read_segment().time_range.big_end();
             }
-            if (!ec) {
-                get_sample(sample, ec);
-            }
-            return ec;
-        } 
 
-        boost::uint64_t SegmentDemuxer::get_buffer_time(
-            boost::system::error_code & ec, 
-            boost::system::error_code & ec_buf)
+            return time;
+        }
+
+        boost::uint64_t SegmentDemuxer::get_end_time(
+            boost::system::error_code & ec)
         {
-            if (need_seek_time_) {
-                seek_position_ = get_cur_time(ec); 
-                if (ec) {
-                    ec_buf = buffer_->last_error();
-                    return 0;
+            buffer_->prepare_some(ec);
+            if (seek_pending_ && seek(seek_time_, ec)) {
+                if (ec == boost::asio::error::would_block) {
+                    return buffer_->write_segment().time_range.big_beg();
                 }
-                need_seek_time_ = false;
-                play_position_ = seek_position_;
             }
-            boost::uint64_t buffer_time = get_end_time(ec);
-            buffer_time = buffer_time > play_position_ ? buffer_time - play_position_ : 0;
-            //set_buf_time(buffer_time);
-            // 直接赋值，减少输出日志，set_buf_time会输出buf_time
-            buffer_time_ = buffer_time;
-            ec_buf = buffer_->last_error();
-            return buffer_time;
+
+            boost::uint64_t time = 0;
+            if (write_demuxer_->demuxer) {
+                while (write_demuxer_->segment != buffer_->write_segment()) {
+                    if (buffer_->write_segment().valid()) {
+                        SegmentPosition seg = write_demuxer_->segment;
+                        seg.time_range.end = write_demuxer_->demuxer->get_duration(ec);
+                        buffer_->write_next(seg, ec);
+                        free_demuxer(write_demuxer_, false, ec);
+                        write_demuxer_ = alloc_demuxer(seg, false, ec);
+                    } else {
+                        break;
+                    }
+                }
+                time = buffer_->write_segment().time_range.big_beg() + write_demuxer_->demuxer->get_end_time(ec);
+                if (ec == error::file_stream_error) {
+                    ec.clear();
+                }
+                if (ec) {
+                    last_error(ec);
+                }
+            } else {
+                ec.clear();
+                time = buffer_->write_segment().time_range.big_beg();
+            }
+
+            return time;
         }
 
         DemuxerInfo * SegmentDemuxer::alloc_demuxer(

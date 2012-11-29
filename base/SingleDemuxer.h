@@ -66,17 +66,12 @@ namespace ppbox
                 ppbox::data::MediaInfo & info,
                 boost::system::error_code & ec) const;
 
-            virtual boost::system::error_code get_play_info(
-                PlayInfo & info, 
-                boost::system::error_code & ec) const;
-
-            virtual bool get_data_stat(
-                DataStatistic & stat, 
-                boost::system::error_code & ec) const;
-
         public:
             virtual boost::system::error_code seek(
                 boost::uint64_t & time, 
+                boost::system::error_code & ec);
+
+            virtual boost::uint64_t check_seek(
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code pause(
@@ -85,9 +80,21 @@ namespace ppbox
             virtual boost::system::error_code resume(
                 boost::system::error_code & ec);
 
+        public:
+            virtual bool fill_data(
+                boost::system::error_code & ec);
+
             virtual boost::system::error_code get_sample(
                 ppbox::avformat::Sample & sample, 
                 boost::system::error_code & ec);
+
+            virtual bool get_stream_status(
+                StreamStatus & info, 
+                boost::system::error_code & ec);
+
+            virtual bool get_data_stat(
+                DataStatistic & stat, 
+                boost::system::error_code & ec) const;
 
         public:
             ppbox::data::MediaBase const & media() const
@@ -99,10 +106,6 @@ namespace ppbox
             {
                 return *source_;
             }
-
-        public:
-            virtual void on_event(
-                util::event::Event const & event);
 
         protected:
             void tick_on();

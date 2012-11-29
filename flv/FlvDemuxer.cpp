@@ -70,8 +70,6 @@ namespace ppbox
                 assert(archive_);
                 archive_ >> flv_header_;
                 if (archive_) {
-                    streams_.clear();
-                    stream_map_.clear();
                     streams_.resize((size_t)FlvTagType::META + 1);
                     if (flv_header_.TypeFlagsAudio) {
                         streams_[(size_t)FlvTagType::AUDIO].index = stream_map_.size();
@@ -188,6 +186,8 @@ namespace ppbox
 
         error_code FlvDemuxer::close(error_code & ec)
         {
+            streams_.clear();
+            stream_map_.clear();
             header_offset_ = 0;
             current_time_ = timestamp_offset_ms_ = 0;
             parse_offset_ = 0;
@@ -229,7 +229,7 @@ namespace ppbox
             error_code & ec) const
         {
             ec = error::not_support;
-            return 0;
+            return ppbox::data::invalid_size;
         }
 
         size_t FlvDemuxer::get_stream_count(
@@ -322,6 +322,16 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint64_t FlvDemuxer::get_cur_time(
+            error_code & ec) const
+        {
+            if (is_open(ec)) {
+                // return flv_tag_.Timestamp - timestamp_offset_ms_;
+                 return current_time_ - timestamp_offset_ms_;
+            }
+            return 0;
+        }
+
         boost::uint64_t FlvDemuxer::get_end_time(
             error_code & ec)
         {
@@ -343,16 +353,6 @@ namespace ppbox
                 time = 0;
             }
             return time;
-        }
-
-        boost::uint64_t FlvDemuxer::get_cur_time(
-            error_code & ec)
-        {
-            if (is_open(ec)) {
-                // return flv_tag_.Timestamp - timestamp_offset_ms_;
-                 return current_time_ - timestamp_offset_ms_;
-            }
-            return 0;
         }
 
         error_code FlvDemuxer::get_tag(

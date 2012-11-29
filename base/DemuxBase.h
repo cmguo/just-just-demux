@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_DEMUX_BASE_H_
 
 #include <ppbox/data/base/MediaInfo.h>
-#include <ppbox/data/base/PlayInfo.h>
+#include <ppbox/data/base/StreamStatus.h>
 #include <ppbox/data/base/DataStatistic.h>
 
 #include <ppbox/avformat/Format.h>
@@ -17,7 +17,7 @@ namespace ppbox
     {
 
         using ppbox::data::MediaInfo;
-        using ppbox::data::PlayInfo;
+        using ppbox::data::StreamStatus;
         using ppbox::data::DataStatistic;
 
         using ppbox::avformat::StreamInfo;

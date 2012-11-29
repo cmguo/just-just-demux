@@ -50,14 +50,6 @@ namespace ppbox
                 StreamInfo & info, 
                 boost::system::error_code & ec) const = 0;
 
-            virtual boost::system::error_code get_play_info(
-                PlayInfo & info, 
-                boost::system::error_code & ec) const = 0;
-
-            virtual bool get_data_stat(
-                DataStatistic & stat, 
-                boost::system::error_code & ec) const = 0;
-
         public:
             virtual boost::system::error_code reset(
                 boost::system::error_code & ec) = 0;
@@ -66,21 +58,30 @@ namespace ppbox
                 boost::uint64_t & time, 
                 boost::system::error_code & ec) = 0;
 
+            virtual boost::uint64_t check_seek(
+                boost::system::error_code & ec) = 0;
+
             virtual boost::system::error_code pause(
                 boost::system::error_code & ec) = 0;
 
             virtual boost::system::error_code resume(
                 boost::system::error_code & ec) = 0;
 
+        public:
+            virtual bool fill_data(
+                boost::system::error_code & ec) = 0;
+
             virtual boost::system::error_code get_sample(
                 Sample & sample, 
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::uint64_t get_cur_time(
+            virtual bool get_stream_status(
+                StreamStatus & info, 
                 boost::system::error_code & ec) = 0;
 
-            virtual boost::uint64_t get_end_time(
-                boost::system::error_code & ec) = 0;
+            virtual bool get_data_stat(
+                DataStatistic & stat, 
+                boost::system::error_code & ec) const = 0;
 
         public:
             boost::asio::io_service & get_io_service() const

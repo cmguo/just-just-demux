@@ -28,6 +28,7 @@ namespace ppbox
         {
         public:
             typedef std::basic_streambuf<boost::uint8_t> streambuffer_t;
+
         public:
             Demuxer(
                 boost::asio::io_service & io_svc, 
@@ -47,9 +48,9 @@ namespace ppbox
                 MediaInfo & info, 
                 boost::system::error_code & ec) const;
 
-            virtual boost::system::error_code get_play_info(
-                PlayInfo & info, 
-                boost::system::error_code & ec) const;
+            virtual bool get_stream_status(
+                StreamStatus & info, 
+                boost::system::error_code & ec);
 
             virtual bool get_data_stat(
                 DataStatistic & stat, 
@@ -63,10 +64,16 @@ namespace ppbox
                 boost::uint64_t & time, 
                 boost::system::error_code & ec);
 
+            virtual boost::uint64_t check_seek(
+                boost::system::error_code & ec);
+
             virtual boost::system::error_code pause(
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code resume(
+                boost::system::error_code & ec);
+
+            virtual bool fill_data(
                 boost::system::error_code & ec);
 
         public:
@@ -77,6 +84,12 @@ namespace ppbox
 
             virtual boost::uint64_t get_duration(
                 boost::system::error_code & ec) const = 0;
+
+            virtual boost::uint64_t get_cur_time(
+                boost::system::error_code & ec) const = 0;
+
+            virtual boost::uint64_t get_end_time(
+                boost::system::error_code & ec) = 0;
 
         protected:
             virtual boost::uint64_t seek(

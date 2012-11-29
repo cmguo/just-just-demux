@@ -445,7 +445,7 @@ namespace ppbox
         }
 
         boost::uint64_t Mp4Demuxer::get_cur_time(
-            error_code & ec)
+            error_code & ec) const
         {
             if (!is_open(ec)) {
                 return 0;

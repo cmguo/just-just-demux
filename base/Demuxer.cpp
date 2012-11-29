@@ -50,11 +50,24 @@ namespace ppbox
             return ec;
         }
 
-        boost::system::error_code Demuxer::get_play_info(
-            PlayInfo & info, 
-            boost::system::error_code & ec) const
+        bool Demuxer::get_stream_status(
+            StreamStatus & info, 
+            boost::system::error_code & ec)
         {
-            return ec;
+            using ppbox::data::invalid_size;
+
+            info.byte_range.beg = 0;
+            info.byte_range.end = invalid_size;
+            info.byte_range.pos = buf_.pubseekoff(0, std::ios::cur, std::ios::in);
+            info.byte_range.buf = buf_.pubseekoff(0, std::ios::end, std::ios::in);
+            buf_.pubseekoff(info.byte_range.pos, std::ios::beg, std::ios::in);
+
+            info.time_range.beg = 0;
+            info.time_range.end = get_duration(ec);
+            info.time_range.pos = get_cur_time(ec);
+            info.time_range.buf = get_end_time(ec);
+
+            return !ec;
         }
 
         bool Demuxer::get_data_stat(
@@ -89,6 +102,13 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint64_t Demuxer::check_seek(
+            boost::system::error_code & ec)
+        {
+            ec = framework::system::logic_error::not_supported;
+            return ppbox::data::invalid_size;
+        }
+
         boost::system::error_code Demuxer::pause(
             boost::system::error_code & ec)
         {
@@ -99,6 +119,13 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             return ec = framework::system::logic_error::not_supported;
+        }
+
+        bool Demuxer::fill_data(
+            boost::system::error_code & ec)
+        {
+            ec = framework::system::logic_error::not_supported;
+            return false;
         }
 
         void Demuxer::demux_begin(

@@ -115,7 +115,7 @@ namespace ppbox
             ppbox::data::MediaInfo media_info;
             if (!media_.get_info(media_info, ec))
                 return false;
-            assert(media_info.duration >= media_info.delay);
+            assert(media_info.shift >= media_info.delay);
             time = media_info.type == ppbox::data::MediaInfo::live 
                 ? media_info.current - media_info.delay : 0;
             return true;
