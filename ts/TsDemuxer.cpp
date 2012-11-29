@@ -5,8 +5,6 @@
 #include "ppbox/demux/ts/TsStream.h"
 using namespace ppbox::demux::error;
 
-#include <ppbox/avformat/codec/avc/AvcNaluHelper.h>
-#include <ppbox/avformat/codec/avc/AvcNalu.h>
 using namespace ppbox::avformat;
 
 #include <util/serialization/Array.h>
@@ -18,6 +16,8 @@ using namespace framework::logger;
 using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", Debug)
+
+#include "ppbox/demux/ts/PesParse.h"
 
 namespace ppbox
 {
@@ -32,9 +32,8 @@ namespace ppbox
             , open_step_(size_t(-1))
             , header_offset_(0)
             , parse_offset_(0)
-            , pes_size_(0)
-            , pes_left_(0)
-            , pes_frame_offset_(0)
+            , pes_index_(size_t(-1))
+            , min_offset_(0)
             , parse_offset2_(0)
             , time_valid_(false)
             , timestamp_offset_ms_(0)
@@ -122,6 +121,7 @@ namespace ppbox
                         stream_map_[pmt_.streams[i].elementary_pid] = streams_.size();
                         streams_.push_back(TsStream(pmt_.streams[i]));
                     }
+                    pes_parses_.resize(streams_.size());
                     open_step_ = 2;
                     header_offset_ = parse_offset_;
                     break;
@@ -130,29 +130,18 @@ namespace ppbox
 
             if (open_step_ == 2) {
                 while (get_pes(ec)) {
-                    TsStream & stream = streams_[stream_map_[pes_pid_]];
+                    TsStream & stream = streams_[pes_index_];
                     if (stream.ready) {
                         free_pes();
                         continue;
                     }
+                    PesParse & parse = pes_parses_[pes_index_];
                     if (!time_valid_) {
-                        if (pes_.PTS_DTS_flags == 0x02) {
-                            timestamp_offset_ms_ = pes_.pts_bits.value();
-                            time_valid_ = true;
-                        } else if (pes_.PTS_DTS_flags == 0x03) {
-                            timestamp_offset_ms_ = pes_.dts_bits.value();
-                            time_valid_ = true;
-                        }
+                        timestamp_offset_ms_ = parse.dts(); // 先不转换精度 / (TsPacket::TIME_SCALE / 1000);
+                        time_valid_ = true;
                     }
-                    std::vector<boost::uint8_t> data(pes_size_, 0);
-                    boost::uint32_t read_offset = 0;
-                    for (size_t i = 0; i < pes_payloads_.size(); ++i) {
-                        archive_.seekg(pes_payloads_[i].offset, std::ios::beg);
-                        assert(archive_);
-                        archive_ >> framework::container::make_array(&data[read_offset], pes_payloads_[i].size);
-                        assert(archive_);
-                        read_offset += pes_payloads_[i].size;
-                    }
+                    std::vector<boost::uint8_t> data;
+                    parse.get_data(data, archive_);
                     free_pes();
                     stream.set_pes(data);
                     bool ready = true;
@@ -164,11 +153,14 @@ namespace ppbox
                     }
                     if (ready) {
                         archive_.seekg(header_offset_, std::ios_base::beg);
-                        parse_offset_ = parse_offset2_ = header_offset_;
+                        parse_offset_ = parse_offset2_ = min_offset_ = header_offset_;
                         for (size_t i = 0; i < streams_.size(); ++i) {
                             streams_[i].index = i;
                             streams_[i].start_time = timestamp_offset_ms_;
+                            std::vector<ppbox::avformat::FileBlock> payloads;
+                            pes_parses_[i].clear(payloads);
                         }
+                        timestamp_offset_ms_ /= (TsPacket::TIME_SCALE / 1000); // 现在转换精度
                         open_step_ = 3;
                         break;
                     }
@@ -176,7 +168,7 @@ namespace ppbox
             }
 
             if (ec) {
-                archive_.seekg(parse_offset_, std::ios_base::beg);
+                archive_.seekg(header_offset_, std::ios_base::beg);
                 assert(archive_);
                 return false;
             } else {
@@ -201,6 +193,14 @@ namespace ppbox
         error_code TsDemuxer::close(
             error_code & ec)
         {
+            for (size_t i = 0; i < streams_.size(); ++i) {
+                streams_[i].clear();
+                std::vector<ppbox::avformat::FileBlock> payloads;
+                pes_parses_[i].clear(payloads);
+            }
+            streams_.clear();
+            pes_parses_.clear();
+            stream_map_.clear();
             open_step_ = size_t(-1);
             return ec = error_code();
         }
@@ -224,7 +224,7 @@ namespace ppbox
             error_code & ec) const
         {
             ec = error::not_support;
-            return 0;
+            return ppbox::data::invalid_size;
         }
 
         size_t TsDemuxer::get_stream_count(
@@ -257,35 +257,32 @@ namespace ppbox
             if (!is_open(ec)) {
                 return ec;
             }
+            archive_.seekg(parse_offset_, std::ios::beg);
+            assert(archive_);
             if (get_pes(ec)) {
-                TsStream & stream = streams_[stream_map_[pes_pid_]];
+                TsStream & stream = streams_[pes_index_];
+                PesParse & parse = pes_parses_[pes_index_];
                 sample.itrack = stream.index;
                 sample.idesc = 0;
                 sample.flags = 0; // TODO: is_sync
-                if (stream.type == MEDIA_TYPE_VIDE && is_sync_frame()) {
+                if (stream.type == MEDIA_TYPE_VIDE && parse.is_sync_frame(archive_)) {
                     sample.flags |= Sample::sync;
                 }
-                if (pes_.PTS_DTS_flags == 3) {
-                    sample.dts = pes_.dts_bits.value(); // timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
-                    sample.cts_delta = (boost::uint32_t)(pes_.pts_bits.value() - pes_.dts_bits.value());
-                } else if (pes_.PTS_DTS_flags == 2) {
-                    pes_.dts_bits = pes_.pts_bits;
-                    sample.dts = pes_.pts_bits.value(); // timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
-                    sample.cts_delta = 0;
-                }
+                sample.dts = parse.dts(); // timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
+                sample.cts_delta = parse.cts_delta();
                 sample.duration = 0;
                 Demuxer::adjust_timestamp(sample);
-                sample.size = pes_size_;
-                sample.blocks.clear();
-                sample.blocks.swap(pes_payloads_);
+                sample.size = parse.size();
+                free_pes(sample.blocks);
                 current_time_ = sample.time;
-                free_pes();
             }
+            archive_.seekg(min_offset_, std::ios::beg);
+            assert(archive_);
             return ec;
         }
 
         boost::uint64_t TsDemuxer::get_cur_time(
-            error_code & ec)
+            error_code & ec) const
         {
             if (!is_open(ec)) {
                 return 0;
@@ -299,6 +296,7 @@ namespace ppbox
             if (!is_open(ec)) {
                 return 0;
             }
+            boost::uint64_t beg = archive_.tellg();
             archive_.seekg(parse_offset2_, std::ios::beg);
             assert(archive_);
             while (get_packet(pkt2_, ec)) {
@@ -306,7 +304,11 @@ namespace ppbox
                 archive_.seekg(parse_offset2_, std::ios::beg);
             }
             ec.clear();
-            return (boost::uint64_t)pkt2_.adaptation.program_clock_reference_base << 1;
+            archive_.seekg(beg, std::ios::beg);
+            boost::uint64_t pcr = time_pcr_.transfer(
+                ((boost::uint64_t)pkt2_.adaptation.program_clock_reference_base) << 1);
+            pcr /= (TsPacket::TIME_SCALE / 1000);
+            return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
         }
 
         bool TsDemuxer::get_packet(
@@ -350,109 +352,38 @@ namespace ppbox
                     skip_packet();
                     continue;
                 }
-                boost::uint64_t offset = archive_.tellg();
-                boost::uint32_t size = pkt_.payload_size();
-                if (pkt_.payload_uint_start_indicator == 1) {
-                    if (pes_size_ == 0) {
-                        archive_ >> pes_;
-                        assert(archive_);
-                        pes_pid_ = pkt_.pid;
-                        pes_size_ = pes_left_ = pes_.payload_length();
-                        boost::uint64_t offset1 = archive_.tellg();
-                        size -= (boost::uint32_t)(offset1 - offset);
-                        offset = offset1;
-                    } else {
-                        if (pes_left_ != 0) {
-                            LOG_WARN("[get_sample] payload size less than expect, size = " << pes_size_ << ", less = " << pes_left_);
-                            pes_size_ -= pes_left_;
-                            pes_left_ = 0;
-                        }
-                        parse_offset_ -= TsPacket::PACKET_SIZE;
-                        break;
-                    }
+                pes_index_ = stream_map_[pkt_.pid];
+                std::pair<bool, bool> res = 
+                    pes_parses_[pes_index_].add_packet(pkt_, archive_, ec);
+                if (res.second) {
+                    parse_offset_ -= TsPacket::PACKET_SIZE;
                 }
-                pes_payloads_.push_back(FileBlock(offset, size));
-                if (pes_left_ == 0) {
-                    pes_size_ += size;
-                    skip_packet();
-                    continue;
-                } else {
-                    if (pes_left_ > size) {
-                        pes_left_ -= size;
-                        skip_packet();
-                        continue;
-                    }
-                    if (pes_left_ < size) {
-                        LOG_WARN("[get_sample] payload size more than expect, size = " << pes_size_ << ", more = " << size - pes_left_);
-                        pes_size_ += size - pes_left_;
-                        pes_left_ = 0;
-                    }
+                if (res.first) {
+                    break;
                 }
-                break;
+                skip_packet();
             }
             return !ec;
         }
 
-        bool TsDemuxer::is_sync_frame()
-        {
-            using namespace ppbox::avformat;
-            using namespace framework::container;
-
-            if (pes_frame_offset_ > 0) {
-                boost::uint8_t data[5];
-                boost::uint32_t frame_offset = pes_frame_offset_;
-                boost::uint32_t read_size = 0;
-                for (size_t i = 0; i < pes_payloads_.size() && read_size; ++i) {
-                    if (frame_offset < pes_payloads_[i].size) {
-                        archive_.seekg(pes_payloads_[i].offset + frame_offset, std::ios::beg);
-                        assert(archive_);
-                        boost::uint32_t read_size2 = 5 - read_size;
-                        if (frame_offset + read_size2 > pes_payloads_[0].size) {
-                            read_size2 = pes_payloads_[i].size - frame_offset;
-                        }
-                        archive_ >> make_array(data + read_size, read_size2);
-                        read_size -= read_size2;
-                        frame_offset = 0;
-                    } else {
-                        frame_offset -= pes_payloads_[i].size;
-                    }
-                }
-                if (read_size == 0 
-                    && *(boost::uint32_t *)data == MAKE_FOURC_TYPE(0, 0, 0, 1)) {
-                        NaluHeader h(data[4]);
-                        if (h.nal_unit_type == 1) {
-                            return false;
-                        } else if (h.nal_unit_type == 5) {
-                            return true;
-                        }
-                }
-            }
-
-            std::vector<boost::uint8_t> data(pes_size_, 0);
-            boost::uint32_t read_offset = 0;
-            for (size_t i = 0; i < pes_payloads_.size(); ++i) {
-                archive_.seekg(pes_payloads_[i].offset, std::ios::beg);
-                assert(archive_);
-                archive_ >> make_array(&data[read_offset], pes_payloads_[i].size);
-                assert(archive_);
-                read_offset += pes_payloads_[i].size;
-            }
-            AvcNaluHelper helper;
-            boost::uint8_t frame_type = helper.get_frame_type_from_stream(data, &pes_frame_offset_);
-            if (frame_type == 1) {
-                return false;
-            } else if (frame_type == 5) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
         void TsDemuxer::free_pes()
         {
-            pes_pid_ = 0;
-            pes_size_ = pes_left_ = 0;
-            pes_payloads_.clear();
+            std::vector<ppbox::avformat::FileBlock> payloads;
+            free_pes(payloads);
+        }
+
+        void TsDemuxer::free_pes(
+            std::vector<ppbox::avformat::FileBlock> & payloads)
+        {
+            PesParse & parse = pes_parses_[pes_index_];
+            pes_index_ = size_t(-1);
+            parse.clear(payloads);
+            min_offset_ == parse_offset_;
+            for (size_t i = 0; i < pes_parses_.size(); ++i) {
+                if(min_offset_ > parse.min_offset()) {
+                    min_offset_ = parse.min_offset();
+                }
+            }
             skip_packet();
         }
 

@@ -7,7 +7,6 @@
 
 #include <ppbox/avformat/ts/PatPacket.h>
 #include <ppbox/avformat/ts/PmtPacket.h>
-#include <ppbox/avformat/ts/PesPacket.h>
 
 #include <framework/system/LimitNumber.h>
 
@@ -58,14 +57,14 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
-            virtual boost::uint64_t get_end_time(
+            virtual boost::system::error_code get_sample(
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             virtual boost::uint64_t get_cur_time(
-                boost::system::error_code & ec);
+                boost::system::error_code & ec) const;
 
-            virtual boost::system::error_code get_sample(
-                Sample & sample, 
+            virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
 
         private:
@@ -82,9 +81,10 @@ namespace ppbox
             bool get_pes(
                 boost::system::error_code & ec);
 
-            bool is_sync_frame();
-
             void free_pes();
+
+            void free_pes(
+                std::vector<ppbox::avformat::FileBlock> & payloads);
 
         public:
             ppbox::avformat::TsIArchive archive_;
@@ -99,15 +99,14 @@ namespace ppbox
             boost::uint64_t parse_offset_;
             ppbox::avformat::TsPacket pkt_;
 
-            ppbox::avformat::PesPacket pes_;
-            boost::uint32_t pes_pid_;
-            std::vector<ppbox::avformat::FileBlock> pes_payloads_;
-            boost::uint32_t pes_size_;
-            boost::uint32_t pes_left_;
-            boost::uint32_t pes_frame_offset_;
+            struct PesParse;
+            std::vector<PesParse> pes_parses_;
+            size_t pes_index_;
+            boost::uint64_t min_offset_;
 
-            boost::uint64_t parse_offset2_;
-            ppbox::avformat::TsPacket pkt2_;
+            mutable boost::uint64_t parse_offset2_;
+            mutable ppbox::avformat::TsPacket pkt2_;
+            mutable framework::system::LimitNumber<33> time_pcr_;
 
             // for calc sample timestamp
             bool time_valid_;

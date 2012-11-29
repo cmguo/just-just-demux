@@ -34,8 +34,6 @@ namespace ppbox
 
             ~TsStream()
             {
-                if (codec)
-                    delete codec;
             }
 
         public:
@@ -58,6 +56,10 @@ namespace ppbox
                         {
                             AvcCodec * avc_codec = new AvcCodec(data, AvcCodec::from_es_tag());
                             avc_codec->config_helper().to_es_data(format_data);
+                            if (format_data.empty()) {
+                                delete avc_codec;
+                                return;
+                            }
                             codec = avc_codec;
                         }
                         break;
@@ -67,6 +69,14 @@ namespace ppbox
                 time_scale = TsPacket::TIME_SCALE;
                 ready = true;
             }
+
+            void clear()
+            {
+                if (codec) {
+                    delete codec;
+                    codec = NULL;
+                }
+           }
 
         private:
             void parse()
