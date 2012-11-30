@@ -5,6 +5,7 @@
 
 #include <ppbox/avformat/codec/avc/AvcCodec.h>
 #include <ppbox/avformat/codec/aac/AacCodec.h>
+#include <ppbox/avformat/codec/aac/AacConfig.h>
 
 namespace ppbox
 {
@@ -50,6 +51,9 @@ namespace ppbox
                             AacCodec * aac_codec = new AacCodec(data, AacCodec::from_adts_tag());
                             aac_codec->config_helper().to_data(format_data);
                             codec = aac_codec;
+                            audio_format.channel_count = aac_codec->config_helper().get_channel_count();
+                            audio_format.sample_size = 0;
+                            audio_format.sample_rate = aac_codec->config_helper().get_frequency();
                         }
                         break;
                     case TsStreamType::iso_13818_video:
@@ -61,7 +65,10 @@ namespace ppbox
                                 return;
                             }
                             codec = avc_codec;
-                        }
+                            video_format.width = 0;
+                            video_format.height = 0;
+                            video_format.frame_rate = 0;
+                       }
                         break;
                     default:
                         return;
@@ -92,7 +99,7 @@ namespace ppbox
                     case TsStreamType::iso_13818_7_audio:
                         type = MEDIA_TYPE_AUDI;
                         sub_type = AUDIO_TYPE_MP4A;
-                        format_type = audio_iso_mp4;
+                        format_type = audio_aac_adts;
                         break;
                     case TsStreamType::iso_13818_video:
                         type = MEDIA_TYPE_VIDE;

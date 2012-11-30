@@ -296,9 +296,17 @@ namespace ppbox
                 return 0;
             }
             boost::uint64_t beg = archive_.tellg();
+            archive_.seekg(0, std::ios::end);
+            assert(archive_);
+            boost::uint64_t end = archive_.tellg();
+            assert(end > TsPacket::PACKET_SIZE);
+            end = (end / TsPacket::PACKET_SIZE) * TsPacket::PACKET_SIZE;
+            if (parse_offset2_ + TsPacket::PACKET_SIZE * 20 < end) {
+                parse_offset2_ = end - TsPacket::PACKET_SIZE * 20;
+            }
             archive_.seekg(parse_offset2_, std::ios::beg);
             assert(archive_);
-            while (get_packet(pkt2_, ec)) {
+            while (parse_offset2_ <= end && get_packet(pkt2_, ec)) {
                 parse_offset2_ += TsPacket::PACKET_SIZE;
                 archive_.seekg(parse_offset2_, std::ios::beg);
             }
