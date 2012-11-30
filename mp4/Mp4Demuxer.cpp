@@ -292,7 +292,6 @@ namespace ppbox
             SampleListItem & ap4_sample = *sample_list_->first();
             ec = error_code();
             sample.itrack = ap4_sample.itrack;
-            sample.idesc = ap4_sample.GetDescriptionIndex();
             sample.flags = 0;
             if (ap4_sample.IsSync())
                 sample.flags |= Sample::sync;

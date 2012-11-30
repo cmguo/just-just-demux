@@ -284,7 +284,6 @@ namespace ppbox
                     streams_[(size_t)flv_tag_.Type].index < stream_map_.size());
                 FlvStream const & stream = streams_[(size_t)flv_tag_.Type];
                 sample.itrack = stream.index;
-                sample.idesc = 0;
                 sample.flags = 0;
                 if (flv_tag_.is_sync)
                     sample.flags |= Sample::sync;

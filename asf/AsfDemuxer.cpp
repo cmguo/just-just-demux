@@ -311,7 +311,6 @@ namespace ppbox
                     AsfStream & stream = streams_[object_parse_.payload.StreamNum];
                     stream.next_id = object_parse_.payload.MediaObjNum;
                     sample.itrack = stream.index;
-                    sample.idesc = 0;
                     sample.flags = 0;
                     if (object_parse_.payload.KeyFrameBit)
                         sample.flags |= Sample::sync;

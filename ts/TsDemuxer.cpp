@@ -263,7 +263,6 @@ namespace ppbox
                 TsStream & stream = streams_[pes_index_];
                 PesParse & parse = pes_parses_[pes_index_];
                 sample.itrack = stream.index;
-                sample.idesc = 0;
                 sample.flags = 0; // TODO: is_sync
                 if (stream.type == MEDIA_TYPE_VIDE && parse.is_sync_frame(archive_)) {
                     sample.flags |= Sample::sync;
