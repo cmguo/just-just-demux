@@ -9,8 +9,4 @@
 
 #include <ppbox/common/Version.h>
 
-#include <bento4/Version.h>
-
-#include <tinyxml/Version.h>
-
 #endif // _PPBOX_DEMUX_VERSION_H_
