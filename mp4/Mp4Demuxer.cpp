@@ -181,13 +181,20 @@ namespace ppbox
                 return ec;
             }
 
-            ec = error_code();
+            ec .clear();
             AP4_List<AP4_Track> & tracks = file->GetMovie()->GetTracks();
             for (AP4_List<AP4_Track>::Item * item = tracks.FirstItem(); item; item = item->GetNext()) {
                 Track * track = new Track(tracks_.size(), item->GetData(), head_size_, ec);
-                if (ec)
-                    break;
-                tracks_.push_back(track);
+                if (ec) {
+                    delete track;
+                    ec .clear();
+                } else {
+                    tracks_.push_back(track);
+                }
+            }
+
+            if (tracks_.empty()) {
+                ec = bad_file_format;
             }
 
             if (ec) {
@@ -241,7 +248,7 @@ namespace ppbox
                 return 0;
             } else {
                 ec = error_code();
-                return file_->GetMovie()->GetTracks().ItemCount();
+                return tracks_.size();
             }
         }
 
