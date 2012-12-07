@@ -11,11 +11,10 @@ using namespace ppbox::avformat;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
-using namespace framework::logger;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", framework::logger::Debug)
 
 #include "ppbox/demux/ts/PesParse.h"
 

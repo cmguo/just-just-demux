@@ -7,10 +7,9 @@
 #include <framework/system/LogicError.h>
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
-using namespace framework::logger;
 using namespace framework::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxStrategy", Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxStrategy", framework::logger::Debug);
 
 namespace ppbox
 {

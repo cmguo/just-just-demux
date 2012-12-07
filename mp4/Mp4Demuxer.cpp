@@ -16,13 +16,12 @@ using namespace util::buffers;
 #include <framework/timer/TimeCounter.h>
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
-using namespace framework::logger;
 
 using namespace boost::asio;
 
 #include <fstream>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", framework::logger::Debug)
 
 namespace ppbox
 {

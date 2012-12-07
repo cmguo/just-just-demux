@@ -9,11 +9,10 @@ using namespace ppbox::avformat;
 #include <framework/logger/StreamRecord.h>
 #include <framework/system/BytesOrder.h>
 #include <framework/timer/TimeCounter.h>
-using namespace framework::logger;
 using namespace framework::system;
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", framework::logger::Debug)
 
 #include <iostream>
 

@@ -99,7 +99,7 @@ namespace ppbox
             boost::uint64_t parse_offset_;
             ppbox::avformat::TsPacket pkt_;
 
-            struct PesParse;
+            class PesParse;
             std::vector<PesParse> pes_parses_;
             size_t pes_index_;
             boost::uint64_t min_offset_;
