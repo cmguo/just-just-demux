@@ -11,8 +11,10 @@
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 using namespace ppbox::demux;
 
-#include "ppbox/data/base/MediaBase.h"
-#include "ppbox/data/base/SourceBase.h"
+#include <ppbox/data/base/MediaBase.h>
+#include <ppbox/data/base/SourceBase.h>
+
+#include <ppbox/common/UrlHelper.h>
 
 #include <framework/timer/Timer.h>
 #include <framework/logger/Logger.h>
@@ -149,12 +151,13 @@ namespace ppbox
 
         DemuxerBase * DemuxModule::open(
             framework::string::Url const & play_link, 
+            framework::string::Url const & config, 
             size_t & close_token, 
             error_code & ec)
         {
             DemuxerBase * demuxer = NULL;
             SyncResponse resp(ec, demuxer, cond_, mutex_);
-            DemuxInfo * info = create(play_link, boost::ref(resp), ec);
+            DemuxInfo * info = create(play_link, config, boost::ref(resp), ec);
             close_token = info->id;
             boost::mutex::scoped_lock lock(mutex_);
             demuxers_.push_back(info);
@@ -167,11 +170,12 @@ namespace ppbox
 
         void DemuxModule::async_open(
             framework::string::Url const & play_link, 
+            framework::string::Url const & config, 
             size_t & close_token, 
             open_response_type const & resp)
         {
             error_code ec;
-            DemuxInfo * info = create(play_link, resp, ec);
+            DemuxInfo * info = create(play_link, config, resp, ec);
             close_token = info->id;
             boost::mutex::scoped_lock lock(mutex_);
             demuxers_.push_back(info);
@@ -200,6 +204,7 @@ namespace ppbox
 
         DemuxModule::DemuxInfo * DemuxModule::create(
             framework::string::Url const & play_link, 
+            framework::string::Url const & config, 
             open_response_type const & resp, 
             error_code & ec)
         {
@@ -216,6 +221,7 @@ namespace ppbox
                     } else {
                         demuxer = new SingleDemuxer(io_svc(), *media);
                     }
+                    ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
                 }
             }
             DemuxInfo * info = new DemuxInfo;

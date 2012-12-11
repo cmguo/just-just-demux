@@ -44,11 +44,13 @@ namespace ppbox
         public:
             DemuxerBase * open(
                 framework::string::Url const & play_link, 
+                framework::string::Url const & config, 
                 size_t & close_token, 
                 boost::system::error_code & ec);
 
             void async_open(
                 framework::string::Url const & play_link, 
+                framework::string::Url const & config, 
                 size_t & close_token, 
                 open_response_type const & resp);
 
@@ -65,6 +67,7 @@ namespace ppbox
         private:
             DemuxInfo * create(
                 framework::string::Url const & play_link, 
+                framework::string::Url const & config, 
                 open_response_type const & resp, 
                 boost::system::error_code & ec);
 

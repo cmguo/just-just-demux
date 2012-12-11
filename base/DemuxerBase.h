@@ -5,6 +5,8 @@
 
 #include "ppbox/demux/base/DemuxBase.h"
 
+#include <framework/configure/Config.h>
+
 namespace ppbox
 {
     namespace demux
@@ -88,6 +90,14 @@ namespace ppbox
             {
                 return io_svc_;
             };
+
+            framework::configure::Config & get_config()
+            {
+                return config_;
+            };
+
+        protected:
+            framework::configure::Config config_;
 
         private:
             boost::asio::io_service & io_svc_;
