@@ -96,6 +96,7 @@ namespace ppbox
             size_t open_step_;
             ppbox::avformat::MkvSegmentInfo file_prop_;
             std::vector<MkvStream> streams_;
+            std::vector<size_t> stream_map_; // Map index to FlvStream
             boost::uint64_t header_offset_;
             MkvParse object_parse_; 
 

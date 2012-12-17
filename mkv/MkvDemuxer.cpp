@@ -46,7 +46,7 @@ namespace ppbox
         bool MkvDemuxer::is_open(
             error_code & ec)
         {
-            if (open_step_ == 1) {
+            if (open_step_ == 2) {
                 ec = error_code();
                 return true;
             }
@@ -56,49 +56,69 @@ namespace ppbox
                 return false;
             }
 
-            std::basic_istream<boost::uint8_t> is(archive_.rdbuf());
-            boost::uint64_t head_size = mkv_head_size(is, ec);
+            if (open_step_ == 0) {
+                std::basic_istream<boost::uint8_t> is(archive_.rdbuf());
+                boost::uint64_t head_size = mkv_head_size(is, ec);
 
-            if (ec) {
-                return false;
-            }
-
-            assert(archive_);
-            archive_.seekg(0, std::ios_base::beg);
-            assert(archive_);
-
-            EBML_ElementIArchive eia(archive_, head_size);
-            MkvFile file;
-            MkvSegment segment;
-
-            eia.skip(MkvCluster::StaticId);
-            eia >> file >> segment;
-
-            if (archive_) {
-                file_prop_ = segment.SegmentInfo;
-                for (size_t i = 0; i < segment.Tracks.Tracks.size(); ++i) {
-                    MkvTrackEntry const & track = segment.Tracks.Tracks[i];
-                    MkvStream stream(track);
-                    stream.index = streams_.size();
-                    stream.time_scale = (boost::uint32_t)(1000000000 / file_prop_.Time_Code_Scale.value_or(1));
-                    stream.start_time = 0;
-                    streams_.push_back(stream);
+                if (ec) {
+                    return false;
                 }
-                object_parse_.set_offset(header_offset_ = eia.skip_elements().front().offset);
-                open_step_ = 1;
-                on_open();
-                return true;
-            } else {
-                ec = bad_file_format;
+
+                assert(archive_);
                 archive_.seekg(0, std::ios_base::beg);
-                return false;
+                assert(archive_);
+
+                EBML_ElementIArchive eia(archive_, head_size);
+                MkvFile file;
+                MkvSegment segment;
+
+                eia.skip(MkvCluster::StaticId);
+                eia >> file >> segment;
+
+                if (archive_) {
+                    file_prop_ = segment.SegmentInfo;
+                    file_prop_.Time_Code_Scale = (boost::uint32_t)(1000000000 / file_prop_.Time_Code_Scale.value_or(1000000));
+                    for (size_t i = 0; i < segment.Tracks.Tracks.size(); ++i) {
+                        MkvTrackEntry const & track = segment.Tracks.Tracks[i];
+                        MkvStream stream(track);
+                        stream.index = stream_map_.size();
+                        stream.time_scale = (boost::uint32_t)file_prop_.Time_Code_Scale.value();
+                        stream.start_time = 0;
+                        if (streams_.size() <= track.TrackNumber.value()) {
+                            streams_.resize(track.TrackNumber.value() + 1);
+                        }
+                        streams_[track.TrackNumber.value()] = stream;
+                        stream_map_.push_back(track.TrackNumber.value());
+                    }
+                    header_offset_ = eia.skip_elements().front().offset;
+                    object_parse_.set_offset(header_offset_);
+                    open_step_ = 1;
+                } else {
+                    ec = bad_file_format;
+                    archive_.seekg(0, std::ios_base::beg);
+                }
             }
+
+            if (open_step_ == 1) {
+                if (object_parse_.next_frame(archive_, ec)) {
+                    boost::uint64_t start_time = object_parse_. cluster_time_code();
+                    for (size_t i = 0; i < streams_.size(); ++i) {
+                        streams_[i].start_time = start_time;
+                    }
+                    object_parse_.set_offset(header_offset_);
+                    archive_.seekg(header_offset_, std::ios_base::beg);
+                    open_step_ = 2;
+                    on_open();
+                }
+            }
+
+            return open_step_ == 2;
         }
 
         bool MkvDemuxer::is_open(
             error_code & ec) const
         {
-            if (open_step_ == 1) {
+            if (open_step_ == 2) {
                 ec = error_code();
                 return true;
             } else {
@@ -133,15 +153,20 @@ namespace ppbox
         boost::uint64_t MkvDemuxer::get_duration(
             error_code & ec) const
         {
-            ec = error::not_support;
-            return ppbox::data::invalid_size;
+            if (!is_open(ec)) {
+                return ppbox::data::invalid_size;
+            }
+            if (file_prop_.Duration.empty())
+                return ppbox::data::invalid_size;
+            else
+                return (boost::uint64_t)file_prop_.Duration.value().as_int64() * 1000 / file_prop_.Time_Code_Scale.value();
         }
 
         size_t MkvDemuxer::get_stream_count(
             error_code & ec) const
         {
             if (is_open(ec))
-                return streams_.size();
+                return stream_map_.size();
             return 0;
         }
 
@@ -151,10 +176,10 @@ namespace ppbox
             error_code & ec) const
         {
             if (is_open(ec)) {
-                if (index >= streams_.size()) {
+                if (index >= stream_map_.size()) {
                     ec = framework::system::logic_error::out_of_range;
                 } else {
-                    info = streams_[index];
+                    info = streams_[stream_map_[index]];
                 }
             }
             return ec;
@@ -170,7 +195,12 @@ namespace ppbox
             if (!object_parse_.next_frame(archive_, ec)) {
                 return ec;
             }
-            sample.itrack = object_parse_.track();
+            if (object_parse_.track() >= streams_.size()) {
+                LOG_WARN("[get_sample] stream index out of range: " << object_parse_.track());
+                return get_sample(sample, ec);
+            }
+            MkvStream & stream = streams_[object_parse_.track()];
+            sample.itrack = stream.index;
             if (object_parse_.is_sync_frame())
                 sample.flags |= Sample::sync;
             sample.dts = object_parse_.dts();
@@ -179,6 +209,23 @@ namespace ppbox
             sample.size = object_parse_.size();
             sample.blocks.clear();
             sample.blocks.push_back(FileBlock(object_parse_.offset(), sample.size));
+            sample.data.clear();
+            for (size_t i = 0; i < stream.ContentEncodings.ContentEncodings.size(); ++i) {
+                MkvContentEncoding const & encoding = stream.ContentEncodings.ContentEncodings[i];
+                if (encoding.ContentEncodingType == 0) { // compression
+                    switch (encoding.ContentCompression.ContentCompAlgo.value()) {
+                        case 3: // header striping
+                            sample.size += encoding.ContentCompression.ContentCompSettings.value().size();
+                            sample.data.push_back(boost::asio::buffer(encoding.ContentCompression.ContentCompSettings.value()));
+                            break;
+                        default:
+                            LOG_WARN("[get_sample] unsupported compression algorithm: " << encoding.ContentCompression.ContentCompAlgo.value());
+                            break;
+                    }
+                } else {
+                    LOG_WARN("[get_sample] unsupported encryption");
+                }
+            }
             ec.clear();
             return ec;
         }
