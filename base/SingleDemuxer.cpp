@@ -325,6 +325,7 @@ namespace ppbox
             }
             assert(!seek_pending_);
 
+            sample.data.clear();
             CustomDemuxer::get_sample(sample, ec);
             if (ec == error::file_stream_error) {
                 ec = stream_->last_error();
@@ -337,7 +338,6 @@ namespace ppbox
             }
             if (!ec) {
                 play_on(sample.time);
-                sample.data.clear();
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     stream_->fetch(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {
