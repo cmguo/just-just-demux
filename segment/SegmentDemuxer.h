@@ -196,6 +196,7 @@ namespace ppbox
             std::vector<ppbox::avformat::StreamInfo> stream_infos_;
             TimestampHelper timestamp_helper_;
 
+            bool merge_;
             DemuxerInfo * read_demuxer_;
             DemuxerInfo * write_demuxer_;
             std::vector<DemuxerInfo *> demuxer_infos_;

@@ -35,6 +35,7 @@ namespace ppbox
             , source_(NULL)
             , buffer_(NULL)
             , strategy_(NULL)
+            , merge_(false)
             , read_demuxer_(NULL)
             , write_demuxer_(NULL)
             , max_demuxer_infos_(5)
@@ -197,6 +198,7 @@ namespace ppbox
                     media_.get_info(media_info_, ec);
                     if (!ec) {
                         // TODO:
+                        merge_ = (media_info_.flags & ppbox::data::MediaInfo::f_smoth);
                         timestamp_helper_.smoth(media_info_.flags & ppbox::data::MediaInfo::f_time_smoth);
                         buffer_->pause_stream();
                         reset(ec);
@@ -456,7 +458,7 @@ namespace ppbox
                 if (ec != error::file_stream_error && ec != error::no_more_sample) {
                     break;
                 }
-                if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
+                if (!merge_ && !buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                     LOG_DEBUG("[get_sample] finish segment " << buffer_->read_segment().index);
                     read_demuxer_->demuxer->demux_end();
                     boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
@@ -486,7 +488,7 @@ namespace ppbox
             if (!ec) {
                 play_on(sample.time);
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
-                    buffer_->fetch(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
+                    buffer_->fetch(sample.blocks[i].offset, sample.blocks[i].size, merge_, sample.data, ec);
                     if (ec) {
                         last_error(ec);
                         break;
@@ -512,8 +514,8 @@ namespace ppbox
             }
 
             boost::uint64_t time = 0;
-            if (read_demuxer_->demuxer) {
-                time = buffer_->read_segment().time_range.big_beg() + read_demuxer_->demuxer->get_cur_time(ec);
+            if (read_demuxer_) {
+                time = read_demuxer_->segment.time_range.big_beg() + read_demuxer_->demuxer->get_cur_time(ec);
                 if (ec) {
                     last_error(ec);
                     if (ec == error::file_stream_error) {
@@ -539,8 +541,8 @@ namespace ppbox
             }
 
             boost::uint64_t time = 0;
-            if (write_demuxer_->demuxer) {
-                while (write_demuxer_->segment != buffer_->write_segment()) {
+            if (write_demuxer_) {
+                while (!merge_ && write_demuxer_->segment != buffer_->write_segment()) {
                     if (buffer_->write_segment().valid()) {
                         SegmentPosition seg = write_demuxer_->segment;
                         seg.time_range.end = write_demuxer_->demuxer->get_duration(ec);
@@ -551,7 +553,7 @@ namespace ppbox
                         break;
                     }
                 }
-                time = buffer_->write_segment().time_range.big_beg() + write_demuxer_->demuxer->get_end_time(ec);
+                time = write_demuxer_->segment.time_range.big_beg() + write_demuxer_->demuxer->get_end_time(ec);
                 if (ec == error::file_stream_error) {
                     ec.clear();
                 }
@@ -603,7 +605,7 @@ namespace ppbox
                     }
                 }
             }
-            DemuxerInfo * info = new DemuxerInfo(*buffer_);
+            DemuxerInfo * info = new DemuxerInfo(*buffer_, merge_);
             info->segment = segment;
             buffer_->attach_stream(info->stream, is_read);
             info->demuxer = Demuxer::create(media_info_.format, get_io_service(), info->stream);
