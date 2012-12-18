@@ -34,8 +34,7 @@ namespace ppbox
             , pes_index_(size_t(-1))
             , min_offset_(0)
             , parse_offset2_(0)
-            , time_valid_(false)
-            , timestamp_offset_ms_(0)
+            , timestamp_offset_ms_(boost::uint64_t(-1))
             , current_time_(0)
         {
         }
@@ -49,7 +48,7 @@ namespace ppbox
         {
             open_step_ = 0;
             parse_offset_ = parse_offset2_ = header_offset_ = 0;
-            time_valid_ = false;
+            timestamp_offset_ms_ = boost::uint64_t(-1);
             is_open(ec);
             return ec;
         }
@@ -135,9 +134,8 @@ namespace ppbox
                         continue;
                     }
                     PesParse & parse = pes_parses_[pes_index_];
-                    if (!time_valid_) {
+                    if (timestamp_offset_ms_ > parse.dts()) {
                         timestamp_offset_ms_ = parse.dts(); // 先不转换精度 / (TsPacket::TIME_SCALE / 1000);
-                        time_valid_ = true;
                     }
                     std::vector<boost::uint8_t> data;
                     parse.get_data(data, archive_);

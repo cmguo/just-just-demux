@@ -109,7 +109,6 @@ namespace ppbox
             mutable framework::system::LimitNumber<33> time_pcr_;
 
             // for calc sample timestamp
-            bool time_valid_;
             boost::uint64_t timestamp_offset_ms_;
             boost::uint64_t current_time_;
         };
