@@ -264,7 +264,7 @@ namespace ppbox
                 if (stream.type == MEDIA_TYPE_VIDE && parse.is_sync_frame(archive_)) {
                     sample.flags |= Sample::sync;
                 }
-                sample.dts = parse.dts(); // timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);
+                sample.dts = time_dts_.transfer(parse.dts());
                 sample.cts_delta = parse.cts_delta();
                 sample.duration = 0;
                 Demuxer::adjust_timestamp(sample);
@@ -283,7 +283,10 @@ namespace ppbox
             if (!is_open(ec)) {
                 return 0;
             }
-            return current_time_;
+            boost::uint64_t pcr = time_pcr_.transfer(
+                ((boost::uint64_t)pkt_.adaptation.program_clock_reference_base) << 1);
+            pcr /= (TsPacket::TIME_SCALE / 1000);
+            return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
         }
 
         boost::uint64_t TsDemuxer::get_end_time(
@@ -309,7 +312,7 @@ namespace ppbox
             }
             ec.clear();
             archive_.seekg(beg, std::ios::beg);
-            boost::uint64_t pcr = time_pcr_.transfer(
+            boost::uint64_t pcr = time_pcr2_.transfer(
                 ((boost::uint64_t)pkt2_.adaptation.program_clock_reference_base) << 1);
             pcr /= (TsPacket::TIME_SCALE / 1000);
             return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
@@ -382,10 +385,11 @@ namespace ppbox
             PesParse & parse = pes_parses_[pes_index_];
             pes_index_ = size_t(-1);
             parse.clear(payloads);
-            min_offset_ == parse_offset_;
+            min_offset_ = parse_offset_;
             for (size_t i = 0; i < pes_parses_.size(); ++i) {
-                if(min_offset_ > parse.min_offset()) {
-                    min_offset_ = parse.min_offset();
+                boost::uint64_t min_offset = pes_parses_[i].min_offset();
+                if(min_offset_ > min_offset) {
+                    min_offset_ = min_offset;
                 }
             }
             skip_packet();

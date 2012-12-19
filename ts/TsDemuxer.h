@@ -98,15 +98,17 @@ namespace ppbox
 
             boost::uint64_t parse_offset_;
             ppbox::avformat::TsPacket pkt_;
+            mutable framework::system::LimitNumber<33> time_pcr_;
 
             class PesParse;
             std::vector<PesParse> pes_parses_;
             size_t pes_index_;
             boost::uint64_t min_offset_;
+            mutable framework::system::LimitNumber<33> time_dts_;
 
             mutable boost::uint64_t parse_offset2_;
             mutable ppbox::avformat::TsPacket pkt2_;
-            mutable framework::system::LimitNumber<33> time_pcr_;
+            mutable framework::system::LimitNumber<33> time_pcr2_;
 
             // for calc sample timestamp
             boost::uint64_t timestamp_offset_ms_;

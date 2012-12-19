@@ -45,6 +45,7 @@ namespace ppbox
 
                 switch (stream_type) {
                     case TsStreamType::iso_11172_audio:
+                    case TsStreamType::iso_13818_3_audio:
                         break;
                     case TsStreamType::iso_13818_7_audio:
                         {
@@ -71,7 +72,7 @@ namespace ppbox
                        }
                         break;
                     default:
-                        return;
+                        break;
                 }
                 time_scale = TsPacket::TIME_SCALE;
                 ready = true;
@@ -92,6 +93,7 @@ namespace ppbox
 
                 switch (stream_type) {
                     case TsStreamType::iso_11172_audio:
+                    case TsStreamType::iso_13818_3_audio:
                         type = MEDIA_TYPE_AUDI;
                         sub_type = AUDIO_TYPE_MP1A;
                         format_type = audio_iso_mp4;
@@ -107,6 +109,8 @@ namespace ppbox
                         format_type = video_avc_byte_stream;
                         break;
                     default:
+                        time_scale = TsPacket::TIME_SCALE;
+                        ready = true;
                         break;
                 }
             }
