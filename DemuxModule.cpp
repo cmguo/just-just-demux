@@ -316,7 +316,9 @@ namespace ppbox
             DemuxerBase * demuxer = info->demuxer;
             if (demuxer)
                 demuxer->close(ec);
-            return ec;
+            if (info->media)
+                info->media->close(ec);
+                return ec;
         }
 
         void DemuxModule::destory(
@@ -325,6 +327,8 @@ namespace ppbox
             DemuxerBase * demuxer = info->demuxer;
             if (demuxer)
                 delete demuxer;
+            if (info->media)
+                delete info->media;
             demuxers_.erase(
                 std::remove(demuxers_.begin(), demuxers_.end(), info), 
                 demuxers_.end());
