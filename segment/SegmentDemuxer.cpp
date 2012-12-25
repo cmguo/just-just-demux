@@ -199,6 +199,9 @@ namespace ppbox
                     if (!ec) {
                         // TODO:
                         merge_ = (media_info_.flags & ppbox::data::MediaInfo::f_smoth);
+                        if (merge_) {
+                            max_demuxer_infos_ = 1;
+                        }
                         timestamp_helper_.smoth(media_info_.flags & ppbox::data::MediaInfo::f_time_smoth);
                         buffer_->pause_stream();
                         reset(ec);
@@ -257,6 +260,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (&time != &seek_time_ && (!seek_pending_ || time != seek_time_)) {
+                LOG_DEBUG("[seek] begin, time: " << time);
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
                 if (!strategy_->time_seek(time, base, pos, ec) 
@@ -264,9 +268,13 @@ namespace ppbox
                         last_error(ec);
                         return ec;
                 }
+                if (write_demuxer_) {
+                    free_demuxer(write_demuxer_, false, ec);
+                    write_demuxer_ = NULL;
+                }
                 if (read_demuxer_) {
-                    free_demuxer(read_demuxer_, true, ec);
                     read_demuxer_->demuxer->demux_end();
+                    free_demuxer(read_demuxer_, true, ec);
                 }
                 timestamp_helper_.reset(pos.time_range.big_beg());
                 read_demuxer_ = alloc_demuxer(pos, true, ec);
@@ -285,6 +293,7 @@ namespace ppbox
                  */
                 if (!ec) {
                     time = read_demuxer_->segment.time_range.big_pos();
+                    LOG_DEBUG("[seek] ok, adjust time: " << time);
                     seek_pending_ = false;
                     boost::system::error_code ec1;
                     if (write_demuxer_)
@@ -314,8 +323,8 @@ namespace ppbox
                     pos.duration = pos.time_range.end = read_demuxer_->demuxer->get_duration(ec);
                     if (strategy_->time_seek(time, base, pos, ec) 
                         && buffer_->seek(base, pos, pos.head_size, ec)) {
-                            free_demuxer(read_demuxer_, true, ec);
                             read_demuxer_->demuxer->demux_end();
+                            free_demuxer(read_demuxer_, true, ec);
                             timestamp_helper_.reset(pos.time_range.big_beg());
                             read_demuxer_ = alloc_demuxer(pos, true, ec);
                             read_demuxer_->demuxer->demux_begin(timestamp_helper_);
@@ -476,7 +485,7 @@ namespace ppbox
                     }
                 } else {
                     ec = buffer_->last_error();
-                        assert(ec);
+                    assert(ec);
                     if (ec == ppbox::data::source_error::no_more_segment)
                         ec = error::no_more_sample;
                     if (!ec) {
@@ -577,7 +586,7 @@ namespace ppbox
             ec.clear();
             for (size_t i = 0; i < demuxer_infos_.size(); ++i) {
                 DemuxerInfo & info = *demuxer_infos_[i];
-                if (info.segment.is_same_segment(segment)) {
+                if ((merge_ && !is_read) || info.segment.is_same_segment(segment)) {
                     info.segment = segment;
                     info.attach();
                     if (info.nref == 1) {
