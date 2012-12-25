@@ -304,18 +304,23 @@ namespace ppbox
             if (parse_offset2_ + TsPacket::PACKET_SIZE * 20 < end) {
                 parse_offset2_ = end - TsPacket::PACKET_SIZE * 20;
             }
-            archive_.seekg(parse_offset2_, std::ios::beg);
-            assert(archive_);
-            while (parse_offset2_ <= end && get_packet(pkt2_, ec)) {
-                parse_offset2_ += TsPacket::PACKET_SIZE;
+            if (parse_offset2_ <= parse_offset_) {
+                archive_.seekg(beg, std::ios::beg);
+                return get_cur_time(ec);
+            } else {
                 archive_.seekg(parse_offset2_, std::ios::beg);
+                assert(archive_);
+                while (parse_offset2_ <= end && get_packet(pkt2_, ec)) {
+                    parse_offset2_ += TsPacket::PACKET_SIZE;
+                    archive_.seekg(parse_offset2_, std::ios::beg);
+                }
+                ec.clear();
+                archive_.seekg(beg, std::ios::beg);
+                boost::uint64_t pcr = time_pcr2_.transfer(
+                    ((boost::uint64_t)pkt2_.adaptation.program_clock_reference_base) << 1);
+                pcr /= (TsPacket::TIME_SCALE / 1000);
+                return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
             }
-            ec.clear();
-            archive_.seekg(beg, std::ios::beg);
-            boost::uint64_t pcr = time_pcr2_.transfer(
-                ((boost::uint64_t)pkt2_.adaptation.program_clock_reference_base) << 1);
-            pcr /= (TsPacket::TIME_SCALE / 1000);
-            return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
         }
 
         bool TsDemuxer::get_packet(
