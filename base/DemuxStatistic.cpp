@@ -3,10 +3,12 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
 #include "ppbox/demux/base/DemuxEvent.h"
+#include "ppbox/demux/base/Demuxer.h"
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 #include <framework/logger/Section.h>
+#include <framework/timer/Ticker.h>
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxStatistic", framework::logger::Debug);
 
@@ -15,29 +17,32 @@ namespace ppbox
     namespace demux
     {
 
-        DemuxStatistic::DemuxStatistic()
-            : state_(stopped)
-            , buffer_time_(0)
+        DemuxStatistic::DemuxStatistic(
+            DemuxerBase & demuxer)
+            : demuxer_(demuxer)
+            , state_(stopped)
             , need_seek_time_(false)
             , seek_position_(0)
             , play_position_(0)
             , block_type_(BlockType::init)
             , last_time_(0)
         {
+            ticker_ = new framework::timer::Ticker(1000,true);
             status_infos_.push_back(StatusInfo(stopped, play_position_));
         }
 
-        void DemuxStatistic::buf_time(
-            boost::uint64_t buffer_time)
+        void DemuxStatistic::update_stat()
         {
+            boost::system::error_code ec;
+            demuxer_.get_stream_status(*this, ec);
+
             if (state_ == buffering) {
-                LOG_DEBUG("[buf_time] buf_time: " << buffer_time << " ms");
+                LOG_DEBUG("[buf_time] buf_time: " << buf_time() << " ms");
             }
-            buffer_time_ = buffer_time;
 
             raise(BufferingEvent(*this));
         }
-
+        /*
         static char const * type_str[] = {
             "stopped", 
             "opening", 
@@ -46,7 +51,7 @@ namespace ppbox
             "playing", 
             "buffering"
         };
-
+        */
         void DemuxStatistic::change_status(
             boost::uint16_t new_state)
         {
@@ -114,6 +119,10 @@ namespace ppbox
         void DemuxStatistic::play_on(
             boost::uint64_t sample_time)
         {
+            if (ticker_->check()) {
+                update_stat();
+            }
+
             play_position_ = sample_time;
 
             if (state_ == playing)
@@ -131,6 +140,10 @@ namespace ppbox
 
         void DemuxStatistic::block_on()
         {
+            if (ticker_->check()) {
+                update_stat();
+            }
+
             if (state_ == buffering)
                 return;
             change_status(buffering);
@@ -144,7 +157,8 @@ namespace ppbox
             if (play_position_ == seek_time)
                 return;
 
-            buffer_time_ = 0;
+            time_range.pos = time_range.buf = seek_time;
+
             block_type_ = BlockType::seek;
             if (ok) {
                 change_status(BlockType::seek | playing);

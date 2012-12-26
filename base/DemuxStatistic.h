@@ -3,16 +3,20 @@
 #ifndef _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
 #define _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
 
+#include "ppbox/demux/base/DemuxBase.h"
+
 #include <framework/timer/TimeCounter.h>
 
 #include <util/event/Observable.h>
+
+namespace framework { namespace timer { class Ticker; } }
 
 namespace ppbox
 {
     namespace demux
     {
 
-        typedef boost::uint32_t time_type;
+        class DemuxerBase;
 
         struct BlockType
         {
@@ -48,7 +52,8 @@ namespace ppbox
         };
 
         class DemuxStatistic
-            : public util::event::Observable
+            : public StreamStatus
+            , public util::event::Observable
             , public framework::timer::TimeCounter
         {
         public:
@@ -63,7 +68,8 @@ namespace ppbox
             };
 
         protected:
-            DemuxStatistic();
+            DemuxStatistic(
+                DemuxerBase & demuxer);
 
         protected:
             void open_beg();
@@ -88,9 +94,6 @@ namespace ppbox
 
             void close();
 
-            void buf_time(
-                boost::uint64_t buffer_time);
-
         public:
             StatusEnum state() const
             {
@@ -99,7 +102,7 @@ namespace ppbox
 
             boost::uint64_t buf_time() const
             {
-                return buffer_time_;
+                return time_range.buf - time_range.pos;
             }
 
             boost::uint64_t play_position() const
@@ -126,9 +129,14 @@ namespace ppbox
             void change_status(
                 boost::uint16_t new_state);
 
+            void update_stat();
+
+        private:
+            DemuxerBase & demuxer_;
+            framework::timer::Ticker * ticker_;
+
         protected:
             StatusEnum state_;
-            boost::uint64_t buffer_time_;
             bool need_seek_time_;
             boost::uint64_t seek_position_;        // 拖动后的位置（时间毫秒）
             boost::uint64_t play_position_;        // 播放的位置（时间毫秒）

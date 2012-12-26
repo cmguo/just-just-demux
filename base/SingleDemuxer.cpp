@@ -31,6 +31,7 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             ppbox::data::MediaBase & media)
             : CustomDemuxer(*create_demuxer(io_svc, media))
+            , DemuxStatistic(*(DemuxerBase *)this)
             , media_(media)
             , seek_time_(0)
             , seek_pending_(false)
@@ -234,6 +235,9 @@ namespace ppbox
             } else {
                 seek_pending_ = false;
             }
+            if (&time != &seek_time_ && open_state_ == open_finished) {
+                DemuxStatistic::seek(!ec, time);
+            }
             return ec;
         }
 
@@ -319,7 +323,7 @@ namespace ppbox
             stream_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
-                    block_on();
+                    DemuxStatistic::block_on();
                 }
                 return ec;
             }
@@ -337,7 +341,7 @@ namespace ppbox
                 }
             }
             if (!ec) {
-                play_on(sample.time);
+                DemuxStatistic::play_on(sample.time);
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     stream_->fetch(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
                     if (ec) {

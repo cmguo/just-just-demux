@@ -31,6 +31,7 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             ppbox::data::SegmentMedia & media)
             : DemuxerBase(io_svc)
+            , DemuxStatistic(*(DemuxerBase *)this)
             , media_(media)
             , source_(NULL)
             , buffer_(NULL)
@@ -218,7 +219,7 @@ namespace ppbox
                             }
                         }
                         open_state_ = open_finished;
-                        open_end();
+                        DemuxStatistic::open_end();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block || (ec == error::file_stream_error 
                         && buffer_->last_error() == boost::asio::error::would_block)) {
@@ -333,13 +334,13 @@ namespace ppbox
                 }
                 break;
             }
-            if (&time != &seek_time_ && open_state_ == open_finished) {
-                DemuxStatistic::seek(!ec, time);
-            }
             seek_time_ = time; // 用户连续seek，以最后一次为准
             if (ec) {
                 seek_pending_ = true;
                 last_error(ec);
+            }
+            if (&time != &seek_time_ && open_state_ == open_finished) {
+                DemuxStatistic::seek(!ec, time);
             }
             buffer_->resume_stream();
             return ec;
@@ -456,7 +457,7 @@ namespace ppbox
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
-                    block_on();
+                    DemuxStatistic::block_on();
                 }
                 return ec;
             }
@@ -495,7 +496,7 @@ namespace ppbox
                 }
             }
             if (!ec) {
-                play_on(sample.time);
+                DemuxStatistic::play_on(sample.time);
                 for (size_t i = 0; i < sample.blocks.size(); ++i) {
                     buffer_->fetch(sample.blocks[i].offset, sample.blocks[i].size, merge_, sample.data, ec);
                     if (ec) {
@@ -518,6 +519,7 @@ namespace ppbox
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
+                    DemuxStatistic::block_on();
                     return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
                 }
             }
@@ -545,6 +547,7 @@ namespace ppbox
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
+                    DemuxStatistic::block_on();
                     return buffer_->write_segment().time_range.big_beg();
                 }
             }
