@@ -158,6 +158,7 @@ namespace ppbox
             error_code ec;
             source->set_non_block(true, ec);
             source_ = new ppbox::data::SingleSource(url_, *source);
+            source_->set_time_out(5000);
             stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
             ppbox::data::MediaBasicInfo info;
             media.get_basic_info(info, ec);

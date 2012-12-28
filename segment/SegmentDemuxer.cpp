@@ -53,6 +53,7 @@ namespace ppbox
             error_code ec;
             source->set_non_block(true, ec);
             source_ = new ppbox::data::SegmentSource(*strategy_, *source);
+            source_->set_time_out(5000);
             buffer_ = new ppbox::data::SegmentBuffer(*source_, 10 * 1024 * 1024, 10240);
         }
 
@@ -264,6 +265,7 @@ namespace ppbox
                 LOG_DEBUG("[seek] begin, time: " << time);
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
+                pos.byte_range.pos = 0; // 可能pos不是0
                 if (!strategy_->time_seek(time, base, pos, ec) 
                     || !buffer_->seek(base, pos, pos.time_range.pos == 0 ? ppbox::data::invalid_size : pos.head_size, ec)) {
                         last_error(ec);
