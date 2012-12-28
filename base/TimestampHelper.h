@@ -19,6 +19,7 @@ namespace ppbox
                 bool smoth = false)
                 : smoth_(smoth)
                 , smoth_begin_(false)
+                , max_delta_(500)
                 , time_offset_(0)
             {
             }
@@ -89,13 +90,29 @@ namespace ppbox
                 return smoth_;
             }
 
+            void max_delta(
+                boost::uint32_t v)
+            {
+                max_delta_ = v;
+            }
+
+            boost::uint32_t max_delta() const
+            {
+                return max_delta_;
+            }
+
+        public:
             // 调整时间戳
             void adjust(
                 ppbox::avformat::Sample & sample)
             {
                 assert(sample.itrack < dts_offset_.size());
                 sample.dts += dts_offset_[sample.itrack];
+                boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
+                if (time + max_delta_ < sample.time) {
+                    sample.flags |= sample.discontinuity;
+                }
                 sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
                 sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
             }
@@ -103,6 +120,7 @@ namespace ppbox
         protected:
             bool smoth_;
             bool smoth_begin_; // 是否已经有一次begin
+            boost::uint32_t max_delta_; // 最大帧间距离，毫秒
             boost::uint64_t time_offset_; // 毫秒
             std::vector<boost::uint64_t> dts_offset_;
             std::vector<framework::system::ScaleTransform> time_trans_; // dts -> time
