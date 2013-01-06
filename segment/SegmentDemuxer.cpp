@@ -14,6 +14,7 @@ using namespace ppbox::avformat;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
+#include <framework/configure/Config.h>
 #include <framework/timer/Ticker.h>
 
 #include <boost/thread/condition_variable.hpp>
@@ -33,9 +34,12 @@ namespace ppbox
             : DemuxerBase(io_svc)
             , DemuxStatistic(*(DemuxerBase *)this)
             , media_(media)
+            , strategy_(NULL)
             , source_(NULL)
             , buffer_(NULL)
-            , strategy_(NULL)
+            , source_time_out_(5000)
+            , buffer_capacity_(10 * 1024 * 1024)
+            , buffer_read_size_(10 * 1024)
             , merge_(false)
             , read_demuxer_(NULL)
             , write_demuxer_(NULL)
@@ -44,17 +48,15 @@ namespace ppbox
             , seek_pending_(false)
             , open_state_(not_open)
         {
+            config_.register_module("Source")
+                << CONFIG_PARAM_NAME_RDWR("time_out", source_time_out_);
+
+            config_.register_module("Buffer")
+                << CONFIG_PARAM_NAME_RDWR("capacity", buffer_capacity_)
+                << CONFIG_PARAM_NAME_RDWR("read_size", buffer_read_size_);
+
             ticker_ = new framework::timer::Ticker(1000);
             events_.reset(new EventQueue);
-
-            strategy_ = new DemuxStrategy(media);
-            ppbox::data::SourceBase * source = 
-                ppbox::data::SourceBase::create(io_svc, media);
-            error_code ec;
-            source->set_non_block(true, ec);
-            source_ = new ppbox::data::SegmentSource(*strategy_, *source);
-            source_->set_time_out(5000);
-            buffer_ = new ppbox::data::SegmentBuffer(*source_, 10 * 1024 * 1024, 10240);
         }
 
         SegmentDemuxer::~SegmentDemuxer()
@@ -70,6 +72,10 @@ namespace ppbox
                 ppbox::data::SourceBase::destroy(source);
                 delete source_;
                 source_ = NULL;
+            }
+            if (strategy_) {
+                delete strategy_;
+                strategy_ = NULL;
             }
             if (ticker_) {
                 delete ticker_;
@@ -190,6 +196,16 @@ namespace ppbox
 
             switch(open_state_) {
                 case not_open:
+                    {
+                    strategy_ = new DemuxStrategy(media_);
+                    ppbox::data::SourceBase * source = 
+                        ppbox::data::SourceBase::create(get_io_service(), media_);
+                    error_code ec;
+                    source->set_non_block(true, ec);
+                    source_ = new ppbox::data::SegmentSource(*strategy_, *source);
+                    source_->set_time_out(source_time_out_);
+                    buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
+                    }
                     open_state_ = media_open;
                     DemuxStatistic::open_beg();
                     media_.async_open(

@@ -188,10 +188,17 @@ namespace ppbox
 
         private:
             ppbox::data::SegmentMedia & media_;
+            DemuxStrategy * strategy_;
             ppbox::data::SegmentSource * source_;
             ppbox::data::SegmentBuffer * buffer_;
-            DemuxStrategy * strategy_;
 
+        private:
+            // config
+            boost::uint32_t source_time_out_; // 5 seconds
+            boost::uint32_t buffer_capacity_; // 10M
+            boost::uint32_t buffer_read_size_; // 10K
+
+        private:
             ppbox::data::MediaInfo media_info_;
             std::vector<ppbox::avformat::StreamInfo> stream_infos_;
             TimestampHelper timestamp_helper_;
