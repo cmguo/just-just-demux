@@ -12,7 +12,7 @@ using namespace ppbox::avformat;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.AsfDemuxer", framework::logger::Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.AsfDemuxer", framework::logger::Warn)
 
 namespace ppbox
 {

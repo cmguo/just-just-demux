@@ -14,7 +14,7 @@ using namespace ppbox::avformat;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", framework::logger::Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", framework::logger::Warn)
 
 #include "ppbox/demux/ts/PesParse.h"
 

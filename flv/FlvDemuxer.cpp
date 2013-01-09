@@ -12,7 +12,7 @@ using namespace ppbox::avformat;
 using namespace framework::system;
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", framework::logger::Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", framework::logger::Warn)
 
 #include <iostream>
 

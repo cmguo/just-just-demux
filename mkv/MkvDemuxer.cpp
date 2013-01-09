@@ -13,7 +13,7 @@ using namespace ppbox::avformat;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.MkvDemuxer", framework::logger::Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.MkvDemuxer", framework::logger::Warn)
 
 namespace ppbox
 {

@@ -21,7 +21,7 @@ using namespace boost::asio;
 
 #include <fstream>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", framework::logger::Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", framework::logger::Warn)
 
 namespace ppbox
 {
