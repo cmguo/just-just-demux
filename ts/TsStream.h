@@ -80,11 +80,9 @@ namespace ppbox
 
             void clear()
             {
-                if (codec) {
-                    delete codec;
-                    codec = NULL;
-                }
-           }
+                codec.reset();
+                ready = false;
+            }
 
         private:
             void parse()
