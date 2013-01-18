@@ -94,8 +94,9 @@ namespace ppbox
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 assert(archive_);
                 while (!get_tag(flv_tag_, ec)) {
-                    if (flv_tag_.Type == FlvTagType::META) {
-                        parse_metadata(flv_tag_);
+                    if (flv_tag_.Type == FlvTagType::META 
+                        && flv_tag_.DataTag.Name.String == "onMetaData") {
+                        metadata_.from_data(flv_tag_.DataTag.Value);
                     }
                     std::vector<boost::uint8_t> codec_data;
                     archive_.seekg(std::streamoff(flv_tag_.data_offset), std::ios_base::beg);
@@ -366,39 +367,6 @@ namespace ppbox
             } else {
                 archive_.clear();
                 return ec = error::file_stream_error;
-            }
-        }
-
-        void FlvDemuxer::parse_metadata(
-            FlvTag const & metadata_tag)
-        {
-            std::vector<FlvDataObjectProperty> const & variables = 
-                (metadata_tag.DataTag.Value.Type == AMFDataType::MIXEDARRAY)
-                ? metadata_tag.DataTag.Value.ECMAArray.Variables
-                : metadata_tag.DataTag.Value.Object.ObjectProperties;
-            for (size_t i = 0; i < variables.size(); ++i) {
-                FlvDataObjectProperty const & property = variables[i];
-                if (property.PropertyName.StringData == "datarate") {
-                    metadata_.datarate = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "width") {
-                    metadata_.width = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "height") {
-                    metadata_.height = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "framerate") {
-                    metadata_.framerate = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "audiosamplerate") {
-                    metadata_.audiosamplerate = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "audiosamplesize") {
-                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
-                }
-                if (property.PropertyName.StringData == "audiosamplesize") {
-                    metadata_.audiosamplesize = (boost::uint32_t)property.PropertyData.Double;
-                }
             }
         }
 

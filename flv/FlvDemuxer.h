@@ -68,9 +68,6 @@ namespace ppbox
             bool is_open(
                 boost::system::error_code & ec) const;
 
-            void parse_metadata(
-                ppbox::avformat::FlvTag const & metadata_tag);
-
             boost::system::error_code get_tag(
                 ppbox::avformat::FlvTag & flv_tag,
                 boost::system::error_code & ec);
@@ -79,7 +76,7 @@ namespace ppbox
             ppbox::avformat::FlvIArchive archive_;
 
             ppbox::avformat::FlvHeader flv_header_;
-            ppbox::avformat::FlvMetadata metadata_;
+            ppbox::avformat::FlvMetaData metadata_;
             std::vector<FlvStream> streams_;
             std::vector<size_t> stream_map_; // Map index to FlvStream
             ppbox::avformat::FlvTag flv_tag_;
