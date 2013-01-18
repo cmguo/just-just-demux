@@ -210,7 +210,7 @@ namespace ppbox
             if (is_open(ec)) {
                 ec.clear();
                 time = 0;
-                parse_offset_ = header_offset_;
+                parse_offset_ = min_offset_ = parse_offset2_ = header_offset_;
                 return header_offset_;
             } else {
                 return 0;
