@@ -66,9 +66,7 @@ namespace ppbox
                                 return;
                             }
                             codec = avc_codec;
-                            video_format.width = 0;
-                            video_format.height = 0;
-                            video_format.frame_rate = 0;
+                            avc_codec->config_helper().get_format(video_format);
                        }
                         break;
                     default:
