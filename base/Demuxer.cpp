@@ -152,6 +152,8 @@ namespace ppbox
         {
             boost::system::error_code ec;
             size_t n = get_stream_count(ec);
+            if (n == 0)
+                return;
             std::vector<boost::uint64_t> dts;
             for (size_t i = 0; i < n; ++i) {
                 StreamInfo info;

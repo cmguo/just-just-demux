@@ -44,7 +44,7 @@ namespace ppbox
                         offset = offset1;
                     } else {
                         if (left_ != 0) {
-                            LOG_WARN("[add_packet] payload size less than expect, size = " << size << ", less = " << left_);
+                            LOG_WARN("[add_packet] payload size less than expect, size = " << size_ << ", less = " << left_);
                             size_ -= left_;
                             left_ = 0;
                         }

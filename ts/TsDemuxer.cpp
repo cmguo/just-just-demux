@@ -211,6 +211,10 @@ namespace ppbox
                 ec.clear();
                 time = 0;
                 parse_offset_ = min_offset_ = parse_offset2_ = header_offset_;
+                std::vector<ppbox::avformat::FileBlock> payloads;
+                for (size_t i = 0; i < pes_parses_.size(); ++i) {
+                    pes_parses_[i].clear(payloads);
+                }
                 return header_offset_;
             } else {
                 return 0;

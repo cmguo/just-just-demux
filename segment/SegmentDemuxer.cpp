@@ -317,7 +317,7 @@ namespace ppbox
                     boost::system::error_code ec1;
                     if (write_demuxer_)
                         free_demuxer(write_demuxer_, false, ec1);
-                    write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
+                    write_demuxer_ = alloc_demuxer(merge_ ? buffer_->read_segment() : buffer_->write_segment(), false, ec1);
                 } else if (ec == error::file_stream_error) {
                     if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
@@ -496,7 +496,7 @@ namespace ppbox
                         read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
                         read_demuxer_->demuxer->demux_begin(timestamp_helper_);
                         if (!ec) { // 已经打开，需要回滚到开始位置
-                            read_demuxer_->demuxer->seek(seek_time_, ec);
+                            read_demuxer_->demuxer->reset(ec);
                         }
                         continue;
                     } else {
