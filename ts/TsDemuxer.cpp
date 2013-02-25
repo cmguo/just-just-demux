@@ -158,6 +158,7 @@ namespace ppbox
                             pes_parses_[i].clear(payloads);
                         }
                         timestamp_offset_ms_ /= (TsPacket::TIME_SCALE / 1000); // 现在转换精度
+                        time_helper().max_delta(1000);
                         open_step_ = 3;
                         break;
                     }

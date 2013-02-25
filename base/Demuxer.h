@@ -105,6 +105,11 @@ namespace ppbox
                 helper_->adjust(sample);
             }
 
+            TimestampHelper & time_helper()
+            {
+                return *helper_;
+            }
+
         private:
             streambuffer_t & buf_;
             TimestampHelper * helper_;
