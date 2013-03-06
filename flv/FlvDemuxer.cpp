@@ -69,7 +69,7 @@ namespace ppbox
                 assert(archive_);
                 archive_ >> flv_header_;
                 if (archive_) {
-                    streams_.resize((size_t)FlvTagType::META + 1);
+                    streams_.resize((size_t)FlvTagType::DATA + 1);
                     if (flv_header_.TypeFlagsAudio) {
                         streams_[(size_t)FlvTagType::AUDIO].index = stream_map_.size();
                         stream_map_.push_back((size_t)FlvTagType::AUDIO);
@@ -94,7 +94,7 @@ namespace ppbox
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 assert(archive_);
                 while (!get_tag(flv_tag_, ec)) {
-                    if (flv_tag_.Type == FlvTagType::META 
+                    if (flv_tag_.Type == FlvTagType::DATA 
                         && flv_tag_.DataTag.Name.String == "onMetaData") {
                         metadata_.from_data(flv_tag_.DataTag.Value);
                     }
@@ -294,7 +294,7 @@ namespace ppbox
                 sample.size = flv_tag_.DataSize;
                 sample.blocks.clear();
                 sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
-            } else if (flv_tag_.Type == FlvTagType::META) {
+            } else if (flv_tag_.Type == FlvTagType::DATA) {
                 LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
                 return get_sample(sample, ec);
             } else if (flv_tag_.Type == FlvTagType::AUDIO) {
