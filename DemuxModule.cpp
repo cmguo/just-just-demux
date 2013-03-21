@@ -4,7 +4,6 @@
 #include "ppbox/demux/DemuxModule.h"
 #include "ppbox/demux/Version.h"
 #include "ppbox/demux/basic/DemuxerTypes.h"
-#include "ppbox/demux/packet/DemuxerTypes.h"
 //#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/EmptyDemuxer.h"
 #include "ppbox/demux/base/DemuxerBase.h"
