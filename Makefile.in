@@ -24,7 +24,7 @@ PROJECT_SOURCE_SUB_DIRECTORYS	:=
 
 ## 指定搜索源码子目录的深度（默认为1）
 
-PROJECT_SOURCE_DEPTH   		:= 1
+PROJECT_SOURCE_DEPTH   		:= 2
 
 ## 指定头文件目录（该项目头文件的总目录，相对于头文件根目录ROOT_HEADER_DIRECTORY，默认为LOCAL_NAME）
 
