@@ -1,33 +1,36 @@
-// SingleDemuxer.h
+// PacketDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASE_SINGLE_DEMUXER_H_
-#define _PPBOX_DEMUX_BASE_SINGLE_DEMUXER_H_
+#ifndef _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_
+#define _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxError.h"
-#include "ppbox/demux/base/CustomDemuxer.h"
-#include "ppbox/demux/base/DemuxStatistic.h"
+#include "ppbox/demux/base/Demuxer.h"
+#include "ppbox/demux/packet/Filter.h"
 
-#include <ppbox/data/base/MediaBase.h>
+#include <ppbox/data/packet/PacketMedia.h>
+#include <ppbox/data/packet/PacketSource.h>
 
-#include <util/event/Event.h>
-
-#include <framework/timer/Ticker.h>
+#include <ppbox/common/ClassFactory.h>
 
 namespace ppbox
 {
     namespace data
     {
-        class SourceBase;
-        class SingleSource;
-        class SourceStream;
+        class PacketMedia;
+        class PacketBuffer;
     }
 
     namespace demux
     {
 
-        class SingleDemuxer
-            : public CustomDemuxer
-            , public DemuxStatistic
+        class PacketDemuxer
+            : public Demuxer
+            , public ppbox::common::ClassFactory<
+                PacketDemuxer, 
+                std::string, 
+                PacketDemuxer * (
+                    boost::asio::io_service &, 
+                    ppbox::data::PacketMedia &)
+                >
         {
         public:
             enum StateEnum
@@ -39,16 +42,13 @@ namespace ppbox
             };
 
         public:
-            SingleDemuxer(
+            PacketDemuxer(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::MediaBase & media);
+                ppbox::data::PacketMedia & media);
 
-            virtual ~SingleDemuxer();
+            virtual ~PacketDemuxer();
 
         public:
-            virtual boost::system::error_code open (
-                boost::system::error_code & ec);
-
             virtual void async_open(
                 open_response_type const & resp);
 
@@ -66,7 +66,18 @@ namespace ppbox
                 ppbox::data::MediaInfo & info,
                 boost::system::error_code & ec) const;
 
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec) const;
+
+            virtual boost::system::error_code get_stream_info(
+                size_t index, 
+                StreamInfo & info, 
+                boost::system::error_code & ec) const;
+
         public:
+            virtual boost::system::error_code reset(
+                boost::system::error_code & ec);
+
             virtual boost::system::error_code seek(
                 boost::uint64_t & time, 
                 boost::system::error_code & ec);
@@ -97,18 +108,30 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::data::MediaBase const & media() const
-            {
-                return media_;
-            }
+            ppbox::data::MediaBase const & media() const;
 
-            ppbox::data::SingleSource const & source() const
-            {
-                return *source_;
-            }
+            //ppbox::data::SingleSource const & source() const
+            //{
+            //    return *source_;
+            //}
 
         protected:
-            void tick_on();
+            void add_filter(
+                Filter * filter);
+
+            void get_sample2(
+                ppbox::avformat::Sample & sample, 
+                boost::system::error_code & ec);
+
+            bool peek_sample(
+                ppbox::avformat::Sample & sample, 
+                boost::system::error_code & ec);
+
+            void drop_sample();
+
+        protected:
+            virtual bool check_open(
+                boost::system::error_code & ec);
 
         private:
             DemuxerBase * create_demuxer(
@@ -124,17 +147,18 @@ namespace ppbox
             void response(
                 boost::system::error_code const & ec);
 
-            void update_stat();
-
-        private:
-            ppbox::data::MediaBase & media_;
-            ppbox::data::SingleSource * source_;
-            ppbox::data::SourceStream * stream_;
+        protected:
+            ppbox::data::PacketMedia & media_;
+            ppbox::data::PacketSource source_;
 
             framework::string::Url url_;
-            ppbox::data::MediaInfo media_info_;
+            MediaInfo media_info_;
+            std::vector<StreamInfo> stream_infos_;
+            std::deque<Sample> peek_samples_;
 
-            framework::timer::Ticker * ticker_;
+        private:
+            framework::container::List<Filter> filters_;
+
             boost::uint64_t seek_time_;
             bool seek_pending_;
 
@@ -145,4 +169,6 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASE_SINGLE_DEMUXER_H_
+#define PPBOX_REGISTER_PACKET_DEMUXER(k, c) PPBOX_REGISTER_CLASS(k, c)
+
+#endif // _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_

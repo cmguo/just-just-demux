@@ -3,12 +3,14 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/DemuxModule.h"
 #include "ppbox/demux/Version.h"
-#include "ppbox/demux/base/DemuxerTypes.h"
+#include "ppbox/demux/basic/DemuxerTypes.h"
+#include "ppbox/demux/packet/DemuxerTypes.h"
 //#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/EmptyDemuxer.h"
 #include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/base/SingleDemuxer.h"
+#include "ppbox/demux/single/SingleDemuxer.h"
 #include "ppbox/demux/segment/SegmentDemuxer.h"
+#include "ppbox/demux/packet/PacketDemuxer.h"
 using namespace ppbox::demux;
 
 #include <ppbox/data/base/MediaBase.h>
@@ -216,8 +218,10 @@ namespace ppbox
             } else {
                 ppbox::data::MediaBasicInfo info;
                 if (media->get_basic_info(info, ec)) {
-                    if (info.flags & ppbox::data::MediaInfo::f_segment) {
+                    if ((info.flags & info.f_extend) == info.f_segment) {
                         demuxer = new SegmentDemuxer(io_svc(), *(ppbox::data::SegmentMedia *)media);
+                    } else if ((info.flags & info.f_extend) == info.f_packet) {
+                        demuxer = PacketDemuxer::create(info.format, io_svc(), *(ppbox::data::PacketMedia *)media);
                     } else {
                         demuxer = new SingleDemuxer(io_svc(), *media);
                     }

@@ -10,7 +10,7 @@ namespace ppbox
 
         CustomDemuxer::CustomDemuxer(
             DemuxerBase & demuxer)
-            : DemuxerBase(demuxer.get_io_service())
+            : Demuxer(demuxer.get_io_service())
             , demuxer_(demuxer)
         {
         }

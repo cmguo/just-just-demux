@@ -17,7 +17,6 @@ using namespace ppbox::avformat;
 #include <framework/configure/Config.h>
 #include <framework/timer/Ticker.h>
 
-#include <boost/thread/condition_variable.hpp>
 #include <boost/bind.hpp>
 using namespace boost::system;
 
@@ -31,8 +30,7 @@ namespace ppbox
         SegmentDemuxer::SegmentDemuxer(
             boost::asio::io_service & io_svc, 
             ppbox::data::SegmentMedia & media)
-            : DemuxerBase(io_svc)
-            , DemuxStatistic(*(DemuxerBase *)this)
+            : Demuxer(io_svc)
             , media_(media)
             , strategy_(NULL)
             , source_(NULL)
@@ -55,7 +53,6 @@ namespace ppbox
                 << CONFIG_PARAM_NAME_RDWR("capacity", buffer_capacity_)
                 << CONFIG_PARAM_NAME_RDWR("read_size", buffer_read_size_);
 
-            ticker_ = new framework::timer::Ticker(1000);
             events_.reset(new EventQueue);
         }
 
@@ -68,8 +65,8 @@ namespace ppbox
                 buffer_ = NULL;
             }
             if (source_) {
-                ppbox::data::SourceBase * source = (ppbox::data::SourceBase *)&source_->source();
-                ppbox::data::SourceBase::destroy(source);
+                ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
+                ppbox::data::UrlSource::destroy(source);
                 delete source_;
                 source_ = NULL;
             }
@@ -77,50 +74,6 @@ namespace ppbox
                 delete strategy_;
                 strategy_ = NULL;
             }
-            if (ticker_) {
-                delete ticker_;
-                ticker_ = NULL;
-            }
-        }
-
-        struct SyncResponse
-        {
-            SyncResponse(
-                boost::system::error_code & ec)
-                : ec_(ec)
-                , returned_(false)
-            {
-            }
-
-            void operator()(
-                boost::system::error_code const & ec)
-            {
-                boost::mutex::scoped_lock lock(mutex_);
-                ec_ = ec;
-                returned_ = true;
-                cond_.notify_all();
-            }
-
-            void wait()
-            {
-                boost::mutex::scoped_lock lock(mutex_);
-                while (!returned_)
-                    cond_.wait(lock);
-            }
-
-            boost::system::error_code & ec_;
-            bool returned_;
-            boost::mutex mutex_;
-            boost::condition_variable cond_;
-        };
-
-        boost::system::error_code SegmentDemuxer::open(
-            boost::system::error_code & ec)
-        {
-            SyncResponse resp(ec);
-            async_open(boost::ref(resp));
-            resp.wait();
-            return ec;
         }
 
         void SegmentDemuxer::async_open(
@@ -198,8 +151,11 @@ namespace ppbox
                 case not_open:
                     {
                     strategy_ = new DemuxStrategy(media_);
-                    ppbox::data::SourceBase * source = 
-                        ppbox::data::SourceBase::create(get_io_service(), media_);
+                    ppbox::data::UrlSource * source = 
+                        ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol());
+                    if (source == NULL) {
+                        source = ppbox::data::UrlSource::create(media_.get_io_service(), media_.segment_protocol());
+                    }
                     error_code ec;
                     source->set_non_block(true, ec);
                     source_ = new ppbox::data::SegmentSource(*strategy_, *source);
@@ -638,7 +594,7 @@ namespace ppbox
             DemuxerInfo * info = new DemuxerInfo(*buffer_, merge_);
             info->segment = segment;
             buffer_->attach_stream(info->stream, is_read);
-            info->demuxer = Demuxer::create(media_info_.format, get_io_service(), info->stream);
+            info->demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), info->stream);
             info->demuxer->open(ec);
             demuxer_infos_.push_back(info);
             return info;

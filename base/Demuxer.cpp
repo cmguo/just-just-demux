@@ -7,6 +7,7 @@
 #include <framework/logger/StreamRecord.h>
 
 #include <boost/bind.hpp>
+#include <boost/thread/condition_variable.hpp>
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Demuxer", framework::logger::Debug);
 
@@ -16,16 +17,55 @@ namespace ppbox
     {
 
         Demuxer::Demuxer(
-            boost::asio::io_service & io_svc, 
-            streambuffer_t & buf)
+            boost::asio::io_service & io_svc)
             : DemuxerBase(io_svc)
-            , buf_(buf)
+            , DemuxStatistic((DemuxerBase &)*this)
             , helper_(&default_helper_)
         {
         }
 
         Demuxer::~Demuxer()
         {
+        }
+
+        struct SyncResponse
+        {
+            SyncResponse(
+                boost::system::error_code & ec)
+                : ec_(ec)
+                , returned_(false)
+            {
+            }
+
+            void operator()(
+                boost::system::error_code const & ec)
+            {
+                boost::mutex::scoped_lock lock(mutex_);
+                ec_ = ec;
+                returned_ = true;
+                cond_.notify_all();
+            }
+
+            void wait()
+            {
+                boost::mutex::scoped_lock lock(mutex_);
+                while (!returned_)
+                    cond_.wait(lock);
+            }
+
+            boost::system::error_code & ec_;
+            bool returned_;
+            boost::mutex mutex_;
+            boost::condition_variable cond_;
+        };
+
+        boost::system::error_code Demuxer::open(
+            boost::system::error_code & ec)
+        {
+            SyncResponse resp(ec);
+            async_open(boost::ref(resp));
+            resp.wait();
+            return ec;
         }
 
         void Demuxer::async_open(
@@ -42,11 +82,17 @@ namespace ppbox
             return ec = framework::system::logic_error::not_supported;
         }
 
+        boost::system::error_code Demuxer::close(
+            boost::system::error_code & ec)
+        {
+            return ec;
+        }
+
         boost::system::error_code Demuxer::get_media_info(
             MediaInfo & info, 
             boost::system::error_code & ec) const
         {
-            info.duration = get_duration(ec);
+            ec = framework::system::logic_error::not_supported;
             return ec;
         }
 
@@ -54,20 +100,8 @@ namespace ppbox
             StreamStatus & info, 
             boost::system::error_code & ec)
         {
-            using ppbox::data::invalid_size;
-
-            info.byte_range.beg = 0;
-            info.byte_range.end = invalid_size;
-            info.byte_range.pos = buf_.pubseekoff(0, std::ios::cur, std::ios::in);
-            info.byte_range.buf = buf_.pubseekoff(0, std::ios::end, std::ios::in);
-            buf_.pubseekoff(info.byte_range.pos, std::ios::beg, std::ios::in);
-
-            info.time_range.beg = 0;
-            info.time_range.end = get_duration(ec);
-            info.time_range.pos = get_cur_time(ec);
-            info.time_range.buf = get_end_time(ec);
-
-            return !ec;
+            ec = framework::system::logic_error::not_supported;
+            return false;
         }
 
         bool Demuxer::get_data_stat(
@@ -90,15 +124,7 @@ namespace ppbox
             boost::uint64_t & time, 
             boost::system::error_code & ec)
         {
-            boost::uint64_t delta  = 0;
-            boost::uint64_t offset = seek(time, delta, ec);
-            if (ec) {
-                return ec;
-            }
-            if (buf_.pubseekpos(offset) != std::streampos(offset)) {
-                ec = error::file_stream_error;
-                return ec;
-            }
+            ec = framework::system::logic_error::not_supported;
             return ec;
         }
 

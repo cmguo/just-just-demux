@@ -1,14 +1,14 @@
 // SingleDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/SingleDemuxer.h"
-#include "ppbox/demux/base/Demuxer.h"
+#include "ppbox/demux/single/SingleDemuxer.h"
+#include "ppbox/demux/basic/BasicDemuxer.h"
 
 #include <ppbox/data/base/MediaBase.h>
 #include <ppbox/data/base/SourceError.h>
-#include <ppbox/data/base/SourceBase.h>
-#include <ppbox/data/base/SingleSource.h>
-#include <ppbox/data/base/SourceStream.h>
+#include <ppbox/data/base/UrlSource.h>
+#include <ppbox/data/single/SingleSource.h>
+#include <ppbox/data/single/SourceStream.h>
 
 using namespace ppbox::avformat;
 
@@ -31,13 +31,11 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             ppbox::data::MediaBase & media)
             : CustomDemuxer(*create_demuxer(io_svc, media))
-            , DemuxStatistic(*(DemuxerBase *)this)
             , media_(media)
             , seek_time_(0)
             , seek_pending_(false)
             , open_state_(not_open)
         {
-            ticker_ = new framework::timer::Ticker(1000);
         }
 
         SingleDemuxer::~SingleDemuxer()
@@ -49,14 +47,10 @@ namespace ppbox
                 stream_ = NULL;
             }
             if (source_) {
-                ppbox::data::SourceBase * source = (ppbox::data::SourceBase *)&source_->source();
-                ppbox::data::SourceBase::destroy(source);
+                ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
+                ppbox::data::UrlSource::destroy(source);
                 delete source_;
                 source_ = NULL;
-            }
-            if (ticker_) {
-                delete ticker_;
-                ticker_ = NULL;
             }
         }
 
@@ -153,8 +147,8 @@ namespace ppbox
             boost::asio::io_service & io_svc, 
             ppbox::data::MediaBase & media)
         {
-            ppbox::data::SourceBase * source = 
-                ppbox::data::SourceBase::create(io_svc, media);
+            ppbox::data::UrlSource * source = 
+                ppbox::data::UrlSource::create(io_svc, media.get_protocol());
             error_code ec;
             source->set_non_block(true, ec);
             source_ = new ppbox::data::SingleSource(url_, *source);
@@ -162,7 +156,7 @@ namespace ppbox
             stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
             ppbox::data::MediaBasicInfo info;
             media.get_basic_info(info, ec);
-            Demuxer * demuxer = Demuxer::create(info.format, io_svc, *stream_);
+            BasicDemuxer * demuxer = BasicDemuxer::create(info.format, io_svc, *stream_);
             return demuxer;
         }
 

@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_BASE_CUSTOM_DEMUXER_H_
 #define _PPBOX_DEMUX_BASE_CUSTOM_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 
 namespace ppbox
 {
@@ -11,7 +11,7 @@ namespace ppbox
     {
 
         class CustomDemuxer
-            : public DemuxerBase
+            : public Demuxer
         {
         public:
             CustomDemuxer(

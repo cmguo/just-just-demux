@@ -4,7 +4,7 @@
 #define _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
 
 #include "ppbox/demux/base/DemuxError.h"
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "ppbox/demux/base/Demuxer.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
 #include "ppbox/demux/base/TimestampHelper.h"
 
@@ -31,8 +31,7 @@ namespace ppbox
         struct DemuxerInfo;
 
         class SegmentDemuxer
-            : public DemuxerBase
-            , public DemuxStatistic
+            : public Demuxer
         {
         public:
             enum StateEnum
@@ -51,9 +50,6 @@ namespace ppbox
             virtual ~SegmentDemuxer();
 
         public:
-            virtual boost::system::error_code open (
-                boost::system::error_code & ec);
-
             virtual void async_open(
                 open_response_type const & resp);
 
@@ -140,9 +136,6 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         protected:
-            void tick_on();
-
-        protected:
             typedef boost::function<
                 void(void)> event_func;
 
@@ -183,8 +176,6 @@ namespace ppbox
                 DemuxerInfo * info, 
                 bool is_read, 
                 boost::system::error_code & ec);
-
-            void update_stat();
 
         private:
             ppbox::data::SegmentMedia & media_;
