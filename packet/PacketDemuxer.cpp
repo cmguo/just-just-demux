@@ -164,6 +164,7 @@ namespace ppbox
         {
             if (is_open(ec)) {
                 media_.get_info(info, ec);
+                info.duration = media_info_.duration;
             }
             return ec;
         }
