@@ -38,7 +38,6 @@ namespace ppbox
             , file_(NULL)
             , bitrate_(0)
             , sample_list_(NULL)
-            , min_offset_(0)
         {
         }
 
@@ -296,7 +295,16 @@ namespace ppbox
             }
 
             SampleListItem & ap4_sample = *sample_list_->first();
-            ec = error_code();
+
+            is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
+            if (!is_) {
+                is_.clear();
+                assert(is_);
+                return ec = error::file_stream_error;
+            }
+
+            sample_list_->pop();
+            BasicDemuxer::begin_sample(sample);
             sample.itrack = ap4_sample.itrack;
             sample.flags = 0;
             if (ap4_sample.IsSync())
@@ -306,35 +314,16 @@ namespace ppbox
             sample.dts = ap4_sample.GetDts();
             sample.cts_delta = ap4_sample.GetCtsDelta();
             sample.duration = ap4_sample.GetDuration();
-            adjust_timestamp(sample);
-            //sample.us_delta = (boost::uint64_t)1000000*sample.cts_delta/tracks_[ap4_sample.itrack]->time_scale;
             sample.size = ap4_sample.GetSize();
-            sample.blocks.clear();
-            sample.blocks.push_back(FileBlock(ap4_sample.GetOffset(), ap4_sample.GetSize()));
+            BasicDemuxer::push_data(ap4_sample.GetOffset(), ap4_sample.GetSize());
+            BasicDemuxer::end_sample(sample);
 
-            min_offset_ = ap4_sample.GetOffset();
-#ifndef PPBOX_DEMUX_MP4_NO_TIME_ORDER
-            for (SampleListItem * sample1 = sample_list_->next(&ap4_sample); sample1; sample1 = sample_list_->next(sample1)) {
-                if (sample1->GetOffset() < min_offset_) {
-                    min_offset_ = sample1->GetOffset();
-                }
-            }
-#endif
-            is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
-            if (!is_) {
-                is_.clear();
-                assert(is_);
-                ec = error::file_stream_error;
-            } else {
-                sample_list_->pop();
-                Track * track = tracks_[ap4_sample.itrack];
-                if (AP4_SUCCEEDED(track->GetNextSample())) {
-                    sample_list_->push(&track->sample_);
-                }
+            Track * track = tracks_[ap4_sample.itrack];
+            if (AP4_SUCCEEDED(track->GetNextSample())) {
+                sample_list_->push(&track->sample_);
             }
 
-            is_.seekg(min_offset_, std::ios_base::beg);
-            assert(is_);
+            ec.clear();
 
             if (tc.elapse() >= 20) {
                 LOG_DEBUG("[get_sample] elapse: " << tc.elapse());
@@ -385,7 +374,6 @@ namespace ppbox
             if (seek_offset == 0) {
                 ec = framework::system::logic_error::out_of_range;
             } else {
-                min_offset_ = seek_offset;
                 time = seek_time;
                 ec = error_code();
             }
@@ -409,7 +397,6 @@ namespace ppbox
                         }
                     }
                 }
-                min_offset_ = min_offset;
                 ec = error_code();
             }
             return ec;

@@ -299,6 +299,18 @@ namespace ppbox
             return ec;
         }
 
+        bool PacketDemuxer::free_sample(
+            Sample & sample, 
+            boost::system::error_code & ec)
+        {
+            if (sample.memory) {
+                source_.putback(sample.memory);
+                sample.memory = NULL;
+            }
+            ec.clear();
+            return true;
+        }
+
         void PacketDemuxer::add_filter(
             Filter * filter)
         {

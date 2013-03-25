@@ -8,7 +8,7 @@
 #include <ppbox/data/base/MediaBase.h>
 #include <ppbox/data/base/SourceError.h>
 #include <ppbox/data/segment/SegmentSource.h>
-using ppbox::data::SegmentPosition;
+using namespace ppbox::data;
 
 using namespace ppbox::avformat;
 
@@ -191,6 +191,7 @@ namespace ppbox
                                 stream_infos_.push_back(info);
                             }
                         }
+                        buffer_->set_track_count(stream_count);
                         open_state_ = open_finished;
                         DemuxStatistic::open_end();
                         response(ec);
@@ -278,7 +279,7 @@ namespace ppbox
                     if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
                         read_demuxer_->demuxer->demux_end();
-                        buffer_->drop_all(duration, ec);
+                        buffer_->read_next(duration, ec);
                         free_demuxer(read_demuxer_, true, ec);
                         if (buffer_->read_segment().valid()) {
                             read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
@@ -427,7 +428,6 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            buffer_->drop(ec);
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -437,6 +437,10 @@ namespace ppbox
             }
             assert(!seek_pending_);
 
+            if (sample.memory) {
+                buffer_->putback(sample.memory);
+                sample.memory = NULL;
+            }
             sample.data.clear();
             while (read_demuxer_->demuxer->get_sample(sample, ec)) {
                 if (ec != error::file_stream_error && ec != error::no_more_sample) {
@@ -446,7 +450,7 @@ namespace ppbox
                     LOG_DEBUG("[get_sample] finish segment " << buffer_->read_segment().index);
                     read_demuxer_->demuxer->demux_end();
                     boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
-                    buffer_->drop_all(duration, ec);
+                    buffer_->read_next(duration, ec);
                     if (buffer_->read_segment().valid()) {
                         free_demuxer(read_demuxer_, true, ec);
                         read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
@@ -471,13 +475,13 @@ namespace ppbox
             }
             if (!ec) {
                 DemuxStatistic::play_on(sample.time);
-                for (size_t i = 0; i < sample.blocks.size(); ++i) {
-                    buffer_->fetch(sample.blocks[i].offset, sample.blocks[i].size, merge_, sample.data, ec);
-                    if (ec) {
-                        last_error(ec);
-                        break;
-                    }
-                }
+                sample.memory = buffer_->fetch(
+                    sample.itrack, 
+                    *(std::vector<DataBlock> *)sample.context, 
+                    merge_, 
+                    sample.data, 
+                    ec);
+                assert(!ec);
             } else {
                 if (ec == boost::asio::error::would_block) {
                     DemuxStatistic::block_on();
@@ -485,6 +489,18 @@ namespace ppbox
                 last_error(ec);
             }
             return ec;
+        }
+
+        bool SegmentDemuxer::free_sample(
+            Sample & sample, 
+            boost::system::error_code & ec)
+        {
+            if (sample.memory) {
+                buffer_->putback(sample.memory);
+                sample.memory = NULL;
+            }
+            ec.clear();
+            return true;
         }
 
         boost::uint64_t SegmentDemuxer::get_cur_time(

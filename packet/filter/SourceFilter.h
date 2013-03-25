@@ -31,14 +31,18 @@ namespace ppbox
                 Sample & sample,
                 boost::system::error_code & ec)
             {
-                sample.context = source_.fetch(sample.size, sample.data, ec);
+                sample.append(source_.fetch(sample.size, sample.data, ec));
                 sample.context = &source_;
                 return !ec;
             }
 
-            virtual void before_seek(
-                boost::uint64_t time)
+            virtual bool before_seek(
+                Sample & sample,
+                boost::system::error_code & ec)
             {
+                ec.clear();
+                source_.putback(sample.memory);
+                return true;
             }
 
         private:

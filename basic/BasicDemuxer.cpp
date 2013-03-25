@@ -79,5 +79,13 @@ namespace ppbox
             return ec;
         }
 
+        bool BasicDemuxer::free_sample(
+            Sample & sample, 
+            boost::system::error_code & ec)
+        {
+            ec.clear();
+            return true;
+        }
+
     } // namespace demux
 } // namespace ppbox

@@ -87,6 +87,10 @@ namespace ppbox
                 ppbox::avformat::Sample & sample, 
                 boost::system::error_code & ec);
 
+            virtual bool free_sample(
+                Sample & sample, 
+                boost::system::error_code & ec);
+
             virtual bool get_stream_status(
                 StreamStatus & info, 
                 boost::system::error_code & ec);

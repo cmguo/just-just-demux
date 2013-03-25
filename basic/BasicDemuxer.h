@@ -5,6 +5,8 @@
 
 #include "ppbox/demux/base/Demuxer.h"
 
+#include <ppbox/data/base/DataBlock.h>
+
 #include <ppbox/common/ClassFactory.h>
 
 namespace ppbox
@@ -50,6 +52,11 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         public:
+            virtual bool free_sample(
+                Sample & sample, 
+                boost::system::error_code & ec);
+
+        public:
             virtual boost::uint64_t get_duration(
                 boost::system::error_code & ec) const = 0;
 
@@ -65,8 +72,35 @@ namespace ppbox
                 boost::uint64_t & delta, // 要重复下载的数据量 
                 boost::system::error_code & ec) = 0;
 
+        protected:
+            void begin_sample(
+                Sample & sample)
+            {
+                datas_.clear();
+            }
+
+            void push_data(
+                boost::uint64_t off, 
+                boost::uint32_t size)
+            {
+                datas_.push_back(ppbox::data::DataBlock(off, size));
+            }
+
+            std::vector<ppbox::data::DataBlock> & datas()
+            {
+                return datas_;
+            }
+
+            void end_sample(
+                Sample & sample)
+            {
+                adjust_timestamp(sample);
+                sample.context = &datas_;
+            }
+
         private:
             streambuffer_t & buf_;
+            std::vector<ppbox::data::DataBlock> datas_;
         };
 
     } // namespace demux

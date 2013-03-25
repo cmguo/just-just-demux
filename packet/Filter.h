@@ -28,10 +28,11 @@ namespace ppbox
                 return prev()->get_sample(sample, ec);
             }
 
-            virtual void before_seek(
-                boost::uint64_t time)
+            virtual bool before_seek(
+                Sample & sample,
+                boost::system::error_code & ec)
             {
-                prev()->before_seek(time);
+                return prev()->before_seek(sample, ec);
             }
 
         protected:

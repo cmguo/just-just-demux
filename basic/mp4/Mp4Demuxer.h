@@ -105,7 +105,6 @@ namespace ppbox
             std::vector<Track *> tracks_;
             boost::uint64_t bitrate_;
             SampleList * sample_list_;
-            boost::uint64_t min_offset_;
             //const_pointer copy_from_;
         };
 

@@ -309,6 +309,7 @@ namespace ppbox
                 if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
                     AsfStream & stream = streams_[object_parse_.payload.StreamNum];
                     stream.next_id = object_parse_.payload.MediaObjNum;
+                    BasicDemuxer::begin_sample(sample);
                     sample.itrack = stream.index;
                     sample.flags = 0;
                     if (object_parse_.payload.KeyFrameBit)
@@ -316,16 +317,14 @@ namespace ppbox
                     if (is_discontinuity_)
                         sample.flags |= Sample::discontinuity;
                     boost::uint64_t timestamp = object_parse_.timestamp.transfer(object_parse_.payload.PresTime);
-                    sample.time = (boost::uint64_t)timestamp - stream.time_offset_ms;
-                    sample.ustime = (timestamp - stream.time_offset_ms) * 1000;
                     sample.dts = timestamp - stream.time_offset_ms;
                     sample.cts_delta = boost::uint32_t(-1);
                     sample.duration = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
-                    sample.blocks.clear();
                     for (size_t i = 0; i < object_payloads_.size(); ++i) {
-                        sample.blocks.push_back(FileBlock(object_payloads_[i].data_offset, object_payloads_[i].PayloadLength));
+                        BasicDemuxer::push_data(object_payloads_[i].data_offset, object_payloads_[i].PayloadLength);
                     }
+                    BasicDemuxer::end_sample(sample);
                     object_payloads_.clear();
                     is_discontinuity_ = false;
                     next_object_offset_ = 0;

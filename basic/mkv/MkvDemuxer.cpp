@@ -200,15 +200,14 @@ namespace ppbox
                 return get_sample(sample, ec);
             }
             MkvStream & stream = streams_[object_parse_.track()];
+            BasicDemuxer::begin_sample(sample);
             sample.itrack = stream.index;
             if (object_parse_.is_sync_frame())
                 sample.flags |= Sample::sync;
             sample.dts = object_parse_.dts();
             sample.cts_delta = 0;
-            BasicDemuxer::adjust_timestamp(sample);
             sample.size = object_parse_.size();
-            sample.blocks.clear();
-            sample.blocks.push_back(FileBlock(object_parse_.offset(), sample.size));
+            BasicDemuxer::push_data(object_parse_.offset(), sample.size);
             sample.data.clear();
             for (size_t i = 0; i < stream.ContentEncodings.ContentEncodings.size(); ++i) {
                 MkvContentEncoding const & encoding = stream.ContentEncodings.ContentEncodings[i];
@@ -226,6 +225,7 @@ namespace ppbox
                     LOG_WARN("[get_sample] unsupported encryption");
                 }
             }
+            BasicDemuxer::end_sample(sample);
             ec.clear();
             return ec;
         }

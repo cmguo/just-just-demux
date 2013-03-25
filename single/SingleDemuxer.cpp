@@ -193,6 +193,7 @@ namespace ppbox
                     stream_->pause_stream();
                     if (!ec && !seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
                         open_state_ = open_finished;
+                        stream_->set_track_count(get_stream_count(ec));
                         open_end();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block || (ec == error::file_stream_error 
@@ -337,13 +338,8 @@ namespace ppbox
             }
             if (!ec) {
                 DemuxStatistic::play_on(sample.time);
-                for (size_t i = 0; i < sample.blocks.size(); ++i) {
-                    stream_->fetch(sample.blocks[i].offset, sample.blocks[i].size, sample.data, ec);
-                    if (ec) {
-                        last_error(ec);
-                        break;
-                    }
-                }
+                sample.memory = stream_->fetch(sample.itrack, *(std::vector<ppbox::data::DataBlock> *)sample.context, sample.data, ec);
+                assert(!ec);
             } else {
                 if (ec == boost::asio::error::would_block) {
                     DemuxStatistic::block_on();
@@ -351,6 +347,18 @@ namespace ppbox
                 last_error(ec);
             }
             return ec;
+        }
+
+        bool SingleDemuxer::free_sample(
+            Sample & sample, 
+            boost::system::error_code & ec)
+        {
+            if (sample.memory) {
+                stream_->putback(sample.memory);
+                sample.memory = NULL;
+            }
+            ec.clear();
+            return true;
         }
 
     } // namespace demux

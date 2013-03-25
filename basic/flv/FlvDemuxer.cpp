@@ -283,6 +283,7 @@ namespace ppbox
                 assert(flv_tag_.Type < streams_.size() && 
                     streams_[(size_t)flv_tag_.Type].index < stream_map_.size());
                 FlvStream const & stream = streams_[(size_t)flv_tag_.Type];
+                BasicDemuxer::begin_sample(sample);
                 sample.itrack = stream.index;
                 sample.flags = 0;
                 if (flv_tag_.is_sync)
@@ -290,10 +291,9 @@ namespace ppbox
                 sample.dts = timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);;
                 sample.cts_delta = flv_tag_.cts_delta;
                 sample.duration = 0;
-                BasicDemuxer::adjust_timestamp(sample);
                 sample.size = flv_tag_.DataSize;
-                sample.blocks.clear();
-                sample.blocks.push_back(FileBlock(flv_tag_.data_offset, flv_tag_.DataSize));
+                BasicDemuxer::push_data(flv_tag_.data_offset, flv_tag_.DataSize);
+                BasicDemuxer::end_sample(sample);
             } else if (flv_tag_.Type == FlvTagType::DATA) {
                 LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
                 return get_sample(sample, ec);

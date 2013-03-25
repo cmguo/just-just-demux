@@ -84,7 +84,7 @@ namespace ppbox
             void free_pes();
 
             void free_pes(
-                std::vector<ppbox::avformat::FileBlock> & payloads);
+                std::vector<ppbox::data::DataBlock> & payloads);
 
         public:
             ppbox::avformat::TsIArchive archive_;
@@ -103,7 +103,6 @@ namespace ppbox
             class PesParse;
             std::vector<PesParse> pes_parses_;
             size_t pes_index_;
-            boost::uint64_t min_offset_;
             mutable framework::system::LimitNumber<33> time_dts_;
 
             mutable boost::uint64_t parse_offset2_;

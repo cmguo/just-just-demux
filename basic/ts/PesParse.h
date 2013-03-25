@@ -54,7 +54,7 @@ namespace ppbox
                     LOG_WARN("[add_packet] payload with no pes come first");
                     return std::make_pair(false, false);
                 }
-                payloads_.push_back(FileBlock(offset, size));
+                payloads_.push_back(ppbox::data::DataBlock(offset, size));
                 if (left_ == 0) {
                     size_ += size;
                     return std::make_pair(false, false);
@@ -78,10 +78,9 @@ namespace ppbox
             }
 
             void clear(
-                std::vector<ppbox::avformat::FileBlock> & payloads)
+                std::vector<ppbox::data::DataBlock> & payloads)
             {
                 payloads.swap(payloads_);
-                payloads_.clear();
                 size_ = left_ = 0;
             }
 
@@ -179,7 +178,7 @@ namespace ppbox
 
         private:
             ppbox::avformat::PesPacket pkt_;
-            std::vector<ppbox::avformat::FileBlock> payloads_;
+            std::vector<ppbox::data::DataBlock> payloads_;
             boost::uint32_t size_;
             boost::uint32_t left_;
             mutable boost::uint32_t frame_offset_[2];
