@@ -29,7 +29,7 @@ namespace ppbox
             ppbox::data::PacketMedia & media)
             : Demuxer(io_svc)
             , media_(media)
-            , source_(media)
+            , source_(NULL)
             , seek_time_(0)
             , seek_pending_(false)
             , open_state_(not_open)
@@ -39,13 +39,10 @@ namespace ppbox
         PacketDemuxer::~PacketDemuxer()
         {
             boost::system::error_code ec;
-            close(ec);
-            //if (source_) {
-            //    ppbox::data::SourceBase * source = (ppbox::data::SourceBase *)&source_->source();
-            //    ppbox::data::SourceBase::destroy(source);
-            //    delete source_;
-            //    source_ = NULL;
-            //}
+            if (source_) {
+                delete source_;
+                source_ = NULL;
+            }
         }
 
         void PacketDemuxer::async_open(
@@ -91,8 +88,10 @@ namespace ppbox
         boost::system::error_code PacketDemuxer::close(
             boost::system::error_code & ec)
         {
-            cancel(ec);
+            DemuxStatistic::close();
+            media_.close(ec);
             seek_time_ = 0;
+            seek_pending_ = false;
             open_state_ = not_open;
             return ec;
         }
@@ -117,19 +116,24 @@ namespace ppbox
                 case media_open:
                     open_state_ = demuxer_open;
                     media_.get_info(media_info_, ec);
+                    {
+                        ppbox::data::PacketFeature feature;
+                        media_.get_packet_feature(feature, ec);
+                        source_ = new ppbox::data::PacketSource(feature, media_.source());
+                    }
                     media_.source().set_non_block(true, ec);
-                    filters_.push_back(new SourceFilter(source_));
-                    source_.pause_stream();
+                    filters_.push_back(new SourceFilter(*source_));
+                    source_->pause_stream();
                 case demuxer_open:
-                    source_.pause_stream();
+                    source_->pause_stream();
                     if (!ec && check_open(ec)) { // 上面的reset可能已经有错误，所以判断ec
                         open_state_ = open_finished;
                         on_open();
                         open_end();
-                        source_.resume_stream();
+                        source_->resume_stream();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block) {
-                        source_.async_prepare(
+                        source_->async_prepare(
                             boost::bind(&PacketDemuxer::handle_async_open, this, _1));
                     } else {
                         open_state_ = open_finished;
@@ -245,7 +249,7 @@ namespace ppbox
         bool PacketDemuxer::fill_data(
             boost::system::error_code & ec)
         {
-            source_.prepare(ec);
+            source_->prepare(ec);
             return !ec;
         }
 
@@ -253,8 +257,20 @@ namespace ppbox
             StreamStatus & info, 
             boost::system::error_code & ec)
         {
+            using ppbox::data::invalid_size;
+
             if (is_open(ec)) {
-                //CustomDemuxer::get_stream_status(info, ec);
+                info.byte_range.beg = 0;
+                info.byte_range.end = invalid_size;
+                info.byte_range.pos = source_->in_position();
+                info.byte_range.buf = source_->out_position();
+
+                info.time_range.beg = 0;
+                info.time_range.end = media_info_.duration;
+                info.time_range.pos = get_cur_time(ec);
+                info.time_range.buf = get_end_time(ec);
+
+                info.buf_ec = source_->last_error();
                 return !ec;
             }
             return false;
@@ -265,7 +281,7 @@ namespace ppbox
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
-                //stat = *source_;
+                stat = *source_;
                 return true;
             }
             return false;
@@ -275,7 +291,7 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            source_.prepare_some(ec);
+            source_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
                     DemuxStatistic::block_on();
@@ -304,11 +320,31 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (sample.memory) {
-                source_.putback(sample.memory);
+                source_->putback(sample.memory);
                 sample.memory = NULL;
             }
             ec.clear();
             return true;
+        }
+
+        boost::uint64_t PacketDemuxer::get_cur_time(
+            boost::system::error_code & ec)
+        {
+            Sample sample;
+            if (!filters_.last()->get_next_sample(sample, ec)) {
+                sample.time = seek_time_;
+            }
+            return sample.time;
+        }
+
+        boost::uint64_t PacketDemuxer::get_end_time(
+            boost::system::error_code & ec)
+        {
+            Sample sample;
+            if (!filters_.last()->get_last_sample(sample, ec)) {
+                sample.time = seek_time_;
+            }
+            return sample.time;
         }
 
         void PacketDemuxer::add_filter(

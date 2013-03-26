@@ -57,8 +57,8 @@ namespace ppbox
                 if (TrackType == MkvTrackType::VIDEO) { 
                     type = MEDIA_TYPE_VIDE;
 
-                    video_format.width = Video.PixelWidth.value();
-                    video_format.height = Video.PixelHeight.value();
+                    video_format.width = (boost::uint32_t)Video.PixelWidth.value();
+                    video_format.height = (boost::uint32_t)Video.PixelHeight.value();
                     video_format.frame_rate = 0;
 
                     if (CodecID == "V_MPEG4/ISO/AVC") {
@@ -71,9 +71,9 @@ namespace ppbox
                 } else if (TrackType == MkvTrackType::AUDIO) {
                     type = MEDIA_TYPE_AUDI;
 
-                    audio_format.channel_count = Audio.Channels.value();
+                    audio_format.channel_count = (boost::uint32_t)Audio.Channels.value();
                     audio_format.sample_rate = (boost::uint32_t)(float)Audio.SamplingFrequency.value().as_int32();
-                    audio_format.sample_size = Audio.BitDepth.value();
+                    audio_format.sample_size = (boost::uint32_t)Audio.BitDepth.value();
 
                     if (CodecID == "A_AAC") {
                         format_type = StreamInfo::audio_iso_mp4;

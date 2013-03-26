@@ -59,7 +59,6 @@ namespace ppbox
         SegmentDemuxer::~SegmentDemuxer()
         {
             boost::system::error_code ec;
-            close(ec);
             if (buffer_) {
                 delete buffer_;
                 buffer_ = NULL;
@@ -119,9 +118,12 @@ namespace ppbox
         boost::system::error_code SegmentDemuxer::close(
             boost::system::error_code & ec)
         {
-            cancel(ec);
-            seek_time_ = 0;
+            DemuxStatistic::close();
 
+            media_.close(ec);
+
+            seek_time_ = 0;
+            seek_pending_ = false;
             read_demuxer_ = NULL;
             write_demuxer_ = NULL;
 

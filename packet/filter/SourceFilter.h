@@ -36,6 +36,24 @@ namespace ppbox
                 return !ec;
             }
 
+            virtual bool get_next_sample(
+                Sample & sample,
+                boost::system::error_code & ec)
+            {
+                source_.peek_next(sample.size, sample.data, ec);
+                sample.context = &source_;
+                return !ec;
+            }
+
+            virtual bool get_last_sample(
+                Sample & sample,
+                boost::system::error_code & ec)
+            {
+                source_.peek_last(sample.size, sample.data, ec);
+                sample.context = &source_;
+                return !ec;
+            }
+
             virtual bool before_seek(
                 Sample & sample,
                 boost::system::error_code & ec)

@@ -16,7 +16,7 @@ namespace ppbox
     namespace data
     {
         class PacketMedia;
-        class PacketBuffer;
+        class PacketSource;
     }
 
     namespace demux
@@ -120,6 +120,13 @@ namespace ppbox
             //}
 
         protected:
+            virtual boost::uint64_t get_cur_time(
+                boost::system::error_code & ec);
+
+            virtual boost::uint64_t get_end_time(
+                boost::system::error_code & ec);
+
+        protected:
             void add_filter(
                 Filter * filter);
 
@@ -153,7 +160,7 @@ namespace ppbox
 
         protected:
             ppbox::data::PacketMedia & media_;
-            ppbox::data::PacketSource source_;
+            ppbox::data::PacketSource * source_;
 
             framework::string::Url url_;
             MediaInfo media_info_;

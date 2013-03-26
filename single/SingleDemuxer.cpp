@@ -41,7 +41,6 @@ namespace ppbox
         SingleDemuxer::~SingleDemuxer()
         {
             boost::system::error_code ec;
-            close(ec);
             if (stream_) {
                 delete stream_;
                 stream_ = NULL;
@@ -52,46 +51,6 @@ namespace ppbox
                 delete source_;
                 source_ = NULL;
             }
-        }
-
-        struct SyncResponse
-        {
-            SyncResponse(
-                boost::system::error_code & ec)
-                : ec_(ec)
-                , returned_(false)
-            {
-            }
-
-            void operator()(
-                boost::system::error_code const & ec)
-            {
-                boost::mutex::scoped_lock lock(mutex_);
-                ec_ = ec;
-                returned_ = true;
-                cond_.notify_all();
-            }
-
-            void wait()
-            {
-                boost::mutex::scoped_lock lock(mutex_);
-                while (!returned_)
-                    cond_.wait(lock);
-            }
-
-            boost::system::error_code & ec_;
-            bool returned_;
-            boost::mutex mutex_;
-            boost::condition_variable cond_;
-        };
-
-        boost::system::error_code SingleDemuxer::open(
-            boost::system::error_code & ec)
-        {
-            SyncResponse resp(ec);
-            async_open(boost::ref(resp));
-            resp.wait();
-            return ec;
         }
 
         void SingleDemuxer::async_open(
@@ -137,7 +96,8 @@ namespace ppbox
         boost::system::error_code SingleDemuxer::close(
             boost::system::error_code & ec)
         {
-            cancel(ec);
+            DemuxStatistic::close();
+            media_.close(ec);
             seek_time_ = 0;
             open_state_ = not_open;
             return ec;
@@ -315,7 +275,6 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            stream_->drop(ec);
             stream_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
                 if (ec == boost::asio::error::would_block) {
@@ -324,6 +283,11 @@ namespace ppbox
                 return ec;
             }
             assert(!seek_pending_);
+
+            if (sample.memory) {
+                stream_->putback(sample.memory);
+                sample.memory = NULL;
+            }
 
             sample.data.clear();
             CustomDemuxer::get_sample(sample, ec);

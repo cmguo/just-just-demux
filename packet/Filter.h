@@ -28,6 +28,20 @@ namespace ppbox
                 return prev()->get_sample(sample, ec);
             }
 
+            virtual bool get_next_sample(
+                Sample & sample,
+                boost::system::error_code & ec)
+            {
+                return prev()->get_next_sample(sample, ec);
+            }
+
+            virtual bool get_last_sample(
+                Sample & sample,
+                boost::system::error_code & ec)
+            {
+                return prev()->get_last_sample(sample, ec);
+            }
+
             virtual bool before_seek(
                 Sample & sample,
                 boost::system::error_code & ec)

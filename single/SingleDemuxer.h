@@ -45,9 +45,6 @@ namespace ppbox
             virtual ~SingleDemuxer();
 
         public:
-            virtual boost::system::error_code open (
-                boost::system::error_code & ec);
-
             virtual void async_open(
                 open_response_type const & resp);
 

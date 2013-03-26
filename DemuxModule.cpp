@@ -319,9 +319,7 @@ namespace ppbox
             DemuxerBase * demuxer = info->demuxer;
             if (demuxer)
                 demuxer->close(ec);
-            if (info->media)
-                info->media->close(ec);
-                return ec;
+            return ec;
         }
 
         void DemuxModule::destory(
