@@ -296,7 +296,7 @@ namespace ppbox
 
             SampleListItem & ap4_sample = *sample_list_->first();
 
-            is_.seekg(ap4_sample.GetOffset() + sample.size, std::ios_base::beg);
+            is_.seekg(ap4_sample.GetOffset() + ap4_sample->GetSize(), std::ios_base::beg);
             if (!is_) {
                 is_.clear();
                 assert(is_);
