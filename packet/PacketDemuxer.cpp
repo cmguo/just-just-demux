@@ -300,6 +300,11 @@ namespace ppbox
             }
             assert(!seek_pending_);
 
+            if (sample.memory) {
+                source_->putback(sample.memory);
+                sample.memory = NULL;
+            }
+
             get_sample2(sample, ec);
 
             if (!ec) {
@@ -333,6 +338,8 @@ namespace ppbox
             Sample sample;
             if (!filters_.last()->get_next_sample(sample, ec)) {
                 sample.time = seek_time_;
+            } else {
+                time_helper().static_adjust(sample);
             }
             return sample.time;
         }
@@ -343,6 +350,8 @@ namespace ppbox
             Sample sample;
             if (!filters_.last()->get_last_sample(sample, ec)) {
                 sample.time = seek_time_;
+            } else {
+                time_helper().static_adjust(sample);
             }
             return sample.time;
         }
@@ -363,6 +372,7 @@ namespace ppbox
                     filters_.last()->get_sample(sample, ec);
                     if (ec || (sample.flags & sample.config) == 0)
                         break;
+                    free_sample(sample, ec);
                 }
             } else {
                 sample = peek_samples_.front();
@@ -389,6 +399,8 @@ namespace ppbox
 
         void PacketDemuxer::drop_sample()
         {
+            boost::system::error_code ec;
+            free_sample(peek_samples_.back(), ec);
             peek_samples_.pop_back();
         }
 

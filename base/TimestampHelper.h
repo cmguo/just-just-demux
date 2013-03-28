@@ -117,6 +117,20 @@ namespace ppbox
                 sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
             }
 
+            void static_adjust(
+                ppbox::avformat::Sample & sample) const
+            {
+                assert(sample.itrack < dts_offset_.size());
+                sample.dts += dts_offset_[sample.itrack];
+                boost::uint64_t time = time_trans_[sample.itrack].get();
+                sample.time = time_trans_[sample.itrack].static_transfer(sample.dts);
+                if (time + max_delta_ < sample.time) {
+                    sample.flags |= sample.discontinuity;
+                }
+                sample.ustime = ustime_trans_[sample.itrack].static_transfer(sample.dts);
+                sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].static_transfer(sample.cts_delta);
+            }
+
         protected:
             bool smoth_;
             bool smoth_begin_; // 是否已经有一次begin
