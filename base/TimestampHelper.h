@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_BASE_TIMESTAMP_H_
 #define _PPBOX_DEMUX_BASE_TIMESTAMP_H_
 
-#include <ppbox/avformat/Format.h>
+#include <ppbox/avformat/Sample.h>
 
 #include <framework/system/ScaleTransform.h>
 
