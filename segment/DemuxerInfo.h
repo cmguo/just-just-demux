@@ -20,10 +20,9 @@ namespace ppbox
             BasicDemuxer * demuxer;
 
             DemuxerInfo(
-                ppbox::data::SegmentBuffer & buffer, 
-                bool merge)
+                ppbox::data::SegmentBuffer & buffer)
                 : nref(1)
-                , stream(buffer, merge)
+                , stream(buffer, false)
                 , demuxer(NULL)
             {
             }

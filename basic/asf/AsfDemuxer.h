@@ -49,23 +49,21 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            virtual boost::system::error_code reset(
-                boost::system::error_code & ec);
-
-            virtual boost::uint64_t seek(
-                boost::uint64_t & time, 
-                boost::uint64_t & delta, 
-                boost::system::error_code & ec);
-
-        public:
             virtual boost::system::error_code get_sample(
                 Sample & sample, 
                 boost::system::error_code & ec);
 
+        protected:
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) const;
 
             virtual boost::uint64_t get_end_time(
+                boost::system::error_code & ec);
+
+        protected:
+            virtual boost::uint64_t seek(
+                std::vector<boost::uint64_t> & dts, 
+                boost::uint64_t & delta, 
                 boost::system::error_code & ec);
 
         private:
@@ -129,6 +127,7 @@ namespace ppbox
             std::vector<AsfStream> streams_;
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order
+            boost::uint64_t header_offset_;
             ParseStatus object_parse_; 
             std::vector<ppbox::avformat::ASF_PayloadHeader> object_payloads_;
             boost::uint64_t next_object_offset_; // not offset in file, just offset of this object

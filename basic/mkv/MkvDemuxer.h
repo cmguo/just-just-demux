@@ -48,20 +48,21 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            virtual boost::uint64_t seek(
-                boost::uint64_t & time, 
-                boost::uint64_t & delta, 
-                boost::system::error_code & ec);
-
-        public:
             virtual boost::system::error_code get_sample(
                 Sample & sample, 
                 boost::system::error_code & ec);
 
+        protected:
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) const;
 
             virtual boost::uint64_t get_end_time(
+                boost::system::error_code & ec);
+
+        protected:
+            virtual boost::uint64_t seek(
+                std::vector<boost::uint64_t> & dts, 
+                boost::uint64_t & delta, 
                 boost::system::error_code & ec);
 
         private:

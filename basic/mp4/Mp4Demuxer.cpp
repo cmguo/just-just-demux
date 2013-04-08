@@ -68,6 +68,9 @@ namespace ppbox
         error_code Mp4Demuxer::close(
             error_code & ec)
         {
+            if (open_step_ == 1) {
+                on_close();
+            }
             open_step_ = boost::uint64_t(-1);
             if (sample_list_) {
                 delete sample_list_;
@@ -104,6 +107,8 @@ namespace ppbox
                     if (!ec) {
                         open_step_ = 1;
                         on_open();
+                        reset2(ec);
+                        assert(!ec);
                     }
                 }
             }
@@ -234,7 +239,6 @@ namespace ppbox
             file_ = file;
 
             sample_list_ = new SampleList;
-            reset2(ec);
 
             return ec;
         }
@@ -320,6 +324,7 @@ namespace ppbox
 
             Track * track = tracks_[ap4_sample.itrack];
             if (AP4_SUCCEEDED(track->GetNextSample())) {
+                track->sample_.time = timestamp().const_adjust(ap4_sample.itrack, track->sample_.GetDts());
                 sample_list_->push(&track->sample_);
             }
 
@@ -333,48 +338,66 @@ namespace ppbox
         }
 
         boost::uint64_t Mp4Demuxer::seek(
-            boost::uint64_t & time, 
+            std::vector<boost::uint64_t> & dts, 
             boost::uint64_t & delta, 
             boost::system::error_code & ec)
         {
             if (!is_open(ec)) {
                 return boost::uint64_t(-1);
             }
-            if (time > get_duration(ec))
-            {
-                ec = framework::system::logic_error::out_of_range;
-                return 0;
+
+            for (size_t i = 0; i < tracks_.size(); ++i) {
+                if ((AP4_UI64)dts[i] > (*tracks_[i])->GetMediaDuration()) {
+                    ec = framework::system::logic_error::out_of_range;
+                    return 0;
+                }
             }
-            AP4_UI32 seek_time = (AP4_UI32)time + 1;
+
+            std::vector<boost::uint64_t> offset;
+            sample_list_->clear();
+            for (size_t i = 0; i < tracks_.size(); ++i) {
+                AP4_UI64 time = (AP4_UI64)dts[i];
+                AP4_Position off = 0;
+                if (AP4_SUCCEEDED(tracks_[i]->Seek(time, off))) {
+                    dts[i] = (boost::uint64_t)time;
+                    offset.push_back(off);
+                }
+            }
+
+            AP4_UI64 min_time = (AP4_UI64)-1;
             AP4_Position seek_offset = (AP4_Position)-1;
-            {
-                AP4_UI32 seek_time1 = (AP4_UI32)time;
-                AP4_Position seek_offset1 = 0;
-                size_t min_time_index  = 0;
-                sample_list_->clear();
-                for (size_t i = 0; i < tracks_.size(); ++i) {
-                    if (AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = (AP4_UI32)time, seek_offset1))) {
-                        if (seek_time1 < seek_time) {
-                            seek_time = seek_time1;
-                            seek_offset = seek_offset1;
-                            min_time_index = i;
-                        }
-                    }
+            size_t min_time_index  = 0;
+
+            for (size_t i = 0; i < tracks_.size(); ++i) {
+                AP4_UI64 time = AP4_ConvertTime(dts[i], (*tracks_[i])->GetMediaTimeScale(), 1000);
+                if (time < min_time) {
+                    min_time = time;
+                    seek_offset = offset[i];
+                    min_time_index = i;
                 }
-                for (size_t i = 0; i < tracks_.size(); ++i) {
-                    if (i == min_time_index || 
-                        AP4_SUCCEEDED(tracks_[i]->Seek(seek_time1 = seek_time, seek_offset1))) {
-                            sample_list_->push(&tracks_[i]->sample_);
-                            if (seek_offset1 < seek_offset) {
-                                seek_offset = seek_offset1;
-                            }
+            }
+
+            for (size_t i = 0; i < tracks_.size(); ++i) {
+                AP4_Position seek_offset1 = seek_offset;
+                if (i == min_time_index) {
+                    tracks_[i]->sample_.time = timestamp().const_adjust(i, tracks_[i]->sample_.GetDts());
+                    sample_list_->push(&tracks_[i]->sample_);
+                    continue;
+                }
+                AP4_UI64 time = dts[i] = AP4_ConvertTime(min_time, 1000, (*tracks_[i])->GetMediaTimeScale());
+                AP4_Position off = 0;
+                if (AP4_SUCCEEDED(tracks_[i]->Seek(time, off))) {
+                    tracks_[i]->sample_.time = timestamp().const_adjust(i, tracks_[i]->sample_.GetDts());
+                    sample_list_->push(&tracks_[i]->sample_);
+                    if (off < seek_offset) {
+                        seek_offset = off;
                     }
                 }
             }
+
             if (seek_offset == 0) {
                 ec = framework::system::logic_error::out_of_range;
             } else {
-                time = seek_time;
                 ec = error_code();
             }
             return seek_offset;
@@ -391,6 +414,7 @@ namespace ppbox
                 for (size_t i = 0; i < tracks_.size(); ++i) {
                     tracks_[i]->Rewind();
                     if (AP4_SUCCEEDED(tracks_[i]->GetNextSample())) {
+                        tracks_[i]->sample_.time = timestamp().const_adjust(i, tracks_[i]->sample_.GetDts());
                         sample_list_->push(&tracks_[i]->sample_);
                         if (tracks_[i]->sample_.GetOffset() < min_offset) {
                             min_offset = tracks_[i]->sample_.GetOffset();
@@ -409,45 +433,48 @@ namespace ppbox
                 return 0;
             }
             assert(is_);
-            size_t position = is_.tellg();
+            boost::uint64_t position = is_.tellg();
             is_.seekg(0, std::ios_base::end);
             assert(is_);
-            size_t offset = is_.tellg();
+            boost::uint64_t offset = is_.tellg();
             is_.seekg(position, std::ios_base::beg);
             assert(is_);
-            AP4_UI32 time = (AP4_UI32)get_duration(ec);
-            if (ec) {
-                return 0;
+
+
+            AP4_UI64 time_hint = 0;
+            if (bitrate_ != 0 && offset > head_size_) {
+                time_hint = (AP4_UI64)((offset - head_size_) * 8 * 1000 / bitrate_);
             }
 
-            AP4_UI32 time_hint = 0;
-            if (bitrate_ != 0 && offset > head_size_) {
-                time_hint = (AP4_UI32)((offset - head_size_) * 8 / bitrate_);
-            }
-            {
-                AP4_UI32 time1;
-                for (size_t i = 0; i < tracks_.size(); ++i) {
-                    if (AP4_SUCCEEDED(tracks_[i]->GetBufferTime(offset, time_hint, time1)) && time1 < time) {
-                        time = time1;
+            AP4_UI64 min_time = (AP4_UI64)-1;
+            for (size_t i = 0; i < tracks_.size(); ++i) {
+                AP4_UI64 time = AP4_ConvertTime(time_hint, 1000, (*tracks_[i])->GetMediaTimeScale());
+                if (AP4_SUCCEEDED(tracks_[i]->GetBufferTime(offset, time))) {
+                    time = timestamp().const_adjust(i, time);
+                    if (time < min_time) {
+                        min_time = time;
                     }
                 }
             }
+
             ec = error_code();
-            return time;
+            return min_time;
         }
 
         boost::uint64_t Mp4Demuxer::get_cur_time(
             error_code & ec) const
         {
-            if (!is_open(ec)) {
-                return 0;
-            } else if (sample_list_->empty()) {
-                ec = error_code();
-                return file_->GetMovie()->GetDurationMs();
-            } else {
-                ec = error_code();
-                return sample_list_->first()->ustime / 1000;
+            boost::uint64_t dts = 0;
+            if (is_open(ec)) {
+                if (sample_list_->empty()) {
+                    dts = (*tracks_[0])->GetMediaDuration();
+                    dts = timestamp().const_adjust(0, dts);
+                } else {
+                    dts = sample_list_->first()->GetDts();
+                    dts = timestamp().const_adjust(sample_list_->first()->itrack, dts);
+                }
             }
+            return dts;
         }
 
     } // namespace demux

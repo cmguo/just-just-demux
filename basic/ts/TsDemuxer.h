@@ -16,6 +16,22 @@ namespace ppbox
     {
 
         class TsStream;
+        class PesParse;
+        class TsJointData;
+
+        struct TsParse
+        {
+            TsParse()
+                : offset(0)
+                , had_pcr(false)
+            {
+            }
+
+            boost::uint64_t offset;
+            bool had_pcr;
+            ppbox::avformat::TsPacket pkt;
+            mutable framework::system::LimitNumber<33> time_pcr;
+        };
 
         class TsDemuxer
             : public BasicDemuxer
@@ -51,21 +67,34 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            virtual boost::uint64_t seek(
-                boost::uint64_t & time, 
-                boost::uint64_t & delta, 
-                boost::system::error_code & ec);
-
-        public:
             virtual boost::system::error_code get_sample(
                 Sample & sample, 
                 boost::system::error_code & ec);
 
+        protected:
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) const;
 
             virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec);
+
+        protected:
+            virtual boost::uint64_t seek(
+                std::vector<boost::uint64_t> & dts, 
+                boost::uint64_t & delta, 
+                boost::system::error_code & ec);
+
+        private:
+            virtual JointShareInfo * joint_share();
+
+            virtual void joint_share(
+                JointShareInfo * info);
+
+        public:
+            virtual void joint_begin(
+                JointContext & context);
+
+            virtual void joint_end();
 
         private:
             bool is_open(
@@ -73,10 +102,11 @@ namespace ppbox
 
         private:
             bool get_packet(
-                ppbox::avformat::TsPacket & pkt, 
+                TsParse & parse, 
                 boost::system::error_code & ec);
 
-            void skip_packet();
+            void skip_packet(
+                TsParse & parse);
 
             bool get_pes(
                 boost::system::error_code & ec);
@@ -86,7 +116,11 @@ namespace ppbox
             void free_pes(
                 std::vector<ppbox::data::DataBlock> & payloads);
 
-        public:
+        private:
+            friend class TsJointShareInfo;
+            friend class TsJointData;
+            friend class TsJointData2;
+
             ppbox::avformat::TsIArchive archive_;
 
             size_t open_step_;
@@ -96,22 +130,11 @@ namespace ppbox
             std::vector<TsStream> streams_;
             std::vector<size_t> stream_map_; // Map pid to TsStream
 
-            boost::uint64_t parse_offset_;
-            ppbox::avformat::TsPacket pkt_;
-            mutable framework::system::LimitNumber<33> time_pcr_;
+            TsParse parse_;
+            TsParse parse2_;
 
-            class PesParse;
             std::vector<PesParse> pes_parses_;
             size_t pes_index_;
-            mutable framework::system::LimitNumber<33> time_dts_;
-
-            mutable boost::uint64_t parse_offset2_;
-            mutable ppbox::avformat::TsPacket pkt2_;
-            mutable framework::system::LimitNumber<33> time_pcr2_;
-
-            // for calc sample timestamp
-            boost::uint64_t timestamp_offset_ms_;
-            boost::uint64_t current_time_;
         };
 
         PPBOX_REGISTER_BASIC_DEMUXER("ts", TsDemuxer);

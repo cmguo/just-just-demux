@@ -85,13 +85,13 @@ namespace ppbox
                     } else if (obj_head.ObjectId == ASF_STREAM_PROPERTIES_OBJECT) {
                         ASF_Stream_Properties_Object_Data obj_data;
                         archive_ >> obj_data;
-                        if ((size_t)obj_data.Flag.StreamNumber + 1 > streams_.size()) {
-                            streams_.resize(obj_data.Flag.StreamNumber + 1);
+                        size_t index = streams_.size();
+                        if ((size_t)obj_data.Flag.StreamNumber + 1 > stream_map_.size()) {
+                            stream_map_.resize(obj_data.Flag.StreamNumber + 1, size_t(-1));
+                            stream_map_[obj_data.Flag.StreamNumber] = index;
                         }
-                        streams_[obj_data.Flag.StreamNumber] = obj_data;
-                        streams_[obj_data.Flag.StreamNumber].index = stream_map_.size();
-                        //streams_[obj_data.Flag.StreamNumber].get_start_sample(start_samples_);
-                        stream_map_.push_back(obj_data.Flag.StreamNumber);
+                        streams_.push_back(AsfStream(obj_data));
+                        streams_.back().index = index;
                     }
                     offset += (boost::uint64_t)obj_head.ObjLength;
                     archive_.seekg(offset, std::ios_base::beg);
@@ -116,12 +116,12 @@ namespace ppbox
                     ec = file_stream_error;
                     return false;
                 }
+                header_offset_ = archive_.tellg();
                 object_parse_.packet.PayloadNum = 0;
                 object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
-                object_parse_.offset = archive_.tellg();
+                object_parse_.offset = header_offset_;
                 next_object_offset_ = 0;
                 object_payloads_.clear();
-                is_discontinuity_ = true;
 
                 if (file_prop_.MaximumDataPacketSize == file_prop_.MinimumDataPacketSize) {
                     fixed_packet_length_ = file_prop_.MaximumDataPacketSize;
@@ -130,54 +130,27 @@ namespace ppbox
                 }
                 buffer_parse_.packet.PayloadNum = 0;
                 buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
-                buffer_parse_.offset = object_parse_.offset;
-                // 处理get_buffer_time有时没有初始化
-                buffer_parse_.payload.StreamNum = stream_map_[0];
-                buffer_parse_.payload.PresTime = streams_[buffer_parse_.payload.StreamNum].time_offset_ms;
+                buffer_parse_.offset = header_offset_;
 
-                ParseStatus status = object_parse_;
-                while (!next_payload(archive_, status, ec)) {
-                    if (status.payload.StreamNum >= streams_.size()) {
+                if (!next_payload(archive_, object_parse_, ec)) {
+                    if (object_parse_.payload.StreamNum >= streams_.size()) {
                         open_step_ = (size_t)-1;
                         ec = bad_file_format;
                         return false;
                     }
-                    AsfStream & stream = streams_[status.payload.StreamNum];
-                    if (!stream.ready) {
-                        stream.ready = true;
-                        // 一些错误的文件，没有正确的time_offset，我们自己计算
-                        stream.time_offset_ms = status.payload.PresTime;
-                        stream.time_offset_us = (boost::uint64_t)status.payload.PresTime * 1000;
-                        if (status.payload.StreamNum == stream_map_[0]) {
-                            buffer_parse_.payload.MediaObjNum = status.payload.StreamNum;
-                            buffer_parse_.payload.PresTime = status.payload.PresTime;
-                        }
-                        bool ready = true;
-                        for (size_t i = 0; i < stream_map_.size(); ++i) {
-                            if (!streams_[stream_map_[i]].ready) {
-                                ready = false;
-                                break;
-                            }
-                        }
-                        if (ready) {
-                            for (size_t i = 0; i < stream_map_.size(); ++i) {
-                                AsfStream & stream = streams_[stream_map_[i]];
-                                LOG_DEBUG("Stream: id = " 
-                                    << stream.Flag.StreamNumber << ", time = " 
-                                    << stream.time_offset_ms << "ms");
-                            }
-                            break;
-                        }
+                    timestamp_offset_ms_ = object_parse_.payload.PresTime;
+                    buffer_parse_.payload.PresTime = object_parse_.payload.PresTime;
+                    for (size_t i = 0; i < streams_.size(); ++i) {
+                        streams_[i].start_time = timestamp_offset_ms_;
                     }
+                    object_parse_.packet.PayloadNum = 0;
+                    object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
+                    object_parse_.offset = header_offset_;
+                    archive_.seekg(object_parse_.offset, std::ios_base::beg);
+                    assert(archive_);
+                    open_step_ = 2;
+                    on_open();
                 }
-
-                if (ec) {
-                    return false;
-                }
-
-                archive_.seekg(object_parse_.offset, std::ios_base::beg);
-                assert(archive_);
-                open_step_ = 2;
             }
 
             if (!ec) {
@@ -203,24 +176,33 @@ namespace ppbox
         error_code AsfDemuxer::close(
             error_code & ec)
         {
+            if (open_step_ == 2) {
+                on_close();
+            }
             open_step_ = size_t(-1);
             return ec = error_code();
         }
 
-        error_code AsfDemuxer::reset(
-            error_code & ec)
-        {
-            ec = error::not_support;
-            return ec;
-        }
-
         boost::uint64_t AsfDemuxer::seek(
-            boost::uint64_t & time, 
+            std::vector<boost::uint64_t> & dts, 
             boost::uint64_t & delta, 
             error_code & ec)
         {
-            ec = error::not_support;
-            return 0;
+            if (is_open(ec)) {
+                dts.assign(dts.size(), timestamp_offset_ms_);
+                object_payloads_.clear();
+                next_object_offset_ = 0;
+                object_parse_.packet.PayloadNum = 0;
+                object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
+                object_parse_.offset = header_offset_;
+                buffer_parse_.packet.PayloadNum = 0;
+                buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
+                buffer_parse_.offset = header_offset_;
+                ec.clear();
+                return header_offset_;
+            } else {
+                return 0;
+            }
         }
 
         boost::uint64_t AsfDemuxer::get_duration(
@@ -234,7 +216,7 @@ namespace ppbox
             error_code & ec) const
         {
             if (is_open(ec))
-                return stream_map_.size();
+                return streams_.size();
             return 0;
         }
 
@@ -244,10 +226,10 @@ namespace ppbox
             error_code & ec) const
         {
             if (is_open(ec)) {
-                if (index >= stream_map_.size()) {
+                if (index >= streams_.size()) {
                     ec = framework::system::logic_error::out_of_range;
                 } else {
-                    info = streams_[stream_map_[index]];
+                    info = streams_[index];
                 }
             }
             return ec;
@@ -307,7 +289,8 @@ namespace ppbox
                 object_payloads_.push_back(object_parse_.payload);
                 next_object_offset_ += object_parse_.payload.PayloadLength;
                 if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
-                    AsfStream & stream = streams_[object_parse_.payload.StreamNum];
+                    size_t index = stream_map_[object_parse_.payload.StreamNum];
+                    AsfStream & stream = streams_[index];
                     stream.next_id = object_parse_.payload.MediaObjNum;
                     BasicDemuxer::begin_sample(sample);
                     sample.itrack = stream.index;
@@ -317,7 +300,7 @@ namespace ppbox
                     if (is_discontinuity_)
                         sample.flags |= Sample::discontinuity;
                     boost::uint64_t timestamp = object_parse_.timestamp.transfer(object_parse_.payload.PresTime);
-                    sample.dts = timestamp - stream.time_offset_ms;
+                    sample.dts = timestamp;
                     sample.cts_delta = boost::uint32_t(-1);
                     sample.duration = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
@@ -337,9 +320,8 @@ namespace ppbox
         boost::uint64_t AsfDemuxer::get_cur_time(
             error_code & ec) const
         {
-            if (is_open(ec) && object_parse_.payload.StreamNum < streams_.size()) {
-                AsfStream const & stream = streams_[object_parse_.payload.StreamNum];
-                return object_parse_.payload.PresTime - stream.time_offset_ms;
+            if (is_open(ec)) {
+                return timestamp().time();
             }
             return 0;
         }
@@ -369,13 +351,7 @@ namespace ppbox
                 buffer_parse_.offset = off; // recover
             }
             archive_.seekg(beg, std::ios_base::beg);
-            if (buffer_parse_.payload.StreamNum < streams_.size()) {
-                AsfStream const & stream = streams_[buffer_parse_.payload.StreamNum];
-                return buffer_parse_.payload.PresTime - stream.time_offset_ms;
-            } else {
-                ec = bad_file_format;
-                return 0;
-            }
+            return timestamp().const_adjust(0, buffer_parse_.payload.PresTime);
         }
 
         error_code AsfDemuxer::next_packet(

@@ -4,6 +4,7 @@
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 #include "ppbox/demux/segment/DemuxerInfo.h"
 #include "ppbox/demux/segment/DemuxStrategy.h"
+#include "ppbox/demux/basic/JointData.h"
 
 #include <ppbox/data/base/MediaBase.h>
 #include <ppbox/data/base/SourceError.h>
@@ -38,7 +39,6 @@ namespace ppbox
             , source_time_out_(5000)
             , buffer_capacity_(10 * 1024 * 1024)
             , buffer_read_size_(10 * 1024)
-            , merge_(false)
             , read_demuxer_(NULL)
             , write_demuxer_(NULL)
             , max_demuxer_infos_(5)
@@ -174,11 +174,7 @@ namespace ppbox
                     media_.get_info(media_info_, ec);
                     if (!ec) {
                         // TODO:
-                        merge_ = (media_info_.flags & ppbox::data::MediaInfo::f_smoth);
-                        if (merge_) {
-                            max_demuxer_infos_ = 1;
-                        }
-                        timestamp_helper_.smoth(media_info_.flags & ppbox::data::MediaInfo::f_time_smoth);
+                        joint_context_.media_flags(media_info_.flags);
                         buffer_->pause_stream();
                         reset(ec);
                     }
@@ -238,6 +234,14 @@ namespace ppbox
         {
             if (&time != &seek_time_ && (!seek_pending_ || time != seek_time_)) {
                 LOG_DEBUG("[seek] begin, time: " << time);
+                if (write_demuxer_) {
+                    free_demuxer(write_demuxer_, false, ec);
+                    write_demuxer_ = NULL;
+                }
+                if (read_demuxer_) {
+                    free_demuxer(read_demuxer_, true, ec);
+                    write_demuxer_ = NULL;
+                }
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
                 pos.byte_range.pos = 0; // 可能pos不是0
@@ -246,21 +250,12 @@ namespace ppbox
                         last_error(ec);
                         return ec;
                 }
-                if (write_demuxer_) {
-                    free_demuxer(write_demuxer_, false, ec);
-                    write_demuxer_ = NULL;
-                }
-                if (read_demuxer_) {
-                    read_demuxer_->demuxer->demux_end();
-                    free_demuxer(read_demuxer_, true, ec);
-                }
-                timestamp_helper_.reset(pos.time_range.big_beg());
+                joint_context_.reset(pos.time_range.big_beg());
                 read_demuxer_ = alloc_demuxer(pos, true, ec);
-                read_demuxer_->demuxer->demux_begin(timestamp_helper_);
+                //read_demuxer_->demuxer->joint_begin(joint_context_);
             }
             while (true) {
-                //read_demuxer_->segment.byte_range.pos = 
-                    read_demuxer_->demuxer->seek(read_demuxer_->segment.time_range.pos, ec);
+                read_demuxer_->demuxer->seek(time, ec);
                 /* 可能失败原因
                     1. 数据不够 file_stream_error
                         a. 没有下载到足够数据（使用下载错误作为错误码）
@@ -270,22 +265,25 @@ namespace ppbox
                         a. 分段文件格式错误 bad_file_format
                  */
                 if (!ec) {
-                    time = read_demuxer_->segment.time_range.big_pos();
                     LOG_DEBUG("[seek] ok, adjust time: " << time);
                     seek_pending_ = false;
                     boost::system::error_code ec1;
                     if (write_demuxer_)
                         free_demuxer(write_demuxer_, false, ec1);
-                    write_demuxer_ = alloc_demuxer(merge_ ? buffer_->read_segment() : buffer_->write_segment(), false, ec1);
+                    buffer_->pause_stream();
+                    write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
                 } else if (ec == error::file_stream_error) {
                     if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
-                        read_demuxer_->demuxer->demux_end();
-                        buffer_->read_next(duration, ec);
                         free_demuxer(read_demuxer_, true, ec);
+                        boost::uint64_t min_offset = buffer_->read_segment().byte_range.end;
+                        if (joint_context_.read_ctx().data()) {
+                            min_offset = joint_context_.read_ctx().data()->adjust_offset(buffer_->read_segment().byte_range.end);
+                        }
+                        buffer_->read_next(duration, min_offset, ec);
                         if (buffer_->read_segment().valid()) {
                             read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
-                            read_demuxer_->demuxer->demux_begin(timestamp_helper_);
+                            //read_demuxer_->demuxer->joint_begin(joint_context_);
                             continue;
                         } else {
                             ec = framework::system::logic_error::out_of_range;
@@ -295,17 +293,16 @@ namespace ppbox
                         assert(ec);
                     }
                 } else if (ec == framework::system::logic_error::out_of_range) {
-                    LOG_DEBUG("[seek] out_of_range " << buffer_->read_segment().index);
+                    LOG_DEBUG("[seek] out_of_range, segment: " << buffer_->read_segment().index);
                     SegmentPosition base(buffer_->base_segment());
                     SegmentPosition pos(buffer_->read_segment());
                     pos.duration = pos.time_range.end = read_demuxer_->demuxer->get_duration(ec);
+                    free_demuxer(read_demuxer_, true, ec);
                     if (strategy_->time_seek(time, base, pos, ec) 
                         && buffer_->seek(base, pos, pos.head_size, ec)) {
-                            read_demuxer_->demuxer->demux_end();
-                            free_demuxer(read_demuxer_, true, ec);
-                            timestamp_helper_.reset(pos.time_range.big_beg());
+                            joint_context_.reset(pos.time_range.big_beg());
                             read_demuxer_ = alloc_demuxer(pos, true, ec);
-                            read_demuxer_->demuxer->demux_begin(timestamp_helper_);
+                            //read_demuxer_->demuxer->joint_begin(joint_context_);
                             continue;
                     }
                 }
@@ -411,6 +408,13 @@ namespace ppbox
                 info.time_range.pos = get_cur_time(ec);
                 info.time_range.buf = get_end_time(ec);
 
+                //std::cout << "[SegmentDemuxer::get_stream_status] info.time_range = " 
+                //    << info.time_range.pos << " _ " << info.time_range.buf << std::endl;
+
+                if (info.time_range.buf < info.time_range.pos) {
+                    info.time_range.buf = info.time_range.pos;
+                }
+
                 info.buf_ec = buffer_->last_error();
             }
             return !ec;
@@ -448,18 +452,21 @@ namespace ppbox
                 if (ec != error::file_stream_error && ec != error::no_more_sample) {
                     break;
                 }
-                if (!merge_ && !buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
+                if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
                     LOG_DEBUG("[get_sample] finish segment " << buffer_->read_segment().index);
-                    read_demuxer_->demuxer->demux_end();
                     boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
-                    buffer_->read_next(duration, ec);
+                    free_demuxer(read_demuxer_, true, ec);
+                    boost::uint64_t min_offset = buffer_->read_segment().byte_range.end;
+                    if (joint_context_.read_ctx().data()) {
+                        min_offset = joint_context_.read_ctx().data()->adjust_offset(buffer_->read_segment().byte_range.end);
+                    }
+                    buffer_->read_next(duration, min_offset, ec);
                     if (buffer_->read_segment().valid()) {
-                        free_demuxer(read_demuxer_, true, ec);
                         read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
-                        read_demuxer_->demuxer->demux_begin(timestamp_helper_);
-                        if (!ec) { // 已经打开，需要回滚到开始位置
-                            read_demuxer_->demuxer->reset(ec);
-                        }
+                        //read_demuxer_->demuxer->joint_begin(joint_context_);
+                        //if (!ec) { // 已经打开，需要回滚到开始位置
+                        //    read_demuxer_->demuxer->reset(ec);
+                        //}
                         continue;
                     } else {
                         ec = error::no_more_sample;
@@ -480,7 +487,7 @@ namespace ppbox
                 sample.memory = buffer_->fetch(
                     sample.itrack, 
                     *(std::vector<DataBlock> *)sample.context, 
-                    merge_, 
+                    false, 
                     sample.data, 
                     ec);
                 assert(!ec);
@@ -518,7 +525,7 @@ namespace ppbox
 
             boost::uint64_t time = 0;
             if (read_demuxer_) {
-                time = read_demuxer_->segment.time_range.big_beg() + read_demuxer_->demuxer->get_cur_time(ec);
+                time = read_demuxer_->demuxer->get_joint_cur_time(ec);
                 if (ec) {
                     last_error(ec);
                     if (ec == error::file_stream_error) {
@@ -545,19 +552,21 @@ namespace ppbox
             }
 
             boost::uint64_t time = 0;
+            buffer_->pause_stream(); // 防止下面代码执行时继续下载，引起 buffer_->write_segment() 变化，导致 write_demuxer_->stream 分段属性错误
             if (write_demuxer_) {
-                while (!merge_ && write_demuxer_->segment != buffer_->write_segment()) {
+                while (write_demuxer_->segment != buffer_->write_segment()) {
+                    LOG_DEBUG("[get_end_time] finish segment " << write_demuxer_->segment.index);
                     if (buffer_->write_segment().valid()) {
                         SegmentPosition seg = write_demuxer_->segment;
                         seg.time_range.end = write_demuxer_->demuxer->get_duration(ec);
-                        buffer_->write_next(seg, ec);
                         free_demuxer(write_demuxer_, false, ec);
+                        buffer_->write_next(seg, ec);
                         write_demuxer_ = alloc_demuxer(seg, false, ec);
                     } else {
                         break;
                     }
                 }
-                time = write_demuxer_->segment.time_range.big_beg() + write_demuxer_->demuxer->get_end_time(ec);
+                time = write_demuxer_->demuxer->get_joint_end_time(ec);
                 if (ec == error::file_stream_error) {
                     ec.clear();
                 }
@@ -581,13 +590,18 @@ namespace ppbox
             ec.clear();
             for (size_t i = 0; i < demuxer_infos_.size(); ++i) {
                 DemuxerInfo & info = *demuxer_infos_[i];
-                if ((merge_ && !is_read) || info.segment.is_same_segment(segment)) {
+                if (info.segment.is_same_segment(segment)) {
                     info.segment = segment;
                     info.attach();
                     if (info.nref == 1) {
                         buffer_->attach_stream(info.stream, is_read);
                     } else if (is_read) {
                         buffer_->change_stream(info.stream, true);
+                    }
+                    if (is_read) {
+                        info.demuxer->joint_begin(joint_context_);
+                    } else {
+                        info.demuxer->joint_begin2(joint_context_);
                     }
                     ec.clear();
                     return &info;
@@ -598,21 +612,31 @@ namespace ppbox
                 for (size_t i = 0; i < demuxer_infos_.size(); ++i) {
                     DemuxerInfo & info = *demuxer_infos_[i];
                     if (info.nref == 0) {
-                        info.attach();
-                        info.segment = segment;
                         boost::system::error_code ec1;
                         info.demuxer->close(ec1);
+                        info.attach();
+                        info.segment = segment;
                         buffer_->attach_stream(info.stream, is_read);
+                        if (is_read) {
+                            info.demuxer->joint_begin(joint_context_);
+                        } else {
+                            info.demuxer->joint_begin2(joint_context_);
+                        }
                         info.demuxer->open(ec);
                         return &info;
                         // TODO: 没有考虑格式变化的情况
                     }
                 }
             }
-            DemuxerInfo * info = new DemuxerInfo(*buffer_, merge_);
+            DemuxerInfo * info = new DemuxerInfo(*buffer_);
             info->segment = segment;
             buffer_->attach_stream(info->stream, is_read);
             info->demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), info->stream);
+            if (is_read) {
+                info->demuxer->joint_begin(joint_context_);
+            } else {
+                info->demuxer->joint_begin2(joint_context_);
+            }
             info->demuxer->open(ec);
             demuxer_infos_.push_back(info);
             return info;
@@ -626,6 +650,11 @@ namespace ppbox
             std::vector<DemuxerInfo *>::iterator iter = 
                 std::find(demuxer_infos_.begin(), demuxer_infos_.end(), info);
             assert(iter != demuxer_infos_.end());
+            if (is_read) {
+                info->demuxer->joint_end();
+            } else {
+                info->demuxer->joint_end2();
+            }
             if (info->detach()) {
                 buffer_->detach_stream(info->stream);
             } else {

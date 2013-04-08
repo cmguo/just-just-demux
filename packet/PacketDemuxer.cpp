@@ -339,7 +339,7 @@ namespace ppbox
             if (!filters_.last()->get_next_sample(sample, ec)) {
                 sample.time = seek_time_;
             } else {
-                time_helper().static_adjust(sample);
+                timestamp().const_adjust(sample);
             }
             return sample.time;
         }
@@ -351,7 +351,7 @@ namespace ppbox
             if (!filters_.last()->get_last_sample(sample, ec)) {
                 sample.time = seek_time_;
             } else {
-                time_helper().static_adjust(sample);
+                timestamp().const_adjust(sample);
             }
             return sample.time;
         }

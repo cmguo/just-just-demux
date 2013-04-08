@@ -6,7 +6,7 @@
 #include "ppbox/demux/base/DemuxError.h"
 #include "ppbox/demux/base/Demuxer.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
-#include "ppbox/demux/base/TimestampHelper.h"
+#include "ppbox/demux/basic/JointContext.h"
 
 #include <ppbox/data/segment/SegmentMedia.h>
 
@@ -196,9 +196,8 @@ namespace ppbox
         private:
             ppbox::data::MediaInfo media_info_;
             std::vector<ppbox::avformat::StreamInfo> stream_infos_;
-            TimestampHelper timestamp_helper_;
+            JointContext joint_context_;
 
-            bool merge_;
             DemuxerInfo * read_demuxer_;
             DemuxerInfo * write_demuxer_;
             std::vector<DemuxerInfo *> demuxer_infos_;

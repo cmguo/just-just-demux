@@ -14,7 +14,7 @@ namespace ppbox
     namespace demux
     {
 
-        class TsDemuxer::PesParse
+        class PesParse
         {
         public:
             PesParse()
@@ -77,6 +77,14 @@ namespace ppbox
                 return payloads_.empty() ? boost::uint64_t(-1) : payloads_.front().offset;
             }
 
+            void adjust_offset(
+                boost::uint64_t minus)
+            {
+                for (size_t i = 0; i < payloads_.size(); ++i) {
+                    payloads_[i].offset -= minus;
+                }
+            }
+
             void clear(
                 std::vector<ppbox::data::DataBlock> & payloads)
             {
@@ -103,7 +111,7 @@ namespace ppbox
             boost::uint32_t cts_delta() const
             {
                 if (pkt_.PTS_DTS_flags == 3) {
-                    return time_pts_.transfer(pkt_.pts_bits.value()) - time_dts_.transfer(pkt_.dts_bits.value());
+                    return (boost::uint32_t)(time_pts_.transfer(pkt_.pts_bits.value()) - time_dts_.transfer(pkt_.dts_bits.value()));
                 } else {
                     return 0;
                 }
@@ -136,7 +144,7 @@ namespace ppbox
                     boost::uint8_t data[5];
                     boost::uint32_t frame_offset = frame_offset_[0];
                     boost::uint32_t read_size = 0;
-                    for (size_t i = 0; i < payloads_.size() && read_size; ++i) {
+                    for (size_t i = 0; i < payloads_.size() && read_size < 5; ++i) {
                         if (frame_offset < payloads_[i].size) {
                             ar.seekg(payloads_[i].offset + frame_offset, std::ios::beg);
                             assert(ar);
@@ -145,13 +153,13 @@ namespace ppbox
                                 read_size2 = payloads_[i].size - frame_offset;
                             }
                             ar >> make_array(data + read_size, read_size2);
-                            read_size -= read_size2;
+                            read_size += read_size2;
                             frame_offset = 0;
                         } else {
                             frame_offset -= payloads_[i].size;
                         }
                     }
-                    if (read_size == 0 
+                    if (read_size == 5 
                         && *(boost::uint32_t *)data == MAKE_FOURC_TYPE(0, 0, 0, 1)) {
                             NaluHeader h(data[4]);
                             if (h.nal_unit_type == 1) {
@@ -160,6 +168,10 @@ namespace ppbox
                                 return true;
                             }
                     }
+                }
+
+                if (frame_offset_[1] > 0) {
+                    return frame_offset_[1] == 1;
                 }
 
                 std::vector<boost::uint8_t> data;
@@ -174,6 +186,13 @@ namespace ppbox
                 } else {
                     return false;
                 }
+            }
+
+            void save_for_joint(
+                ppbox::avformat::TsIArchive & ar)
+            {
+                frame_offset_[1] = is_sync_frame(ar) ? 1 : 2;
+                frame_offset_[0] = 0;
             }
 
         private:

@@ -3,7 +3,8 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/basic/ts/TsDemuxer.h"
 #include "ppbox/demux/basic/ts/TsStream.h"
-using namespace ppbox::demux::error;
+#include "ppbox/demux/basic/JointContext.h"
+#include "ppbox/demux/base/DemuxError.h"
 
 using namespace ppbox::avformat;
 
@@ -17,6 +18,8 @@ using namespace boost::system;
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", framework::logger::Warn)
 
 #include "ppbox/demux/basic/ts/PesParse.h"
+#include "ppbox/demux/basic/ts/TsJointData.h"
+#include "ppbox/demux/basic/ts/TsJointShareInfo.h"
 
 namespace ppbox
 {
@@ -30,11 +33,7 @@ namespace ppbox
             , archive_(buf)
             , open_step_(size_t(-1))
             , header_offset_(0)
-            , parse_offset_(0)
             , pes_index_(size_t(-1))
-            , parse_offset2_(0)
-            , timestamp_offset_ms_(boost::uint64_t(-1))
-            , current_time_(0)
         {
         }
 
@@ -45,9 +44,12 @@ namespace ppbox
         error_code TsDemuxer::open(
             error_code & ec)
         {
-            open_step_ = 0;
-            parse_offset_ = parse_offset2_ = header_offset_ = 0;
-            timestamp_offset_ms_ = boost::uint64_t(-1);
+            if (streams_.empty()) {
+                open_step_ = 0;
+                parse_.offset = parse2_.offset = header_offset_ = 0;
+            } else {
+                open_step_ = 3;
+            }
             is_open(ec);
             return ec;
         }
@@ -55,27 +57,27 @@ namespace ppbox
         bool TsDemuxer::is_open(
             error_code & ec)
         {
-            if (open_step_ == 3) {
+            if (open_step_ == 4) {
                 ec = error_code();
                 return true;
             }
 
             if (open_step_ == (size_t)-1) {
-                ec = not_open;
+                ec = error::not_open;
                 return false;
             }
 
             assert(archive_);
-            archive_.seekg(parse_offset_, std::ios_base::beg);
+            archive_.seekg(parse_.offset, std::ios_base::beg);
             assert(archive_);
 
             if (open_step_ == 0) {
-                while (get_packet(pkt_, ec)) {
-                    if (pkt_.pid != TsPid::pat) {
-                        skip_packet();
+                while (get_packet(parse_, ec)) {
+                    if (parse_.pkt.pid != TsPid::pat) {
+                        skip_packet(parse_);
                         continue;
                     }
-                    PatPayload pat(pkt_);
+                    PatPayload pat(parse_.pkt);
                     archive_ >> pat;
                     if (!archive_) {
                         if (archive_.failed()) {
@@ -87,19 +89,19 @@ namespace ppbox
                         break;
                     }
                     pat_ = pat.sections[0].programs[0];
-                    parse_offset_ = archive_.tellg();
+                    parse_.offset = archive_.tellg();
                     open_step_ = 1;
                     break;
                 }
             }
 
             if (open_step_ == 1) {
-                while (get_packet(pkt_, ec)) {
-                    if (pkt_.pid != pat_.map_id) {
-                        skip_packet();
+                while (get_packet(parse_, ec)) {
+                    if (parse_.pkt.pid != pat_.map_id) {
+                        skip_packet(parse_);
                         continue;
                     }
-                    PmtPayload pmt(pkt_);
+                    PmtPayload pmt(parse_.pkt);
                     archive_ >> pmt;
                     if (!archive_) {
                         if (archive_.failed()) {
@@ -110,17 +112,18 @@ namespace ppbox
                         archive_.clear();
                         break;
                     }
-                    parse_offset_ = archive_.tellg();
+                    parse_.offset = archive_.tellg();
                     pmt_ = pmt.sections[0];
                     for (size_t i = 0; i < pmt_.streams.size(); ++i) {
                         if (stream_map_.size() <= pmt_.streams[i].elementary_pid)
                             stream_map_.resize(pmt_.streams[i].elementary_pid + 1, (size_t)-1);
                         stream_map_[pmt_.streams[i].elementary_pid] = streams_.size();
                         streams_.push_back(TsStream(pmt_.streams[i]));
+                        streams_[i].index = i;
                     }
                     pes_parses_.resize(streams_.size());
                     open_step_ = 2;
-                    header_offset_ = parse_offset_;
+                    header_offset_ = parse_.offset;
                     break;
                 }
             }
@@ -133,9 +136,6 @@ namespace ppbox
                         continue;
                     }
                     PesParse & parse = pes_parses_[pes_index_];
-                    if (timestamp_offset_ms_ > parse.dts()) {
-                        timestamp_offset_ms_ = parse.dts(); // 先不转换精度 / (TsPacket::TIME_SCALE / 1000);
-                    }
                     std::vector<boost::uint8_t> data;
                     parse.get_data(data, archive_);
                     free_pes();
@@ -148,29 +148,36 @@ namespace ppbox
                         }
                     }
                     if (ready) {
-                        archive_.seekg(header_offset_, std::ios_base::beg);
-                        parse_offset_ = parse_offset2_ = header_offset_;
-                        for (size_t i = 0; i < streams_.size(); ++i) {
-                            streams_[i].index = i;
-                            streams_[i].start_time = timestamp_offset_ms_;
-                            std::vector<ppbox::data::DataBlock> payloads;
-                            pes_parses_[i].clear(payloads);
-                        }
-                        timestamp_offset_ms_ /= (TsPacket::TIME_SCALE / 1000); // 现在转换精度
-                        time_helper().max_delta(1000);
+                        parse_.offset = header_offset_;
+                        parse_.had_pcr = false;
+                        archive_.seekg(parse_.offset, std::ios_base::beg);
                         open_step_ = 3;
                         break;
                     }
                 }
             }
 
+            if (open_step_ == 3) {
+                while (!parse_.had_pcr && get_packet(parse_, ec)) {
+                    skip_packet(parse_);
+                }
+                if (parse_.had_pcr) {
+                    parse2_ = parse_;
+                    parse_.offset = header_offset_;
+                    for (size_t i = 0; i < streams_.size(); ++i) {
+                        streams_[i].start_time = parse_.time_pcr.current();
+                    }
+                    archive_.seekg(header_offset_, std::ios_base::beg);
+                    timestamp().max_delta(1000);
+                    open_step_ = 4;
+                }
+            }
+
             if (ec) {
-                archive_.seekg(header_offset_, std::ios_base::beg);
-                assert(archive_);
                 return false;
             } else {
+                assert(open_step_ == 4);
                 on_open();
-                assert(open_step_ == 3);
                 return true;
             }
         }
@@ -178,11 +185,11 @@ namespace ppbox
         bool TsDemuxer::is_open(
             error_code & ec) const
         {
-            if (open_step_ == 3) {
+            if (open_step_ == 4) {
                 ec = error_code();
                 return true;
             } else {
-                ec = not_open;
+                ec = error::not_open;
                 return false;
             }
         }
@@ -190,7 +197,10 @@ namespace ppbox
         error_code TsDemuxer::close(
             error_code & ec)
         {
-            for (size_t i = 0; i < streams_.size(); ++i) {
+            if (open_step_ == 4) {
+                on_close();
+            }
+            for (size_t i = 0; i < pes_parses_.size(); ++i) {
                 streams_[i].clear();
                 std::vector<ppbox::data::DataBlock> payloads;
                 pes_parses_[i].clear(payloads);
@@ -198,23 +208,30 @@ namespace ppbox
             streams_.clear();
             pes_parses_.clear();
             stream_map_.clear();
+            parse_.offset = 0;
+            parse_.had_pcr = false;
+            parse2_.offset = 0;
+            parse2_.had_pcr = false;
+            header_offset_ = 0;
             open_step_ = size_t(-1);
             return ec = error_code();
         }
 
         boost::uint64_t TsDemuxer::seek(
-            boost::uint64_t & time, 
+            std::vector<boost::uint64_t> & dts, 
             boost::uint64_t & delta, 
             error_code & ec)
         {
             if (is_open(ec)) {
                 ec.clear();
-                time = 0;
-                parse_offset_ = parse_offset2_ = header_offset_;
+                parse_.offset = header_offset_;
+                parse_.time_pcr = streams_[0].start_time;
+                parse2_ = parse_;
                 for (size_t i = 0; i < pes_parses_.size(); ++i) {
                     std::vector<ppbox::data::DataBlock> payloads;
                     pes_parses_[i].clear(payloads);
                 }
+                dts.assign(dts.size(), streams_[0].start_time); // TO BE FIXED
                 return header_offset_;
             } else {
                 return 0;
@@ -258,7 +275,7 @@ namespace ppbox
             if (!is_open(ec)) {
                 return ec;
             }
-            archive_.seekg(parse_offset_, std::ios::beg);
+            archive_.seekg(parse_.offset, std::ios::beg);
             assert(archive_);
             if (get_pes(ec)) {
                 TsStream & stream = streams_[pes_index_];
@@ -269,13 +286,12 @@ namespace ppbox
                 if (stream.type == MEDIA_TYPE_VIDE && parse.is_sync_frame(archive_)) {
                     sample.flags |= Sample::sync;
                 }
-                sample.dts = time_dts_.transfer(parse.dts());
+                sample.dts = parse.dts();
                 sample.cts_delta = parse.cts_delta();
                 sample.duration = 0;
                 sample.size = parse.size();
                 free_pes(BasicDemuxer::datas());
                 BasicDemuxer::end_sample(sample);
-                current_time_ = sample.time;
             }
             assert(archive_);
             return ec;
@@ -287,10 +303,8 @@ namespace ppbox
             if (!is_open(ec)) {
                 return 0;
             }
-            boost::uint64_t pcr = time_pcr_.transfer(
-                ((boost::uint64_t)pkt_.adaptation.program_clock_reference_base) << 1);
-            pcr /= (TsPacket::TIME_SCALE / 1000);
-            return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
+            boost::uint64_t pcr = parse_.time_pcr.current();
+            return timestamp().const_adjust(0, pcr);
         }
 
         boost::uint64_t TsDemuxer::get_end_time(
@@ -303,81 +317,133 @@ namespace ppbox
             archive_.seekg(0, std::ios::end);
             assert(archive_);
             boost::uint64_t end = archive_.tellg();
-            assert(end > TsPacket::PACKET_SIZE);
+            //assert(end > TsPacket::PACKET_SIZE);
             end = (end / TsPacket::PACKET_SIZE) * TsPacket::PACKET_SIZE;
-            if (parse_offset2_ + TsPacket::PACKET_SIZE * 20 < end) {
-                parse_offset2_ = end - TsPacket::PACKET_SIZE * 20;
+
+            if (parse2_.offset < parse_.offset) {
+                parse2_ = parse_;
             }
-            if (parse_offset2_ <= parse_offset_) {
-                archive_.seekg(beg, std::ios::beg);
-                return get_cur_time(ec);
-            } else {
-                archive_.seekg(parse_offset2_, std::ios::beg);
-                assert(archive_);
-                while (parse_offset2_ <= end && get_packet(pkt2_, ec)) {
-                    parse_offset2_ += TsPacket::PACKET_SIZE;
-                    archive_.seekg(parse_offset2_, std::ios::beg);
+
+            if (parse2_.offset > end) { // 有可能外面数据清除了
+                parse2_.offset = 0;
+                parse2_.time_pcr = streams_[0].start_time;
+            }
+
+            if (parse2_.offset + TsPacket::PACKET_SIZE * 20 < end) {
+                parse2_.offset = end - TsPacket::PACKET_SIZE * 20;
+            }
+            archive_.seekg(parse2_.offset, std::ios::beg);
+            assert(archive_);
+            while (parse2_.offset < end && get_packet(parse2_, ec)) {
+                skip_packet(parse2_);
+                if (parse2_.pkt.has_pcr()) {
+                    break;
                 }
-                ec.clear();
-                archive_.seekg(beg, std::ios::beg);
-                boost::uint64_t pcr = time_pcr2_.transfer(
-                    ((boost::uint64_t)pkt2_.adaptation.program_clock_reference_base) << 1);
-                pcr /= (TsPacket::TIME_SCALE / 1000);
-                return pcr > timestamp_offset_ms_ ? pcr  - timestamp_offset_ms_ : 0;
+            }
+            archive_.seekg(beg, std::ios::beg);
+            ec.clear();
+            boost::uint64_t pcr = parse2_.time_pcr.current();
+            return timestamp().const_adjust(0, pcr);
+        }
+
+        JointShareInfo * TsDemuxer::joint_share()
+        {
+            return new TsJointShareInfo(*this);
+        }
+
+        void TsDemuxer::joint_share(
+            JointShareInfo * info)
+        {
+            if (open_step_ != 4) {
+                TsJointShareInfo * ts_info = static_cast<TsJointShareInfo *>(info);
+                streams_ = ts_info->streams_;
+                stream_map_ = ts_info->stream_map_;
+                pes_parses_.resize(streams_.size());
+                if (open_step_ < 3) {
+                    open_step_ = 3;
+                }
             }
         }
 
+        void TsDemuxer::joint_begin(
+            JointContext & context)
+        {
+            BasicDemuxer::joint_begin(context);
+            if (jointer().read_ctx().data()) {
+                TsJointData * data = static_cast<TsJointData *>(jointer().read_ctx().data());
+                pes_parses_.swap(data->pes_parses_);
+                context.read_ctx().data(NULL);
+            }
+        }
+
+        void TsDemuxer::joint_end()
+        {
+            for (size_t i = 0; i < pes_parses_.size(); ++i) {
+                if (streams_[i].type == MEDIA_TYPE_VIDE) {
+                    pes_parses_[i].save_for_joint(archive_);
+                }
+            }
+            jointer().read_ctx().data(new TsJointData(*this));
+            BasicDemuxer::joint_end();
+        }
+
         bool TsDemuxer::get_packet(
-            TsPacket & pkt, 
+            TsParse & parse, 
             error_code & ec)
         {
             archive_.seekg(TsPacket::PACKET_SIZE, std::ios::cur);
             if (archive_) {
                 archive_.seekg(-(int)TsPacket::PACKET_SIZE, std::ios::cur);
                 assert(archive_);
-                archive_ >> pkt;
+                archive_ >> parse.pkt;
                 if (archive_) {
+                    if (parse.pkt.has_pcr()) {
+                        parse.had_pcr = true;
+                        parse.time_pcr.transfer(
+                            ((boost::uint64_t)parse.pkt.adaptation.program_clock_reference_base) << 1);
+                    }
                     ec.clear();
                     return true;
                 } else if (archive_.failed()) {
                     archive_.clear();
-                    ec = bad_file_format;
+                    ec = error::bad_file_format;
                 } else {
                     archive_.clear();
-                    ec = file_stream_error;
+                    ec = error::file_stream_error;
                 }
             } else {
                 archive_.clear();
-                ec = file_stream_error;
+                ec = error::file_stream_error;
             }
             return false;
         }
 
-        void TsDemuxer::skip_packet()
+        void TsDemuxer::skip_packet(
+            TsParse & parse)
         {
-            parse_offset_ += TsPacket::PACKET_SIZE;
-            archive_.seekg(parse_offset_, std::ios::beg);
+            parse.offset += TsPacket::PACKET_SIZE;
+            archive_.seekg(parse.offset, std::ios::beg);
             assert(archive_);
         }
 
         bool TsDemuxer::get_pes(
             boost::system::error_code & ec)
         {
-            while (get_packet(pkt_, ec)) {
-                if (pkt_.pid >= stream_map_.size() || stream_map_[pkt_.pid] == (size_t)-1) {
-                    skip_packet();
+            while (get_packet(parse_, ec)) {
+                if (parse_.pkt.pid >= stream_map_.size() || stream_map_[parse_.pkt.pid] == (size_t)-1) {
+                    skip_packet(parse_);
                     continue;
                 }
-                pes_index_ = stream_map_[pkt_.pid];
+                pes_index_ = stream_map_[parse_.pkt.pid];
                 std::pair<bool, bool> res = 
-                    pes_parses_[pes_index_].add_packet(pkt_, archive_, ec);
+                    pes_parses_[pes_index_].add_packet(parse_.pkt, archive_, ec);
                 if (res.second) {
-                    parse_offset_ -= TsPacket::PACKET_SIZE;
+                    parse_.offset -= TsPacket::PACKET_SIZE;
                 }
                 if (res.first) {
                     break;
                 }
-                skip_packet();
+                skip_packet(parse_);
             }
             return !ec;
         }
@@ -394,7 +460,7 @@ namespace ppbox
             PesParse & parse = pes_parses_[pes_index_];
             pes_index_ = size_t(-1);
             parse.clear(payloads);
-            skip_packet();
+            skip_packet(parse_);
         }
 
     }

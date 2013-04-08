@@ -71,29 +71,41 @@ namespace ppbox
             virtual bool fill_data(
                 boost::system::error_code & ec);
 
-        public:
-            void demux_begin(
-                TimestampHelper & helper);
-
-            void demux_end();
-
         protected:
             void on_open();
+
+            void on_close();
 
             void adjust_timestamp(
                 Sample & sample)
             {
-                helper_->adjust(sample);
+                timestamp_->adjust(sample);
             }
 
-            TimestampHelper & time_helper()
+            void timestamp(
+                TimestampHelper & timestamp)
             {
-                return *helper_;
+                timestamp_ = &timestamp;
+            }
+
+            TimestampHelper & timestamp()
+            {
+                return *timestamp_;
+            }
+
+            TimestampHelper const & timestamp() const
+            {
+                return *timestamp_;
+            }
+
+            TimestampHelper & default_timestamp()
+            {
+                return default_timestamp_;
             }
 
         private:
-            TimestampHelper * helper_;
-            TimestampHelper default_helper_;
+            TimestampHelper * timestamp_;
+            TimestampHelper default_timestamp_;
         };
 
     } // namespace demux

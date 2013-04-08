@@ -12,17 +12,12 @@ namespace ppbox
     namespace demux
     {
 
+        class DemuxerBase;
+
         class TimestampHelper
         {
         public:
-            TimestampHelper(
-                bool smoth = false)
-                : smoth_(smoth)
-                , smoth_begin_(false)
-                , max_delta_(500)
-                , time_offset_(0)
-            {
-            }
+            TimestampHelper();
 
         public:
             void set_scale(
@@ -32,10 +27,11 @@ namespace ppbox
 
                 if (!time_trans_.empty()) // 只能设置一次
                     return;
+                boost::uint64_t us_time_offset = time_offset_ * 1000;
                 for (size_t i = 0; i < time_scale.size(); ++i) {
-                    time_trans_.push_back(ScaleTransform(time_scale[i], 1000));
-                    ustime_trans_.push_back(ScaleTransform(time_scale[i], 1000000));
                     dts_offset_.push_back(ScaleTransform::static_transfer(1000, time_scale[i], time_offset_));
+                    time_trans_.push_back(ScaleTransform(time_scale[i], 1000, time_offset_));
+                    ustime_trans_.push_back(ScaleTransform(time_scale[i], 1000000, us_time_offset));
                 }
             }
 
@@ -44,10 +40,12 @@ namespace ppbox
             {
                 using framework::system::ScaleTransform;
 
-                smoth_begin_ = false;
                 time_offset_ = time; // 保存下来，可能set_scale后面才会调用
+                boost::uint64_t us_time_offset = time_offset_ * 1000;
                 for (size_t i = 0; i < dts_offset_.size(); ++i) {
                     dts_offset_[i] = ScaleTransform::static_transfer(1000, time_trans_[i].scale_in(), time_offset_);
+                    time_trans_[i].reset(time_offset_);
+                    ustime_trans_[i].reset(us_time_offset);
                 }
             }
 
@@ -55,13 +53,11 @@ namespace ppbox
             void begin(
                 std::vector<boost::uint64_t> const & dts)
             {
-                if (smoth_ && smoth_begin_) {
-                    return;
-                }
-                smoth_begin_ = true;
                 assert(dts.size() == dts_offset_.size());
                 for (size_t i = 0; i < dts.size(); ++i) {
                     dts_offset_[i] -= dts[i];
+                    time_trans_[i].last_in(time_trans_[i].last_in() + dts[i]);
+                    ustime_trans_[i].last_in(ustime_trans_[i].last_in() + dts[i]);
                 }
             }
 
@@ -69,27 +65,24 @@ namespace ppbox
             void end(
                 std::vector<boost::uint64_t> const & dts)
             {
-                if (smoth_) {
-                    return;
-                }
                 assert(dts.size() == dts_offset_.size());
                 for (size_t i = 0; i < dts.size(); ++i) {
                     dts_offset_[i] += dts[i];
+                    time_trans_[i].transfer(dts[i]);
+                    time_trans_[i].last_in(0);
+                    ustime_trans_[i].transfer(dts[i]);
+                    ustime_trans_[i].last_in(0);
                 }
             }
 
         public:
-            void smoth(
-                bool b)
-            {
-                smoth_ = b;
-            }
+            void begin(
+                DemuxerBase & demuxer);
 
-            bool smoth() const
-            {
-                return smoth_;
-            }
+            void end(
+                DemuxerBase & demuxer);
 
+        public:
             void max_delta(
                 boost::uint32_t v)
             {
@@ -107,7 +100,6 @@ namespace ppbox
                 ppbox::avformat::Sample & sample)
             {
                 assert(sample.itrack < dts_offset_.size());
-                sample.dts += dts_offset_[sample.itrack];
                 boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
@@ -115,25 +107,68 @@ namespace ppbox
                 }
                 sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
                 sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
+                sample.dts += dts_offset_[sample.itrack];
             }
 
-            void static_adjust(
+            boost::uint64_t adjust(
+                boost::uint32_t itrack, 
+                boost::uint64_t dts)
+            {
+                assert(itrack < dts_offset_.size());
+                boost::uint64_t time = time_trans_[itrack].transfer(dts);
+                return time;
+            }
+
+            void const_adjust(
                 ppbox::avformat::Sample & sample) const
             {
                 assert(sample.itrack < dts_offset_.size());
-                sample.dts += dts_offset_[sample.itrack];
                 boost::uint64_t time = time_trans_[sample.itrack].get();
-                sample.time = time_trans_[sample.itrack].static_transfer(sample.dts);
+                sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
                     sample.flags |= sample.discontinuity;
                 }
-                sample.ustime = ustime_trans_[sample.itrack].static_transfer(sample.dts);
-                sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].static_transfer(sample.cts_delta);
+                sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
+                sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
+                sample.dts += dts_offset_[sample.itrack];
             }
 
+            boost::uint64_t const_adjust(
+                boost::uint32_t itrack, 
+                boost::uint64_t dts) const
+            {
+                assert(itrack < dts_offset_.size());
+                boost::uint64_t time = time_trans_[itrack].transfer(dts);
+                return time;
+            }
+
+            void revert(
+                boost::uint64_t time, 
+                std::vector<boost::uint64_t> & dts) const
+            {
+                for (size_t i = 0; i < time_trans_.size(); ++i) {
+                    dts.push_back(time_trans_[i].revert(time));
+                }
+            }
+
+        public:
+            std::vector<boost::uint64_t> const & dts_offset() const
+            {
+                return dts_offset_;
+            }
+
+            boost::uint64_t time() const
+            {
+                return time_trans_.front().get();
+            }
+
+            boost::uint64_t reset_time() const
+            {
+                return time_offset_;
+            }
+
+
         protected:
-            bool smoth_;
-            bool smoth_begin_; // 是否已经有一次begin
             boost::uint32_t max_delta_; // 最大帧间距离，毫秒
             boost::uint64_t time_offset_; // 毫秒
             std::vector<boost::uint64_t> dts_offset_;

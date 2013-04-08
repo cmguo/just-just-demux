@@ -4,6 +4,8 @@
 #define _PPBOX_DEMUX_BASIC_ASF_ASF_STREAM_H_
 
 #include <ppbox/avformat/asf/AsfObjectType.h>
+#include <ppbox/avformat/codec/avc/AvcCodec.h>
+
 #include <util/archive/ArchiveBuffer.h>
 
 namespace ppbox
@@ -17,10 +19,7 @@ namespace ppbox
         {
         public:
             AsfStream()
-                : ready(false)
-                , next_id(0)
-                , time_offset_us((boost::uint64_t)-1)
-                , time_offset_ms((boost::uint32_t)-1)
+                : next_id(0)
             {
                 index = (size_t)-1;
             }
@@ -28,12 +27,9 @@ namespace ppbox
             AsfStream(
                 ppbox::avformat::ASF_Stream_Properties_Object_Data const & property)
                 : ppbox::avformat::ASF_Stream_Properties_Object_Data(property)
-                , ready(false)
                 , next_id(0)
             {
                 index = (size_t)-1;
-                time_offset_us = TimeOffset / 10;
-                time_offset_ms = (boost::uint32_t)(time_offset_us / 1000);
                 parse();
             }
 /*
@@ -64,31 +60,45 @@ namespace ppbox
                 using namespace ppbox::avformat;
 
                 if (TypeSpecificDataLength > 0) {
+
+                    time_scale = 1000;
+
                     if (ASF_Video_Media == StreamType) { 
                         type = MEDIA_TYPE_VIDE;
 
                         video_format.width = Video_Media_Type.EncodeImageWidth;
                         video_format.height = Video_Media_Type.EncodeImageHeight;
                         video_format.frame_rate = 0;
+                        format_data = Video_Media_Type.FormatData.CodecSpecificData;
 
                         switch (Video_Media_Type.FormatData.CompressionID) {
                             case MAKE_FOURC_TYPE('h', '2', '6', '4'):
-                                sub_type = VIDEO_TYPE_AVC1;
-                                format_type = StreamInfo::video_avc_byte_stream;
-                                break;
                             case MAKE_FOURC_TYPE('H', '2', '6', '4'):
                                 sub_type = VIDEO_TYPE_AVC1;
                                 format_type = StreamInfo::video_avc_byte_stream;
+                                {
+                                    AvcCodec * avc_codec = new AvcCodec(format_data, AvcCodec::from_es_tag());
+                                    if (format_data.empty()) {
+                                        delete avc_codec;
+                                        return;
+                                    }
+                                    codec = avc_codec;
+                                    avc_codec->config_helper().get_format(video_format);
+                                }
                                 break;
                             default:
                                 format_type = 0;
                                 sub_type = VIDEO_TYPE_NONE;
                                 break;
                         }
-                        format_data = Video_Media_Type.FormatData.CodecSpecificData;
-                        time_scale = 1000;
                     } else if (ASF_Audio_Media == StreamType) {
                         type = MEDIA_TYPE_AUDI;
+
+                        audio_format.channel_count = Audio_Media_Type.NumberOfChannels;
+                        audio_format.sample_rate = Audio_Media_Type.SamplesPerSecond;
+                        audio_format.sample_size = Audio_Media_Type.BitsPerSample;
+                        format_data = Audio_Media_Type.CodecSpecificData;
+
                         switch (Audio_Media_Type.CodecId) {
                             case 353:
                                 format_type = StreamInfo::audio_microsoft_wave;
@@ -103,20 +113,12 @@ namespace ppbox
                                 sub_type = AUDIO_TYPE_NONE;
                                 break;
                         }
-                        time_scale = 1000;
-                        audio_format.channel_count = Audio_Media_Type.NumberOfChannels;
-                        audio_format.sample_rate = Audio_Media_Type.SamplesPerSecond;
-                        audio_format.sample_size = Audio_Media_Type.BitsPerSample;
-                        format_data = Audio_Media_Type.CodecSpecificData;
                     }
                 }
             }
 
         public:
-            bool ready;
             boost::uint32_t next_id;
-            boost::uint64_t time_offset_us;
-            boost::uint32_t time_offset_ms;
         };
 
     } // namespace demux

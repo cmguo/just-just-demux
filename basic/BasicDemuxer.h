@@ -14,6 +14,9 @@ namespace ppbox
     namespace demux
     {
 
+        class JointContext;
+        class JointShareInfo;
+
         class BasicDemuxer
             : public Demuxer
             , public ppbox::common::ClassFactory<
@@ -60,19 +63,59 @@ namespace ppbox
             virtual boost::uint64_t get_duration(
                 boost::system::error_code & ec) const = 0;
 
+        protected:
             virtual boost::uint64_t get_cur_time(
-                boost::system::error_code & ec) const = 0;
+                boost::system::error_code & ec) const;
 
             virtual boost::uint64_t get_end_time(
                 boost::system::error_code & ec) = 0;
 
         protected:
             virtual boost::uint64_t seek(
-                boost::uint64_t & time, 
+                std::vector<boost::uint64_t> & dts, 
                 boost::uint64_t & delta, // 要重复下载的数据量 
                 boost::system::error_code & ec) = 0;
 
         protected:
+            virtual JointShareInfo * joint_share();
+
+            virtual void joint_share(
+                JointShareInfo * info);
+
+        public:
+            virtual void joint_begin(
+                JointContext & context);
+
+            virtual void joint_end();
+
+            virtual void joint_begin2(
+                JointContext & context);
+
+            virtual void joint_end2();
+
+        public:
+            boost::uint64_t get_joint_cur_time(
+                boost::system::error_code & ec) const;
+
+            boost::uint64_t get_joint_end_time(
+                boost::system::error_code & ec);
+
+        protected:
+            bool jointed() const
+            {
+                return joint_ != NULL;
+            }
+
+            JointContext & jointer()
+            {
+                return *joint_;
+            }
+
+        protected:
+            void on_open();
+
+            void on_close();
+
             void begin_sample(
                 Sample & sample)
             {
@@ -101,6 +144,10 @@ namespace ppbox
         private:
             streambuffer_t & buf_;
             std::vector<ppbox::data::DataBlock> datas_;
+            bool is_open_;
+            JointContext * joint_;
+            TimestampHelper * timestamp_;
+            TimestampHelper * timestamp2_;
         };
 
     } // namespace demux

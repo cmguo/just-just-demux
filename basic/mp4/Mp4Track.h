@@ -21,6 +21,7 @@ using namespace boost::system;
 #include <bento4/Core/Ap4Sample.h>
 #include <bento4/Core/Ap4SampleDescription.h>
 #include <bento4/Core/Ap4Track.h>
+#include <bento4/Core/Ap4SampleTable.h>
 #include <bento4/Core/Ap4Protection.h>
 #include <bento4/Core/Ap4AvccAtom.h>
 #include <bento4/Core/Ap4TrakAtom.h>
@@ -30,6 +31,7 @@ using namespace boost::system;
 #include <bento4/Core/Ap4StscAtom.h>
 #include <bento4/Core/Ap4StszAtom.h>
 #include <bento4/Core/Ap4StcoAtom.h>
+#include <bento4/Core/Ap4Utils.h>
 
 namespace ppbox
 {
@@ -48,7 +50,7 @@ namespace ppbox
 
         public:
             size_t itrack;
-            boost::uint64_t ustime; // 微秒
+            boost::uint64_t time; // 毫秒
         };
 
         struct SampleOffsetLess
@@ -67,8 +69,8 @@ namespace ppbox
                 SampleListItem const & l, 
                 SampleListItem const & r)
             {
-                return l.ustime < r.ustime 
-                    || (l.ustime == r.ustime && l.itrack < r.itrack);
+                return l.time < r.time 
+                    || (l.time == r.time && l.itrack < r.itrack);
             }
         };
 
@@ -129,13 +131,6 @@ namespace ppbox
                     AP4_Result ret = track_->GetSample(index, sample);
                     // 正常情况是不会出错的，但是发现一部分影片的sample_count有问题
                     //assert(AP4_SUCCEEDED(ret));
-                    if (AP4_SUCCEEDED(ret)) {
-#ifndef PPBOX_DEMUX_MP4_USE_CTS
-                        sample.ustime = sample.GetDts() * 1000000 / track_->GetMediaTimeScale();
-#else
-                        sample.ustime = sample.GetCts() * 1000000 / track_->GetMediaTimeScale();
-#endif // PPBOX_DEMUX_MP4_USE_CTS
-                    }
                     return ret;
                 }
             }
@@ -150,13 +145,7 @@ namespace ppbox
                     ++next_index_;
                     // 正常情况是不会出错的，但是发现一部分影片的sample_count有问题
                     //assert(AP4_SUCCEEDED(ret));
-                    if (AP4_SUCCEEDED(ret)) {
-#ifndef PPBOX_DEMUX_MP4_USE_CTS
-                        sample_.ustime = sample_.GetDts() * 1000000 / track_->GetMediaTimeScale();
-#else
-                        sample_.ustime = sample_.GetCts() * 1000000 / track_->GetMediaTimeScale();
-#endif // PPBOX_DEMUX_MP4_USE_CTS
-                    } else {
+                    if (AP4_FAILED(ret)) {
                         total_index_ = next_index_;
                     }
                     return ret;
@@ -164,31 +153,26 @@ namespace ppbox
             }
 
             AP4_Result Seek(
-                AP4_UI32 & time, 
+                AP4_UI64 & time, // dts
                 AP4_Ordinal & next_index, 
                 SampleListItem & sample)
             {
-                AP4_Result ret = track_->GetSampleIndexForTimeStampMs(time, next_index);
+                AP4_Result ret = track_->GetSampleTable()->GetSampleIndexForTimeStamp(time, next_index);
                 if (AP4_SUCCEEDED(ret)) {
                     next_index = track_->GetNearestSyncSampleIndex(next_index);
                     ret = track_->GetSample(next_index, sample);
                     assert(AP4_SUCCEEDED(ret));
                     ++next_index;
-#ifndef PPBOX_DEMUX_MP4_USE_CTS
-                    sample.ustime = sample.GetDts() * 1000000 / track_->GetMediaTimeScale();
-#else
-                    sample.ustime = sample.GetCts() * 1000000 / track_->GetMediaTimeScale();
-#endif // PPBOX_DEMUX_MP4_USE_CTS
-                    time = (boost::uint32_t)(sample.ustime / 1000);
+                    time = sample.GetDts();
                 } else {
-                    time = track_->GetDurationMs();
+                    time = track_->GetDuration();
                     next_index = track_->GetSampleCount();
                 }
                 return ret;
             }
 
             AP4_Result Seek(
-                AP4_UI32 & time, 
+                AP4_UI64 & time, 
                 AP4_Position & offset)
             {
                 AP4_Result ret = Seek(time, next_index_, sample_);
@@ -240,8 +224,7 @@ namespace ppbox
             // New
             AP4_Result GetBufferTime(
                 AP4_Position offset, 
-                AP4_UI32 time_hint, 
-                AP4_UI32 & time)
+                AP4_UI64 & time)
             {
                 // 获取当前chunk_index的offset
                 AP4_UI32 cur_offset;
@@ -307,8 +290,7 @@ namespace ppbox
                         }
                         AP4_Sample ap4_sample;
                         if (AP4_SUCCEEDED(track_->GetSample(sample_index, ap4_sample))) {
-                            time = (boost::uint32_t)(
-                                ap4_sample.GetDts() * 1000 / track_->GetMediaTimeScale());
+                            time = ap4_sample.GetDts();
                         } else {
                             time = 0;
                         }
