@@ -378,12 +378,13 @@ namespace ppbox
 
         void TsDemuxer::joint_end()
         {
+            TsJointData * data = new TsJointData(*this);
             for (size_t i = 0; i < pes_parses_.size(); ++i) {
                 if (streams_[i].type == MEDIA_TYPE_VIDE) {
-                    pes_parses_[i].save_for_joint(archive_);
+                    data->pes_parses_[i].save_for_joint(archive_);
                 }
             }
-            jointer().read_ctx().data(new TsJointData(*this));
+            jointer().read_ctx().data(data);
             BasicDemuxer::joint_end();
         }
 

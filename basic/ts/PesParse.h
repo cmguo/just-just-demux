@@ -171,7 +171,9 @@ namespace ppbox
                 }
 
                 if (frame_offset_[1] > 0) {
-                    return frame_offset_[1] == 1;
+                    bool b = frame_offset_[1] == 1;
+                    frame_offset_[1] = 0;
+                    return b;
                 }
 
                 std::vector<boost::uint8_t> data;
@@ -191,7 +193,9 @@ namespace ppbox
             void save_for_joint(
                 ppbox::avformat::TsIArchive & ar)
             {
-                frame_offset_[1] = is_sync_frame(ar) ? 1 : 2;
+                if (!payloads_.empty()) {
+                    frame_offset_[1] = is_sync_frame(ar) ? 1 : 2;
+                }
                 frame_offset_[0] = 0;
             }
 
