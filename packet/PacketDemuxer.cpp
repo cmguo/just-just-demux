@@ -89,6 +89,10 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             DemuxStatistic::close();
+            Sample sample;
+            filters_.last()->before_seek(sample, ec);
+            delete filters_.first(); // SourceFilter
+            filters_.clear();
             media_.close(ec);
             seek_time_ = 0;
             seek_pending_ = false;
@@ -207,6 +211,9 @@ namespace ppbox
             boost::uint64_t & time, 
             boost::system::error_code & ec)
         {
+            Sample sample;
+            sample.time = time;
+            filters_.last()->before_seek(sample, ec);
             seek_time_ = time;
             if (ec == boost::asio::error::would_block) {
                 seek_pending_ = true;
@@ -222,7 +229,6 @@ namespace ppbox
         boost::uint64_t PacketDemuxer::check_seek(
             boost::system::error_code & ec)
         {
-            //stream_->prepare_some(ec);
             if (seek_pending_) {
                 seek(seek_time_, ec);
             } else {
@@ -249,7 +255,7 @@ namespace ppbox
         bool PacketDemuxer::fill_data(
             boost::system::error_code & ec)
         {
-            source_->prepare(ec);
+            source_->prepare_some(ec);
             return !ec;
         }
 

@@ -209,7 +209,9 @@ namespace ppbox
             open_response_type const & resp, 
             error_code & ec)
         {
-            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), play_link);
+            framework::string::Url playlink(play_link);
+            ppbox::common::decode_url(playlink, ec);
+            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), playlink);
             DemuxerBase * demuxer = NULL;
             if (media == NULL) {
                 ec = error::bad_file_type;

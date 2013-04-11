@@ -59,7 +59,10 @@ namespace ppbox
                 boost::system::error_code & ec)
             {
                 ec.clear();
-                source_.putback(sample.memory);
+                if (sample.memory) {
+                    source_.putback(sample.memory);
+                    sample.memory = NULL;
+                }
                 return true;
             }
 

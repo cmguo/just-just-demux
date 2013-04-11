@@ -7,6 +7,7 @@
 #include <ppbox/avformat/flv/FlvDataType.h>
 #include <ppbox/avformat/flv/FlvTagType.h>
 #include <ppbox/avformat/flv/FlvMetaData.h>
+#include <ppbox/avformat/codec/avc/AvcConfigHelper.h>
 #include <ppbox/avformat/codec/aac/AacConfigHelper.h>
 
 namespace ppbox
@@ -48,7 +49,7 @@ namespace ppbox
                         type = MEDIA_TYPE_VIDE;
 
                         switch (VideoHeader.CodecID) {
-                            case 7:
+                            case FlvVideoCodec::H264:
                                 sub_type = VIDEO_TYPE_AVC1;
                                 format_type = StreamInfo::video_avc_packet;
                                 break;
@@ -57,16 +58,33 @@ namespace ppbox
                                 format_type = 0;
                                 break;
                         }
-                        video_format.frame_rate = metadata.framerate;
-                        video_format.width = metadata.width;
-                        video_format.height = metadata.height;
+                        video_format.frame_rate = 0;
+                        video_format.width = 0;
+                        video_format.height = 0;
+                        if (sub_type == VIDEO_TYPE_AVC1) {
+                            ppbox::avformat::AvcConfigHelper ac(codec_data);
+                            ac.get_format(video_format);
+                        }
+                        if (metadata.framerate) {
+                            video_format.frame_rate = metadata.framerate;
+                        }
+                        if (metadata.width) {
+                            video_format.width = metadata.width;
+                        }
+                        if (metadata.height) {
+                            video_format.height = metadata.height;
+                        }
                         time_scale = 1000;
                         format_data = codec_data;
                     } else if (FlvTagType::AUDIO == Type) {
                         type = MEDIA_TYPE_AUDI;
                         switch (AudioHeader.SoundFormat) {
-                            case 10:
+                            case FlvSoundCodec::AAC:
                                 sub_type = AUDIO_TYPE_MP4A;
+                                format_type = StreamInfo::audio_iso_mp4;
+                                break;
+                            case FlvSoundCodec::MP3:
+                                sub_type = AUDIO_TYPE_MP1A;
                                 format_type = StreamInfo::audio_iso_mp4;
                                 break;
                             default:
