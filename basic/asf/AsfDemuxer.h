@@ -5,6 +5,7 @@
 
 #include "ppbox/demux/basic/BasicDemuxer.h"
 #include "ppbox/demux/basic/asf/AsfStream.h"
+#include "ppbox/demux/basic/asf/AsfParse.h"
 
 #include <ppbox/avformat/asf/AsfObjectType.h>
 #include <framework/system/LimitNumber.h>
@@ -91,21 +92,20 @@ namespace ppbox
         private:
             struct ParseStatus
             {
-                ParseStatus(
-                    ppbox::avformat::ASF_File_Properties_Object_Data const & FileProperties)
-                    : packet(FileProperties.MaximumDataPacketSize)
-                    , num_packet(0)
+                ParseStatus()
+                    : num_packet(0)
                     , num_payload(0)
                 {
+                    context.packet = &packet;
                 }
 
                 ppbox::avformat::ASF_Packet packet;
                 ppbox::avformat::ASF_PayloadHeader payload;
+                ppbox::avformat::ASF_ParseContext context;
                 boost::uint64_t offset_packet;
                 boost::uint64_t offset;
                 boost::uint64_t num_packet;
                 boost::uint64_t num_payload;
-                framework::system::LimitNumber<32> timestamp;
             };
 
             boost::system::error_code next_packet(
@@ -128,14 +128,14 @@ namespace ppbox
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order
             boost::uint64_t header_offset_;
-            ParseStatus object_parse_; 
-            std::vector<ppbox::avformat::ASF_PayloadHeader> object_payloads_;
-            boost::uint64_t next_object_offset_; // not offset in file, just offset of this object
-            bool is_discontinuity_;
+
+            ParseStatus object_parse_;
+            AsfParse parse_;
 
             // for calc end time
             boost::uint64_t fixed_packet_length_;
             mutable ParseStatus buffer_parse_;
+            framework::system::LimitNumber<32> timestamp2_;
 
             // for calc sample timestamp
             boost::uint64_t timestamp_offset_ms_;

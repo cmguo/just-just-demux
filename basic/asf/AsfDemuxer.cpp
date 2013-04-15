@@ -25,8 +25,6 @@ namespace ppbox
             : BasicDemuxer(io_svc, buf)
             , archive_(buf)
             , open_step_(size_t(-1))
-            , object_parse_(file_prop_)
-            , buffer_parse_(file_prop_)
             , timestamp_offset_ms_(boost::uint64_t(-1))
         {
         }
@@ -82,6 +80,8 @@ namespace ppbox
                     archive_ >> obj_head;
                     if (obj_head.ObjectId == ASF_FILE_PROPERTIES_OBJECT) {
                         archive_ >> file_prop_;
+                        object_parse_.context.max_packet_size = file_prop_.MaximumDataPacketSize;
+                        buffer_parse_.context.max_packet_size = file_prop_.MaximumDataPacketSize;
                     } else if (obj_head.ObjectId == ASF_STREAM_PROPERTIES_OBJECT) {
                         ASF_Stream_Properties_Object_Data obj_data;
                         archive_ >> obj_data;
@@ -92,6 +92,8 @@ namespace ppbox
                         }
                         streams_.push_back(AsfStream(obj_data));
                         streams_.back().index = index;
+                    } else {
+                        archive_.seekg(obj_head.ObjLength - 24, std::ios::cur);
                     }
                     offset += (boost::uint64_t)obj_head.ObjLength;
                     archive_.seekg(offset, std::ios_base::beg);
@@ -120,8 +122,6 @@ namespace ppbox
                 object_parse_.packet.PayloadNum = 0;
                 object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 object_parse_.offset = header_offset_;
-                next_object_offset_ = 0;
-                object_payloads_.clear();
 
                 if (file_prop_.MaximumDataPacketSize == file_prop_.MinimumDataPacketSize) {
                     fixed_packet_length_ = file_prop_.MaximumDataPacketSize;
@@ -190,11 +190,10 @@ namespace ppbox
         {
             if (is_open(ec)) {
                 dts.assign(dts.size(), timestamp_offset_ms_);
-                object_payloads_.clear();
-                next_object_offset_ = 0;
                 object_parse_.packet.PayloadNum = 0;
                 object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 object_parse_.offset = header_offset_;
+                parse_.clear();
                 buffer_parse_.packet.PayloadNum = 0;
                 buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 buffer_parse_.offset = header_offset_;
@@ -255,62 +254,26 @@ namespace ppbox
             */
             while (true) {
                 next_payload(archive_, object_parse_, ec);
-                //if (fixed_packet_length_ && ec == bad_file_format) {
-                //    archive_.clear();
-                //    archive_.seekg(object_parse_.offset_packet + fixed_packet_length_, std::ios_base::beg);
-                //    if (archive_) {
-                //        object_parse_.offset = object_parse_.offset_packet + fixed_packet_length_;
-                //        object_parse_.packet.PayloadNum = 0;
-                //        object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
-                //        continue;
-                //    } else {
-                //        archive_.clear();
-                //        ec = file_stream_error;
-                //    }
-                //}
                 if (ec) {
                     archive_.seekg(offset, std::ios_base::beg);
                     return ec;
                 }
-                // Object not continue
-                if (false  == object_payloads_.empty() 
-                    && (object_payloads_[0].StreamNum != object_parse_.payload.StreamNum 
-                    || object_payloads_[0].MediaObjNum != object_parse_.payload.MediaObjNum)) {
-                        object_payloads_.clear();
-                        next_object_offset_ = 0;
-                        is_discontinuity_ = true;
-                }
-                if (next_object_offset_ != object_parse_.payload.OffsetIntoMediaObj) {
-                    // Payload not continue
-                    object_payloads_.clear();
-                    next_object_offset_ = 0;
-                    is_discontinuity_ = true;
-                }
-                object_payloads_.push_back(object_parse_.payload);
-                next_object_offset_ += object_parse_.payload.PayloadLength;
-                if (next_object_offset_ == object_parse_.payload.MediaObjectSize) {
-                    size_t index = stream_map_[object_parse_.payload.StreamNum];
+                if (parse_.add_payload(object_parse_.context, object_parse_.payload)) {
+                    size_t index = stream_map_[parse_.stream_num()];
                     AsfStream & stream = streams_[index];
-                    stream.next_id = object_parse_.payload.MediaObjNum;
                     BasicDemuxer::begin_sample(sample);
                     sample.itrack = stream.index;
                     sample.flags = 0;
-                    if (object_parse_.payload.KeyFrameBit)
+                    if (parse_.is_sync_frame())
                         sample.flags |= Sample::sync;
-                    if (is_discontinuity_)
+                    if (parse_.is_discontinuity())
                         sample.flags |= Sample::discontinuity;
-                    boost::uint64_t timestamp = object_parse_.timestamp.transfer(object_parse_.payload.PresTime);
-                    sample.dts = timestamp;
+                    sample.dts = parse_.dts();
                     sample.cts_delta = boost::uint32_t(-1);
                     sample.duration = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
-                    for (size_t i = 0; i < object_payloads_.size(); ++i) {
-                        BasicDemuxer::push_data(object_payloads_[i].data_offset, object_payloads_[i].PayloadLength);
-                    }
+                    parse_.clear(BasicDemuxer::datas());
                     BasicDemuxer::end_sample(sample);
-                    object_payloads_.clear();
-                    is_discontinuity_ = false;
-                    next_object_offset_ = 0;
                     break;
                 }
             }
@@ -376,6 +339,7 @@ namespace ppbox
             ParseStatus & parse_status,  
             error_code & ec) const
         {
+            archive.context(&parse_status.context);
             if (parse_status.packet.PayloadNum == 0) {
                 if (parse_status.packet.PayLoadParseInfo.PaddingLength) {
                     archive.seekg(parse_status.packet.PayLoadParseInfo.PaddingLength, std::ios_base::cur);
@@ -396,12 +360,17 @@ namespace ppbox
                     parse_status.offset = archive.tellg();
                 }
             }
-            parse_status.payload.set_packet(parse_status.packet);
             if (archive >> parse_status.payload) {
-                parse_status.offset = parse_status.payload.data_offset + parse_status.payload.PayloadLength;
-                --parse_status.packet.PayloadNum;
-                ++parse_status.num_payload;
-                return ec = error_code();
+                archive.seekg(parse_status.payload.PayloadLength, std::ios_base::cur);
+                if (archive) {
+                    parse_status.offset = parse_status.context.payload_data_offset + parse_status.payload.PayloadLength;
+                    --parse_status.packet.PayloadNum;
+                    ++parse_status.num_payload;
+                    return ec = error_code();
+                } else {
+                    archive.clear();
+                    return ec = file_stream_error;
+                }
             } else if (archive.failed()) {
                 archive.clear();
                 return ec = bad_file_format;

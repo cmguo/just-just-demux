@@ -19,7 +19,6 @@ namespace ppbox
         {
         public:
             AsfStream()
-                : next_id(0)
             {
                 index = (size_t)-1;
             }
@@ -27,7 +26,6 @@ namespace ppbox
             AsfStream(
                 ppbox::avformat::ASF_Stream_Properties_Object_Data const & property)
                 : ppbox::avformat::ASF_Stream_Properties_Object_Data(property)
-                , next_id(0)
             {
                 index = (size_t)-1;
                 parse();
@@ -116,9 +114,6 @@ namespace ppbox
                     }
                 }
             }
-
-        public:
-            boost::uint32_t next_id;
         };
 
     } // namespace demux
