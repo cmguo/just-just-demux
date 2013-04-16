@@ -130,7 +130,7 @@ namespace ppbox
             boost::uint64_t header_offset_;
 
             ParseStatus object_parse_;
-            AsfParse parse_;
+            std::vector<AsfParse> parses_;
 
             // for calc end time
             boost::uint64_t fixed_packet_length_;

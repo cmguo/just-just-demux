@@ -34,20 +34,17 @@ namespace ppbox
                 ppbox::avformat::ASF_ParseContext const & context, 
                 ppbox::avformat::ASF_PayloadHeader const & payload)
             {
-                if (!payloads_.empty() 
-                    && (payload.StreamNum != payload_.StreamNum 
-                    || payload.MediaObjNum != payload_.MediaObjNum)) {
-                        payload_ = payload;
-                        next_object_offset_ = 0;
-                        is_discontinuity_ = true;
-                        payloads_.clear();
-                }
-                if (payload.OffsetIntoMediaObj != next_object_offset_) {
-                    // Payload not continue
-                    payload_ = payload;
+                if (!payloads_.empty() && payload.MediaObjNum != payload_.MediaObjNum) {
                     next_object_offset_ = 0;
                     is_discontinuity_ = true;
                     payloads_.clear();
+                }
+                if (payload.OffsetIntoMediaObj != next_object_offset_) {
+                    // Payload not continue
+                    next_object_offset_ = 0;
+                    is_discontinuity_ = true;
+                    payloads_.clear();
+                    return false;
                 }
                 if (payloads_.empty()) {
                     payload_ = payload;
@@ -76,11 +73,6 @@ namespace ppbox
                 clear();
             }
 
-            boost::uint8_t stream_num() const
-            {
-                return payload_.StreamNum;
-            }
-
             boost::uint32_t size() const
             {
                 return payload_.MediaObjectSize;
@@ -104,6 +96,11 @@ namespace ppbox
             bool is_discontinuity() const
             {
                 return is_discontinuity_;
+            }
+
+            std::vector<ppbox::data::DataBlock> const &  payloads() const
+            {
+                return payloads_;
             }
 
         private:

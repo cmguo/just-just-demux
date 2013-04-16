@@ -97,7 +97,7 @@ namespace ppbox
                     }
                     offset += (boost::uint64_t)obj_head.ObjLength;
                     archive_.seekg(offset, std::ios_base::beg);
-                }
+                } // while
 
                 if (!archive_ || offset != header_.ObjLength || stream_map_.empty()) {
                     open_step_ = (size_t)-1;
@@ -105,6 +105,7 @@ namespace ppbox
                     return false;
                 }
 
+                parses_.resize(streams_.size());
                 open_step_ = 1;
             }
 
@@ -133,7 +134,7 @@ namespace ppbox
                 buffer_parse_.offset = header_offset_;
 
                 if (!next_payload(archive_, object_parse_, ec)) {
-                    if (object_parse_.payload.StreamNum >= streams_.size()) {
+                    if (object_parse_.payload.StreamNum >= stream_map_.size()) {
                         open_step_ = (size_t)-1;
                         ec = bad_file_format;
                         return false;
@@ -193,7 +194,9 @@ namespace ppbox
                 object_parse_.packet.PayloadNum = 0;
                 object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 object_parse_.offset = header_offset_;
-                parse_.clear();
+                for (size_t i = 0; i < parses_.size(); ++i) {
+                    parses_[i].clear();
+                }
                 buffer_parse_.packet.PayloadNum = 0;
                 buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 buffer_parse_.offset = header_offset_;
@@ -258,21 +261,30 @@ namespace ppbox
                     archive_.seekg(offset, std::ios_base::beg);
                     return ec;
                 }
-                if (parse_.add_payload(object_parse_.context, object_parse_.payload)) {
-                    size_t index = stream_map_[parse_.stream_num()];
+                if (object_parse_.payload.StreamNum >= stream_map_.size()) {
+                    ec = error::bad_file_format;
+                    return ec;
+                }
+                size_t index = stream_map_[object_parse_.payload.StreamNum];
+                if (index >= streams_.size()) {
+                    ec = error::bad_file_format;
+                    return ec;
+                }
+                AsfParse & parse(parses_[index]);
+                if (parse.add_payload(object_parse_.context, object_parse_.payload)) {
                     AsfStream & stream = streams_[index];
                     BasicDemuxer::begin_sample(sample);
-                    sample.itrack = stream.index;
+                    sample.itrack = index;
                     sample.flags = 0;
-                    if (parse_.is_sync_frame())
+                    if (parse.is_sync_frame())
                         sample.flags |= Sample::sync;
-                    if (parse_.is_discontinuity())
+                    if (parse.is_discontinuity())
                         sample.flags |= Sample::discontinuity;
-                    sample.dts = parse_.dts();
+                    sample.dts = parse.dts();
                     sample.cts_delta = boost::uint32_t(-1);
                     sample.duration = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
-                    parse_.clear(BasicDemuxer::datas());
+                    parse.clear(BasicDemuxer::datas());
                     BasicDemuxer::end_sample(sample);
                     break;
                 }
