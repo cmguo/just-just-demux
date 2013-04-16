@@ -273,7 +273,7 @@ namespace ppbox
                     buffer_->pause_stream();
                     write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
                 } else if (ec == error::file_stream_error) {
-                    if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
+                    if (buffer_->read_has_more()) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
                         free_demuxer(read_demuxer_, true, ec);
                         boost::uint64_t min_offset = buffer_->read_segment().byte_range.end;
@@ -452,7 +452,7 @@ namespace ppbox
                 if (ec != error::file_stream_error && ec != error::no_more_sample) {
                     break;
                 }
-                if (!buffer_->read_segment().is_same_segment(buffer_->write_segment())) {
+                if (buffer_->read_has_more()) {
                     LOG_DEBUG("[get_sample] finish segment " << buffer_->read_segment().index);
                     boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
                     free_demuxer(read_demuxer_, true, ec);
@@ -554,14 +554,13 @@ namespace ppbox
             boost::uint64_t time = 0;
             buffer_->pause_stream(); // 防止下面代码执行时继续下载，引起 buffer_->write_segment() 变化，导致 write_demuxer_->stream 分段属性错误
             if (write_demuxer_) {
-                while (write_demuxer_->segment != buffer_->write_segment()) {
+                while (buffer_->write_has_more()) {
                     LOG_DEBUG("[get_end_time] finish segment " << write_demuxer_->segment.index);
                     if (buffer_->write_segment().valid()) {
-                        SegmentPosition seg = write_demuxer_->segment;
-                        seg.time_range.end = write_demuxer_->demuxer->get_duration(ec);
+                        boost::uint64_t duration = write_demuxer_->demuxer->get_duration(ec);
                         free_demuxer(write_demuxer_, false, ec);
-                        buffer_->write_next(seg, ec);
-                        write_demuxer_ = alloc_demuxer(seg, false, ec);
+                        buffer_->write_next(duration, ec);
+                        write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec);
                     } else {
                         break;
                     }
