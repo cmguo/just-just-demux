@@ -73,7 +73,7 @@ namespace ppbox
                             case MAKE_FOURC_TYPE('h', '2', '6', '4'):
                             case MAKE_FOURC_TYPE('H', '2', '6', '4'):
                                 sub_type = VIDEO_TYPE_AVC1;
-                                format_type = StreamInfo::video_avc_byte_stream;
+                                format_type = FormatType::video_avc_byte_stream;
                                 {
                                     AvcCodec * avc_codec = new AvcCodec(format_data, AvcCodec::from_es_tag());
                                     if (format_data.empty()) {
@@ -84,9 +84,14 @@ namespace ppbox
                                     avc_codec->config_helper().get_format(video_format);
                                 }
                                 break;
+                            case MAKE_FOURC_TYPE('w', 'm', 'v', '3'):
+                            case MAKE_FOURC_TYPE('W', 'M', 'V', '3'):
+                                sub_type = VIDEO_TYPE_WMV3;
+                                format_type = FormatType::none;
+                                break;
                             default:
-                                format_type = 0;
                                 sub_type = VIDEO_TYPE_NONE;
+                                format_type = FormatType::none;
                                 break;
                         }
                     } else if (ASF_Audio_Media == StreamType) {
@@ -98,17 +103,21 @@ namespace ppbox
                         format_data = Audio_Media_Type.CodecSpecificData;
 
                         switch (Audio_Media_Type.CodecId) {
-                            case 353:
-                                format_type = StreamInfo::audio_microsoft_wave;
-                                sub_type = AUDIO_TYPE_WMA2;
+                            case 0x0055: // WAVE_FORMAT_MPEGLAYER3
+                                sub_type = AUDIO_TYPE_MP1A;
+                                format_type = FormatType::audio_iso_mp4;
                                 break;
-                            case 255:
-                                format_type = StreamInfo::audio_iso_mp4;
+                            case 0x00ff:
                                 sub_type = AUDIO_TYPE_MP4A;
+                                format_type = FormatType::audio_iso_mp4;
+                                break;
+                            case 0x0161: // WAVE_FORMAT_WMAUDIO2
+                                sub_type = AUDIO_TYPE_WMA2;
+                                format_type = FormatType::none;
                                 break;
                             default:
-                                format_type = 0;
                                 sub_type = AUDIO_TYPE_NONE;
+                                format_type = FormatType::none;
                                 break;
                         }
                     }

@@ -6,6 +6,7 @@
 #include <ppbox/avformat/codec/avc/AvcCodec.h>
 #include <ppbox/avformat/codec/aac/AacCodec.h>
 #include <ppbox/avformat/codec/aac/AacConfig.h>
+#include <ppbox/avformat/Format.h>
 
 namespace ppbox
 {
@@ -92,19 +93,21 @@ namespace ppbox
                     case TsStreamType::iso_13818_3_audio:
                         type = MEDIA_TYPE_AUDI;
                         sub_type = AUDIO_TYPE_MP1A;
-                        format_type = audio_iso_mp4;
+                        format_type = FormatType::audio_iso_mp4;
                         break;
                     case TsStreamType::iso_13818_7_audio:
                         type = MEDIA_TYPE_AUDI;
                         sub_type = AUDIO_TYPE_MP4A;
-                        format_type = audio_aac_adts;
+                        format_type = FormatType::audio_aac_adts;
                         break;
                     case TsStreamType::iso_13818_video:
                         type = MEDIA_TYPE_VIDE;
                         sub_type = VIDEO_TYPE_AVC1;
-                        format_type = video_avc_byte_stream;
+                        format_type =FormatType:: video_avc_byte_stream;
                         break;
                     default:
+                        type = MEDIA_TYPE_NONE;
+                        format_type =FormatType:: none;
                         time_scale = TsPacket::TIME_SCALE;
                         ready = true;
                         break;

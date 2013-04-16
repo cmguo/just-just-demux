@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
 
 #include <ppbox/avformat/mkv/MkvObjectType.h>
+#include <ppbox/avformat/Format.h>
 
 namespace ppbox
 {
@@ -63,9 +64,10 @@ namespace ppbox
 
                     if (CodecID == "V_MPEG4/ISO/AVC") {
                         sub_type = VIDEO_TYPE_AVC1;
-                        format_type = StreamInfo::video_avc_packet;
+                        format_type = FormatType::video_avc_packet;
                     } else {
                         sub_type = VIDEO_TYPE_NONE;
+                        format_type = FormatType::none;
                     }
                     format_data = CodecPrivate.value();
                 } else if (TrackType == MkvTrackType::AUDIO) {
@@ -76,11 +78,11 @@ namespace ppbox
                     audio_format.sample_size = (boost::uint32_t)Audio.BitDepth.value();
 
                     if (CodecID == "A_AAC") {
-                        format_type = StreamInfo::audio_iso_mp4;
                         sub_type = AUDIO_TYPE_MP4A;
+                        format_type = FormatType::audio_iso_mp4;
                     } else {
-                        format_type = 0;
                         sub_type = AUDIO_TYPE_NONE;
+                        format_type = FormatType::none;
                     }
                     format_data = CodecPrivate.value();
                 }

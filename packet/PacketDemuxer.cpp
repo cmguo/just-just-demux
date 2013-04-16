@@ -89,10 +89,12 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             DemuxStatistic::close();
-            Sample sample;
-            filters_.last()->before_seek(sample, ec);
-            delete filters_.first(); // SourceFilter
-            filters_.clear();
+            if (!filters_.empty()) { // 可能没有打开成功
+                Sample sample;
+                filters_.last()->before_seek(sample, ec);
+                delete filters_.first(); // SourceFilter
+                filters_.clear();
+            }
             media_.close(ec);
             seek_time_ = 0;
             seek_pending_ = false;

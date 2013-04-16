@@ -5,7 +5,8 @@
 
 #include "ppbox/demux/basic/BasicDemuxer.h"
 
-#include "ppbox/demux/basic/flv/FlvStream.h"
+#include <ppbox/avformat/flv/FlvTagType.h>
+#include <ppbox/avformat/flv/FlvMetaData.h>
 
 #include <framework/system/LimitNumber.h>
 
@@ -13,6 +14,9 @@ namespace ppbox
 {
     namespace demux
     {
+
+        class FlvStream;
+
         class FlvDemuxer
             : public BasicDemuxer
         {

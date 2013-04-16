@@ -3,6 +3,7 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/basic/flv/FlvDemuxer.h"
 using namespace ppbox::demux::error;
+
 using namespace ppbox::avformat;
 
 #include <framework/logger/Logger.h>
@@ -14,7 +15,7 @@ using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", framework::logger::Warn)
 
-#include <iostream>
+#include "ppbox/demux/basic/flv/FlvStream.h"
 
 namespace ppbox
 {

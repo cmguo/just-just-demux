@@ -5,6 +5,7 @@
 
 using namespace ppbox::demux::error;
 
+#include <ppbox/avformat/Format.h>
 using namespace ppbox::avformat;
 
 #include <framework/container/OrderedUnidirList.h>
@@ -318,7 +319,7 @@ namespace ppbox
                     if (avcc) {
                         media_info.type = MEDIA_TYPE_VIDE;
                         media_info.sub_type = VIDEO_TYPE_AVC1;
-                        media_info.format_type = StreamInfo::video_avc_packet;
+                        media_info.format_type = FormatType::video_avc_packet;
                         media_info.video_format.width = avc1->GetWidth();
                         media_info.video_format.height = avc1->GetHeight();
                         media_info.video_format.frame_rate = track_->GetSampleCount() * 1000 / track_->GetDurationMs();
@@ -362,7 +363,7 @@ namespace ppbox
                         switch(video_desc->GetObjectTypeId()) {
                             case AP4_OTI_MPEG4_VISUAL:
                                 media_info.sub_type = VIDEO_TYPE_MP4V;
-                                media_info.format_type = 0;
+                                media_info.format_type = FormatType::none;
                                 {
                                     const AP4_DataBuffer & di = video_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
@@ -385,7 +386,7 @@ namespace ppbox
                             case AP4_OTI_MPEG2_AAC_AUDIO_LC: // ???
                             case AP4_OTI_MPEG2_AAC_AUDIO_SSRP: // ???
                                 media_info.sub_type = AUDIO_TYPE_MP4A;
-                                media_info.format_type = StreamInfo::audio_iso_mp4;
+                                media_info.format_type = FormatType::audio_iso_mp4;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
@@ -396,7 +397,7 @@ namespace ppbox
                                 break;
                             case AP4_OTI_MPEG1_AUDIO: // mp3
                                 media_info.sub_type = AUDIO_TYPE_MP1A;
-                                media_info.format_type = StreamInfo::audio_iso_mp4;
+                                media_info.format_type = FormatType::audio_iso_mp4;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
@@ -406,6 +407,8 @@ namespace ppbox
                                 ec = error_code();
                                 break;
                             default:
+                                media_info.sub_type = AUDIO_TYPE_NONE;
+                                media_info.format_type = FormatType::none;
                                 break;
                         }
                     }

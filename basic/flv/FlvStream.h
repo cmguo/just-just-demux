@@ -4,11 +4,11 @@
 #define _PPBOX_DEMUX_BASIC_FLV_FLV_STREAM_H_
 
 #include <ppbox/avformat/flv/FlvFormat.h>
-#include <ppbox/avformat/flv/FlvDataType.h>
 #include <ppbox/avformat/flv/FlvTagType.h>
 #include <ppbox/avformat/flv/FlvMetaData.h>
 #include <ppbox/avformat/codec/avc/AvcConfigHelper.h>
 #include <ppbox/avformat/codec/aac/AacConfigHelper.h>
+#include <ppbox/avformat/Format.h>
 
 namespace ppbox
 {
@@ -56,11 +56,11 @@ namespace ppbox
                         switch (VideoHeader.CodecID) {
                             case FlvVideoCodec::H264:
                                 sub_type = VIDEO_TYPE_AVC1;
-                                format_type = StreamInfo::video_avc_packet;
+                                format_type = FormatType::video_avc_packet;
                                 break;
                             default:
                                 sub_type = VIDEO_TYPE_NONE;
-                                format_type = 0;
+                                format_type = FormatType::none;
                                 break;
                         }
 
@@ -92,16 +92,16 @@ namespace ppbox
                         switch (AudioHeader.SoundFormat) {
                             case FlvSoundCodec::AAC:
                                 sub_type = AUDIO_TYPE_MP4A;
-                                format_type = StreamInfo::audio_iso_mp4;
+                                format_type = FormatType::audio_iso_mp4;
                                 break;
                             case FlvSoundCodec::MP3:
                                 sub_type = AUDIO_TYPE_MP1A;
-                                format_type = StreamInfo::audio_iso_mp4;
+                                format_type = FormatType::audio_iso_mp4;
                                 format_data.clear();
                                 break;
                             default:
                                 sub_type = AUDIO_TYPE_NONE;
-                                format_type = 0;
+                                format_type = FormatType::none;
                                 break;
                         }
 
