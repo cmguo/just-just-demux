@@ -232,7 +232,7 @@ namespace ppbox
             DemuxInfo * info = new DemuxInfo;
             info->media = media;
             info->demuxer = demuxer;
-            info->play_link = play_link;
+            info->play_link = playlink;
             info->resp = resp;
             return info;
         }

@@ -106,7 +106,9 @@ namespace ppbox
                     sample.flags |= sample.discontinuity;
                 }
                 sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
-                sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
+                if (sample.cts_delta != (boost::uint32_t)-1) {
+                    sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
+                }
                 sample.dts += dts_offset_[sample.itrack];
             }
 
@@ -129,7 +131,9 @@ namespace ppbox
                     sample.flags |= sample.discontinuity;
                 }
                 sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
-                sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
+                if (sample.cts_delta != (boost::uint32_t)-1) {
+                    sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
+                }
                 sample.dts += dts_offset_[sample.itrack];
             }
 
