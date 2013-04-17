@@ -284,6 +284,7 @@ namespace ppbox
                     sample.cts_delta = boost::uint32_t(-1);
                     sample.duration = 0;
                     sample.size = object_parse_.payload.MediaObjectSize;
+                    sample.stream_info = &stream;
                     parse.clear(BasicDemuxer::datas());
                     BasicDemuxer::end_sample(sample);
                     break;

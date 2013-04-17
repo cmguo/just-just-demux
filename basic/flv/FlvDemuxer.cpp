@@ -268,7 +268,7 @@ namespace ppbox
                 assert(index < streams_.size());
                 FlvStream const & stream = streams_[index];
                 BasicDemuxer::begin_sample(sample);
-                sample.itrack = stream.index;
+                sample.itrack = index;
                 sample.flags = 0;
                 if (flv_tag_.is_sync)
                     sample.flags |= Sample::sync;
@@ -276,6 +276,7 @@ namespace ppbox
                 sample.cts_delta = flv_tag_.cts_delta;
                 sample.duration = 0;
                 sample.size = flv_tag_.DataSize;
+                sample.stream_info = &stream;
                 BasicDemuxer::push_data(flv_tag_.data_offset, flv_tag_.DataSize);
                 BasicDemuxer::end_sample(sample);
             } else if (flv_tag_.Type == FlvTagType::DATA) {

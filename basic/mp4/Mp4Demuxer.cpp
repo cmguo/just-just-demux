@@ -319,6 +319,7 @@ namespace ppbox
             sample.cts_delta = ap4_sample.GetCtsDelta();
             sample.duration = ap4_sample.GetDuration();
             sample.size = ap4_sample.GetSize();
+            sample.stream_info = tracks_[sample.itrack];
             BasicDemuxer::push_data(ap4_sample.GetOffset(), ap4_sample.GetSize());
             BasicDemuxer::end_sample(sample);
 

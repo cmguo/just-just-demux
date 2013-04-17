@@ -281,7 +281,7 @@ namespace ppbox
                 TsStream & stream = streams_[pes_index_];
                 PesParse & parse = pes_parses_[pes_index_];
                 BasicDemuxer::begin_sample(sample);
-                sample.itrack = stream.index;
+                sample.itrack = pes_index_;
                 sample.flags = 0; // TODO: is_sync
                 if (stream.type == MEDIA_TYPE_VIDE && parse.is_sync_frame(archive_)) {
                     sample.flags |= Sample::sync;
@@ -290,6 +290,7 @@ namespace ppbox
                 sample.cts_delta = parse.cts_delta();
                 sample.duration = 0;
                 sample.size = parse.size();
+                sample.stream_info = &stream;
                 free_pes(BasicDemuxer::datas());
                 BasicDemuxer::end_sample(sample);
             }

@@ -205,12 +205,13 @@ namespace ppbox
             size_t index = stream_map_[object_parse_.track()];
             MkvStream & stream = streams_[index];
             BasicDemuxer::begin_sample(sample);
-            sample.itrack = stream.index;
+            sample.itrack = index;
             if (object_parse_.is_sync_frame())
                 sample.flags |= Sample::sync;
             sample.dts = object_parse_.dts();
             sample.cts_delta = 0;
             sample.size = object_parse_.size();
+            sample.stream_info = &stream;
             BasicDemuxer::push_data(object_parse_.offset(), sample.size);
             sample.data.clear();
             for (size_t i = 0; i < stream.ContentEncodings.ContentEncodings.size(); ++i) {
