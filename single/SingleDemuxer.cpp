@@ -294,7 +294,7 @@ namespace ppbox
             if (ec == error::file_stream_error) {
                 ec = stream_->last_error();
                 assert(ec);
-                if (ec == ppbox::data::source_error::no_more_segment)
+                if (ec == boost::asio::error::eof)
                     ec = error::no_more_sample;
                 if (!ec) {
                     ec = boost::asio::error::would_block;
