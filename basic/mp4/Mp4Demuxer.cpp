@@ -312,7 +312,7 @@ namespace ppbox
             sample.itrack = ap4_sample.itrack;
             sample.flags = 0;
             if (ap4_sample.IsSync())
-                sample.flags |= Sample::sync;
+                sample.flags |= Sample::f_sync;
             //sample.time = ap4_sample.time;
             //sample.ustime = ap4_sample.ustime;
             sample.dts = ap4_sample.GetDts();

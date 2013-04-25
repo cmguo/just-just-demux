@@ -277,9 +277,9 @@ namespace ppbox
                     sample.itrack = index;
                     sample.flags = 0;
                     if (parse.is_sync_frame())
-                        sample.flags |= Sample::sync;
+                        sample.flags |= Sample::f_sync;
                     if (parse.is_discontinuity())
-                        sample.flags |= Sample::discontinuity;
+                        sample.flags |= Sample::f_discontinuity;
                     sample.dts = parse.dts();
                     sample.cts_delta = boost::uint32_t(-1);
                     sample.duration = 0;

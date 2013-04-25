@@ -62,7 +62,7 @@ namespace ppbox
                     time_scale = 1000;
 
                     if (ASF_Video_Media == StreamType) { 
-                        type = MEDIA_TYPE_VIDE;
+                        type = StreamType::VIDE;
 
                         video_format.width = Video_Media_Type.EncodeImageWidth;
                         video_format.height = Video_Media_Type.EncodeImageHeight;
@@ -72,10 +72,10 @@ namespace ppbox
                         switch (Video_Media_Type.FormatData.CompressionID) {
                             case MAKE_FOURC_TYPE('h', '2', '6', '4'):
                             case MAKE_FOURC_TYPE('H', '2', '6', '4'):
-                                sub_type = VIDEO_TYPE_AVC1;
+                                sub_type = VideoSubType::AVC1;
                                 format_type = FormatType::video_avc_byte_stream;
                                 {
-                                    AvcCodec * avc_codec = new AvcCodec(format_data, AvcCodec::from_es_tag());
+                                    AvcCodec * avc_codec = new AvcCodec(format_type, format_data);
                                     if (format_data.empty()) {
                                         delete avc_codec;
                                         return;
@@ -86,16 +86,16 @@ namespace ppbox
                                 break;
                             case MAKE_FOURC_TYPE('w', 'm', 'v', '3'):
                             case MAKE_FOURC_TYPE('W', 'M', 'V', '3'):
-                                sub_type = VIDEO_TYPE_WMV3;
+                                sub_type = VideoSubType::WMV3;
                                 format_type = FormatType::none;
                                 break;
                             default:
-                                sub_type = VIDEO_TYPE_NONE;
+                                sub_type = VideoSubType::NONE;
                                 format_type = FormatType::none;
                                 break;
                         }
                     } else if (ASF_Audio_Media == StreamType) {
-                        type = MEDIA_TYPE_AUDI;
+                        type = StreamType::AUDI;
 
                         audio_format.channel_count = Audio_Media_Type.NumberOfChannels;
                         audio_format.sample_rate = Audio_Media_Type.SamplesPerSecond;
@@ -104,19 +104,19 @@ namespace ppbox
 
                         switch (Audio_Media_Type.CodecId) {
                             case 0x0055: // WAVE_FORMAT_MPEGLAYER3
-                                sub_type = AUDIO_TYPE_MP1A;
-                                format_type = FormatType::audio_iso_mp4;
+                                sub_type = AudioSubType::MP1A;
+                                format_type = FormatType::audio_raw;
                                 break;
                             case 0x00ff:
-                                sub_type = AUDIO_TYPE_MP4A;
-                                format_type = FormatType::audio_iso_mp4;
+                                sub_type = AudioSubType::MP4A;
+                                format_type = FormatType::audio_raw;
                                 break;
                             case 0x0161: // WAVE_FORMAT_WMAUDIO2
-                                sub_type = AUDIO_TYPE_WMA2;
+                                sub_type = AudioSubType::WMA2;
                                 format_type = FormatType::none;
                                 break;
                             default:
-                                sub_type = AUDIO_TYPE_NONE;
+                                sub_type = AudioSubType::NONE;
                                 format_type = FormatType::none;
                                 break;
                         }

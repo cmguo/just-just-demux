@@ -46,7 +46,7 @@ namespace ppbox
 
                 if (DataSize > 0) {
                     if (FlvTagType::VIDEO == Type) { 
-                        type = MEDIA_TYPE_VIDE;
+                        type = StreamType::VIDE;
                         time_scale = 1000;
                         video_format.frame_rate = 0;
                         video_format.width = 0;
@@ -55,16 +55,16 @@ namespace ppbox
 
                         switch (VideoHeader.CodecID) {
                             case FlvVideoCodec::H264:
-                                sub_type = VIDEO_TYPE_AVC1;
+                                sub_type = VideoSubType::AVC1;
                                 format_type = FormatType::video_avc_packet;
                                 break;
                             default:
-                                sub_type = VIDEO_TYPE_NONE;
+                                sub_type = VideoSubType::NONE;
                                 format_type = FormatType::none;
                                 break;
                         }
 
-                        if (sub_type == VIDEO_TYPE_AVC1) {
+                        if (sub_type == VideoSubType::AVC1) {
                             ppbox::avformat::AvcConfigHelper ac(codec_data);
                             ac.get_format(video_format);
                         }
@@ -79,7 +79,7 @@ namespace ppbox
                             video_format.height = metadata.height;
                         }
                     } else if (FlvTagType::AUDIO == Type) {
-                        type = MEDIA_TYPE_AUDI;
+                        type = StreamType::AUDI;
                         time_scale = 1000;
                         boost::uint32_t frequency[4] = {5500, 11025, 22050, 44100};
                         boost::uint32_t size[2] = {8, 16};
@@ -91,21 +91,21 @@ namespace ppbox
 
                         switch (AudioHeader.SoundFormat) {
                             case FlvSoundCodec::AAC:
-                                sub_type = AUDIO_TYPE_MP4A;
-                                format_type = FormatType::audio_iso_mp4;
+                                sub_type = AudioSubType::MP4A;
+                                format_type = FormatType::audio_raw;
                                 break;
                             case FlvSoundCodec::MP3:
-                                sub_type = AUDIO_TYPE_MP1A;
-                                format_type = FormatType::audio_iso_mp4;
+                                sub_type = AudioSubType::MP1A;
+                                format_type = FormatType::audio_raw;
                                 format_data.clear();
                                 break;
                             default:
-                                sub_type = AUDIO_TYPE_NONE;
+                                sub_type = AudioSubType::NONE;
                                 format_type = FormatType::none;
                                 break;
                         }
 
-                        if (sub_type == AUDIO_TYPE_MP4A) {
+                        if (sub_type == AudioSubType::MP4A) {
                             ppbox::avformat::AacConfigHelper ac(codec_data);
                             audio_format.sample_rate = ac.get_frequency();
                             audio_format.channel_count = ac.get_channel_count();

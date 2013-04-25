@@ -271,7 +271,7 @@ namespace ppbox
                 sample.itrack = index;
                 sample.flags = 0;
                 if (flv_tag_.is_sync)
-                    sample.flags |= Sample::sync;
+                    sample.flags |= Sample::f_sync;
                 sample.dts = timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);;
                 sample.cts_delta = flv_tag_.cts_delta;
                 sample.duration = 0;

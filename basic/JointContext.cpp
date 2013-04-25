@@ -6,6 +6,8 @@
 #include "ppbox/demux/basic/JointData.h"
 #include "ppbox/demux/basic/JointShareInfo.h"
 
+#include <ppbox/data/segment/SegmentInfo.h>
+
 namespace ppbox
 {
     namespace demux
@@ -95,7 +97,7 @@ namespace ppbox
 
         bool JointContext::smoth() const
         {
-            return (media_flags_ & MediaInfo::f_time_smoth) != 0;
+            return (media_flags_ & ppbox::data::SegmentMediaFlags::f_time_smoth) != 0;
         }
 
         void JointContext::share_info(

@@ -207,7 +207,7 @@ namespace ppbox
             BasicDemuxer::begin_sample(sample);
             sample.itrack = index;
             if (object_parse_.is_sync_frame())
-                sample.flags |= Sample::sync;
+                sample.flags |= Sample::f_sync;
             sample.dts = object_parse_.dts();
             sample.cts_delta = 0;
             sample.size = object_parse_.size();

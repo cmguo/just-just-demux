@@ -4,7 +4,6 @@
 #include "ppbox/demux/DemuxModule.h"
 #include "ppbox/demux/Version.h"
 #include "ppbox/demux/basic/DemuxerTypes.h"
-//#include "ppbox/demux/CommonDemuxer.h"
 //#include "ppbox/demux/EmptyDemuxer.h"
 #include "ppbox/demux/base/DemuxerBase.h"
 #include "ppbox/demux/single/SingleDemuxer.h"
@@ -226,7 +225,11 @@ namespace ppbox
                     } else {
                         demuxer = new SingleDemuxer(io_svc(), *media);
                     }
-                    ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
+                    if (demuxer == NULL) {
+                        ec = error::bad_file_type;
+                    } else {
+                        ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
+                    }
                 }
             }
             DemuxInfo * info = new DemuxInfo;

@@ -317,8 +317,8 @@ namespace ppbox
                     AP4_Avc1SampleEntry* avc1 = static_cast<AP4_Avc1SampleEntry*>(avc1Atom);
                     AP4_AvccAtom* avcc = AP4_DYNAMIC_CAST(AP4_AvccAtom, avc1->GetChild(AP4_ATOM_TYPE_AVCC));
                     if (avcc) {
-                        media_info.type = MEDIA_TYPE_VIDE;
-                        media_info.sub_type = VIDEO_TYPE_AVC1;
+                        media_info.type = StreamType::VIDE;
+                        media_info.sub_type = VideoSubType::AVC1;
                         media_info.format_type = FormatType::video_avc_packet;
                         media_info.video_format.width = avc1->GetWidth();
                         media_info.video_format.height = avc1->GetHeight();
@@ -356,13 +356,13 @@ namespace ppbox
                         mpeg_desc = AP4_DYNAMIC_CAST(AP4_MpegSampleDescription, isma_desc->GetOriginalSampleDescription());
                     }
                     if (AP4_MpegVideoSampleDescription* video_desc = AP4_DYNAMIC_CAST(AP4_MpegVideoSampleDescription, mpeg_desc)) {
-                        media_info.type = MEDIA_TYPE_VIDE;
+                        media_info.type = StreamType::VIDE;
                         media_info.video_format.width = video_desc->GetWidth();
                         media_info.video_format.height = video_desc->GetHeight();
                         media_info.video_format.frame_rate = track_->GetSampleCount()*1000/track_->GetDurationMs();
                         switch(video_desc->GetObjectTypeId()) {
                             case AP4_OTI_MPEG4_VISUAL:
-                                media_info.sub_type = VIDEO_TYPE_MP4V;
+                                media_info.sub_type = VideoSubType::MP4V;
                                 media_info.format_type = FormatType::none;
                                 {
                                     const AP4_DataBuffer & di = video_desc->GetDecoderInfo();
@@ -376,7 +376,7 @@ namespace ppbox
                                 break;
                         }
                     } else if (AP4_MpegAudioSampleDescription* audio_desc = AP4_DYNAMIC_CAST(AP4_MpegAudioSampleDescription, mpeg_desc)) {
-                        media_info.type = MEDIA_TYPE_AUDI;
+                        media_info.type = StreamType::AUDI;
                         media_info.audio_format.sample_rate = audio_desc->GetSampleRate();
                         media_info.audio_format.sample_size = audio_desc->GetSampleSize();
                         media_info.audio_format.channel_count = audio_desc->GetChannelCount();
@@ -385,8 +385,8 @@ namespace ppbox
                             case AP4_OTI_MPEG2_AAC_AUDIO_MAIN: // ???
                             case AP4_OTI_MPEG2_AAC_AUDIO_LC: // ???
                             case AP4_OTI_MPEG2_AAC_AUDIO_SSRP: // ???
-                                media_info.sub_type = AUDIO_TYPE_MP4A;
-                                media_info.format_type = FormatType::audio_iso_mp4;
+                                media_info.sub_type = AudioSubType::MP4A;
+                                media_info.format_type = FormatType::audio_raw;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
@@ -396,8 +396,8 @@ namespace ppbox
                                 ec = error_code();
                                 break;
                             case AP4_OTI_MPEG1_AUDIO: // mp3
-                                media_info.sub_type = AUDIO_TYPE_MP1A;
-                                media_info.format_type = FormatType::audio_iso_mp4;
+                                media_info.sub_type = AudioSubType::MP1A;
+                                media_info.format_type = FormatType::audio_raw;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
@@ -407,7 +407,7 @@ namespace ppbox
                                 ec = error_code();
                                 break;
                             default:
-                                media_info.sub_type = AUDIO_TYPE_NONE;
+                                media_info.sub_type = AudioSubType::NONE;
                                 media_info.format_type = FormatType::none;
                                 break;
                         }

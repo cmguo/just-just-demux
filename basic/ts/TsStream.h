@@ -50,7 +50,7 @@ namespace ppbox
                         break;
                     case TsStreamType::iso_13818_7_audio:
                         {
-                            AacCodec * aac_codec = new AacCodec(data, AacCodec::from_adts_tag());
+                            AacCodec * aac_codec = new AacCodec(format_type, data);
                             aac_codec->config_helper().to_data(format_data);
                             codec = aac_codec;
                             audio_format.channel_count = aac_codec->config_helper().get_channel_count();
@@ -60,7 +60,7 @@ namespace ppbox
                         break;
                     case TsStreamType::iso_13818_video:
                         {
-                            AvcCodec * avc_codec = new AvcCodec(data, AvcCodec::from_es_tag());
+                            AvcCodec * avc_codec = new AvcCodec(format_type, data);
                             avc_codec->config_helper().to_es_data(format_data);
                             if (format_data.empty()) {
                                 delete avc_codec;
@@ -91,22 +91,22 @@ namespace ppbox
                 switch (stream_type) {
                     case TsStreamType::iso_11172_audio:
                     case TsStreamType::iso_13818_3_audio:
-                        type = MEDIA_TYPE_AUDI;
-                        sub_type = AUDIO_TYPE_MP1A;
-                        format_type = FormatType::audio_iso_mp4;
+                        type = StreamType::AUDI;
+                        sub_type = AudioSubType::MP1A;
+                        format_type = FormatType::audio_raw;
                         break;
                     case TsStreamType::iso_13818_7_audio:
-                        type = MEDIA_TYPE_AUDI;
-                        sub_type = AUDIO_TYPE_MP4A;
-                        format_type = FormatType::audio_aac_adts;
+                        type = StreamType::AUDI;
+                        sub_type = AudioSubType::MP4A;
+                        format_type = FormatType::audio_adts;
                         break;
                     case TsStreamType::iso_13818_video:
-                        type = MEDIA_TYPE_VIDE;
-                        sub_type = VIDEO_TYPE_AVC1;
+                        type = StreamType::VIDE;
+                        sub_type = VideoSubType::AVC1;
                         format_type =FormatType:: video_avc_byte_stream;
                         break;
                     default:
-                        type = MEDIA_TYPE_NONE;
+                        type = StreamType::NONE;
                         format_type =FormatType:: none;
                         time_scale = TsPacket::TIME_SCALE;
                         ready = true;

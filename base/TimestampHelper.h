@@ -103,7 +103,7 @@ namespace ppbox
                 boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
-                    sample.flags |= sample.discontinuity;
+                    sample.flags |= sample.f_discontinuity;
                 }
                 sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
                 if (sample.cts_delta != (boost::uint32_t)-1) {
@@ -128,7 +128,7 @@ namespace ppbox
                 boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
-                    sample.flags |= sample.discontinuity;
+                    sample.flags |= sample.f_discontinuity;
                 }
                 sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
                 if (sample.cts_delta != (boost::uint32_t)-1) {

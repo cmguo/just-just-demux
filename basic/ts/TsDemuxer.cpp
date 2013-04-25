@@ -283,8 +283,8 @@ namespace ppbox
                 BasicDemuxer::begin_sample(sample);
                 sample.itrack = pes_index_;
                 sample.flags = 0; // TODO: is_sync
-                if (stream.type == MEDIA_TYPE_VIDE && parse.is_sync_frame(archive_)) {
-                    sample.flags |= Sample::sync;
+                if (stream.type == StreamType::VIDE && parse.is_sync_frame(archive_)) {
+                    sample.flags |= Sample::f_sync;
                 }
                 sample.dts = parse.dts();
                 sample.cts_delta = parse.cts_delta();
@@ -381,7 +381,7 @@ namespace ppbox
         {
             TsJointData * data = new TsJointData(*this);
             for (size_t i = 0; i < pes_parses_.size(); ++i) {
-                if (streams_[i].type == MEDIA_TYPE_VIDE) {
+                if (streams_[i].type == StreamType::VIDE) {
                     data->pes_parses_[i].save_for_joint(archive_);
                 }
             }

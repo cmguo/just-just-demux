@@ -32,7 +32,7 @@ namespace ppbox
             void get_start_sample(
                 std::vector<Sample> & samples)
             {
-                if (sub_type == VIDEO_TYPE_AVC1) {
+                if (sub_type == VideoSubType::AVC1) {
                     Sample sample;
                     sample.itrack = index_to_map;
                     sample.time = 0;
@@ -56,32 +56,32 @@ namespace ppbox
                 using namespace ppbox::avformat;
 
                 if (TrackType == MkvTrackType::VIDEO) { 
-                    type = MEDIA_TYPE_VIDE;
+                    type = StreamType::VIDE;
 
                     video_format.width = (boost::uint32_t)Video.PixelWidth.value();
                     video_format.height = (boost::uint32_t)Video.PixelHeight.value();
                     video_format.frame_rate = 0;
 
                     if (CodecID == "V_MPEG4/ISO/AVC") {
-                        sub_type = VIDEO_TYPE_AVC1;
+                        sub_type = VideoSubType::AVC1;
                         format_type = FormatType::video_avc_packet;
                     } else {
-                        sub_type = VIDEO_TYPE_NONE;
+                        sub_type = VideoSubType::NONE;
                         format_type = FormatType::none;
                     }
                     format_data = CodecPrivate.value();
                 } else if (TrackType == MkvTrackType::AUDIO) {
-                    type = MEDIA_TYPE_AUDI;
+                    type = StreamType::AUDI;
 
                     audio_format.channel_count = (boost::uint32_t)Audio.Channels.value();
                     audio_format.sample_rate = (boost::uint32_t)(float)Audio.SamplingFrequency.value().as_int32();
                     audio_format.sample_size = (boost::uint32_t)Audio.BitDepth.value();
 
                     if (CodecID == "A_AAC") {
-                        sub_type = AUDIO_TYPE_MP4A;
-                        format_type = FormatType::audio_iso_mp4;
+                        sub_type = AudioSubType::MP4A;
+                        format_type = FormatType::audio_raw;
                     } else {
-                        sub_type = AUDIO_TYPE_NONE;
+                        sub_type = AudioSubType::NONE;
                         format_type = FormatType::none;
                     }
                     format_data = CodecPrivate.value();

@@ -378,7 +378,7 @@ namespace ppbox
                 while (true) {
                     sample.data.clear();
                     filters_.last()->get_sample(sample, ec);
-                    if (ec || (sample.flags & sample.config) == 0)
+                    if (ec || (sample.flags & sample.f_config) == 0)
                         break;
                     free_sample(sample, ec);
                 }
