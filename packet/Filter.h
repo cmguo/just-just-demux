@@ -56,7 +56,7 @@ namespace ppbox
             }
         };
 
-    } // namespace mux
+    } // namespace demux
 } // namespace ppbox
 
 #endif // _PPBOX_DEMUX_PACKET_FILTER_H_

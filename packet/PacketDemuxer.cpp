@@ -39,6 +39,9 @@ namespace ppbox
         PacketDemuxer::~PacketDemuxer()
         {
             boost::system::error_code ec;
+            while (!filters_.empty()) {
+                delete filters_.last();
+            }
             if (source_) {
                 delete source_;
                 source_ = NULL;
@@ -308,10 +311,7 @@ namespace ppbox
             }
             assert(!seek_pending_);
 
-            if (sample.memory) {
-                source_->putback(sample.memory);
-                sample.memory = NULL;
-            }
+            free_sample(sample, ec);
 
             get_sample2(sample, ec);
 

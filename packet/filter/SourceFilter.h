@@ -70,7 +70,7 @@ namespace ppbox
             ppbox::data::PacketSource & source_;
         };
 
-    } // namespace mux
+    } // namespace demux
 } // namespace ppbox
 
 #endif // _PPBOX_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_
