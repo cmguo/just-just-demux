@@ -27,7 +27,6 @@ namespace ppbox
 
                 if (!time_trans_.empty()) // 只能设置一次
                     return;
-                boost::uint64_t us_time_offset = time_offset_ * 1000;
                 for (size_t i = 0; i < time_scale.size(); ++i) {
                     dts_offset_.push_back(ScaleTransform::static_transfer(1000, time_scale[i], time_offset_));
                     time_trans_.push_back(ScaleTransform(time_scale[i], 1000, time_offset_));
@@ -40,7 +39,6 @@ namespace ppbox
                 using framework::system::ScaleTransform;
 
                 time_offset_ = time; // 保存下来，可能set_scale后面才会调用
-                boost::uint64_t us_time_offset = time_offset_ * 1000;
                 for (size_t i = 0; i < dts_offset_.size(); ++i) {
                     dts_offset_[i] = ScaleTransform::static_transfer(1000, time_trans_[i].scale_in(), time_offset_);
                     time_trans_[i].reset(time_offset_);
