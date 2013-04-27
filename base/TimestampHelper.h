@@ -31,7 +31,6 @@ namespace ppbox
                 for (size_t i = 0; i < time_scale.size(); ++i) {
                     dts_offset_.push_back(ScaleTransform::static_transfer(1000, time_scale[i], time_offset_));
                     time_trans_.push_back(ScaleTransform(time_scale[i], 1000, time_offset_));
-                    ustime_trans_.push_back(ScaleTransform(time_scale[i], 1000000, us_time_offset));
                 }
             }
 
@@ -45,7 +44,6 @@ namespace ppbox
                 for (size_t i = 0; i < dts_offset_.size(); ++i) {
                     dts_offset_[i] = ScaleTransform::static_transfer(1000, time_trans_[i].scale_in(), time_offset_);
                     time_trans_[i].reset(time_offset_);
-                    ustime_trans_[i].reset(us_time_offset);
                 }
             }
 
@@ -57,7 +55,6 @@ namespace ppbox
                 for (size_t i = 0; i < dts.size(); ++i) {
                     dts_offset_[i] -= dts[i];
                     time_trans_[i].last_in(time_trans_[i].last_in() + dts[i]);
-                    ustime_trans_[i].last_in(ustime_trans_[i].last_in() + dts[i]);
                 }
             }
 
@@ -70,8 +67,6 @@ namespace ppbox
                     dts_offset_[i] += dts[i];
                     time_trans_[i].transfer(dts[i]);
                     time_trans_[i].last_in(0);
-                    ustime_trans_[i].transfer(dts[i]);
-                    ustime_trans_[i].last_in(0);
                 }
             }
 
@@ -105,10 +100,6 @@ namespace ppbox
                 if (time + max_delta_ < sample.time) {
                     sample.flags |= sample.f_discontinuity;
                 }
-                sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
-                if (sample.cts_delta != (boost::uint32_t)-1) {
-                    sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
-                }
                 sample.dts += dts_offset_[sample.itrack];
             }
 
@@ -129,10 +120,6 @@ namespace ppbox
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
                     sample.flags |= sample.f_discontinuity;
-                }
-                sample.ustime = ustime_trans_[sample.itrack].transfer(sample.dts);
-                if (sample.cts_delta != (boost::uint32_t)-1) {
-                    sample.us_delta = (boost::uint32_t)ustime_trans_[sample.itrack].transfer(sample.cts_delta);
                 }
                 sample.dts += dts_offset_[sample.itrack];
             }
@@ -177,7 +164,6 @@ namespace ppbox
             boost::uint64_t time_offset_; // ºÁÃë
             std::vector<boost::uint64_t> dts_offset_;
             std::vector<framework::system::ScaleTransform> time_trans_; // dts -> time
-            std::vector<framework::system::ScaleTransform> ustime_trans_; // dts -> ustime
         };
 
     } // namespace demux
