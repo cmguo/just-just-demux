@@ -114,10 +114,10 @@ namespace ppbox
         public:
             ppbox::data::MediaBase const & media() const;
 
-            //ppbox::data::SingleSource const & source() const
-            //{
-            //    return *source_;
-            //}
+            ppbox::data::PacketSource const & source() const
+            {
+                return *source_;
+            }
 
         protected:
             virtual boost::uint64_t get_cur_time(
