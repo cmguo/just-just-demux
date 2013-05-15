@@ -7,6 +7,7 @@
 #include "ppbox/demux/base/DemuxError.h"
 
 using namespace ppbox::avformat;
+using namespace ppbox::avcodec;
 
 #include <util/serialization/Array.h>
 

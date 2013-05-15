@@ -96,7 +96,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code get_sample(
-                ppbox::avformat::Sample & sample, 
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             virtual bool free_sample(
@@ -131,11 +131,11 @@ namespace ppbox
                 Filter * filter);
 
             void get_sample2(
-                ppbox::avformat::Sample & sample, 
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             bool peek_sample(
-                ppbox::avformat::Sample & sample, 
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             void drop_sample();

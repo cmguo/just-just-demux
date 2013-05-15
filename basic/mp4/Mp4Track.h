@@ -5,8 +5,8 @@
 
 using namespace ppbox::demux::error;
 
-#include <ppbox/avformat/Format.h>
-using namespace ppbox::avformat;
+#include <ppbox/avcodec/Format.h>
+using namespace ppbox::avcodec;
 
 #include <framework/container/OrderedUnidirList.h>
 using namespace framework::container;

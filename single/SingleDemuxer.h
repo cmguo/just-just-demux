@@ -81,7 +81,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code get_sample(
-                ppbox::avformat::Sample & sample, 
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             virtual bool free_sample(

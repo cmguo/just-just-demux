@@ -10,8 +10,6 @@
 #include <ppbox/data/single/SingleSource.h>
 #include <ppbox/data/single/SourceStream.h>
 
-using namespace ppbox::avformat;
-
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 #include <framework/timer/Ticker.h>

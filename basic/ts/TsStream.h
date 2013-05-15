@@ -3,10 +3,10 @@
 #ifndef _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
 #define _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
 
-#include <ppbox/avformat/codec/avc/AvcCodec.h>
-#include <ppbox/avformat/codec/aac/AacCodec.h>
-#include <ppbox/avformat/codec/aac/AacConfig.h>
-#include <ppbox/avformat/Format.h>
+#include <ppbox/avcodec/avc/AvcCodec.h>
+#include <ppbox/avcodec/aac/AacCodec.h>
+#include <ppbox/avcodec/aac/AacConfig.h>
+#include <ppbox/avcodec/Format.h>
 
 namespace ppbox
 {
@@ -43,6 +43,7 @@ namespace ppbox
                 std::vector<boost::uint8_t> const & data)
             {
                 using namespace ppbox::avformat;
+                using namespace ppbox::avcodec;
 
                 switch (stream_type) {
                     case TsStreamType::iso_11172_audio:
@@ -87,6 +88,7 @@ namespace ppbox
             void parse()
             {
                 using namespace ppbox::avformat;
+                using namespace ppbox::avcodec;
 
                 switch (stream_type) {
                     case TsStreamType::iso_11172_audio:

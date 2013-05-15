@@ -7,8 +7,8 @@
 #include <ppbox/data/base/StreamStatus.h>
 #include <ppbox/data/base/DataStatistic.h>
 
-#include <ppbox/avformat/StreamInfo.h>
-#include <ppbox/avformat/Sample.h>
+#include <ppbox/avbase/StreamInfo.h>
+#include <ppbox/avbase/Sample.h>
 
 #include <boost/function.hpp>
 
@@ -21,8 +21,8 @@ namespace ppbox
         using ppbox::data::StreamStatus;
         using ppbox::data::DataStatistic;
 
-        using ppbox::avformat::StreamInfo;
-        using ppbox::avformat::Sample;
+        using ppbox::avbase::StreamInfo;
+        using ppbox::avbase::Sample;
 
         typedef boost::function<void (
             boost::system::error_code const &)

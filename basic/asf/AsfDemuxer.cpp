@@ -76,14 +76,14 @@ namespace ppbox
                 streams_.clear();
                 stream_map_.clear();
                 while (archive_ && offset < header_.ObjLength) {
-                    ASF_Object_Header obj_head;
+                    AsfObjectHeader obj_head;
                     archive_ >> obj_head;
                     if (obj_head.ObjectId == ASF_FILE_PROPERTIES_OBJECT) {
                         archive_ >> file_prop_;
                         object_parse_.context.max_packet_size = file_prop_.MaximumDataPacketSize;
                         buffer_parse_.context.max_packet_size = file_prop_.MaximumDataPacketSize;
                     } else if (obj_head.ObjectId == ASF_STREAM_PROPERTIES_OBJECT) {
-                        ASF_Stream_Properties_Object_Data obj_data;
+                        AsfStreamPropertiesObjectData obj_data;
                         archive_ >> obj_data;
                         size_t index = streams_.size();
                         if ((size_t)obj_data.Flag.StreamNumber + 1 > stream_map_.size()) {
@@ -112,7 +112,7 @@ namespace ppbox
             if (open_step_ == 1) {
                 archive_.seekg(std::ios::off_type(header_.ObjLength), std::ios_base::beg);
                 assert(archive_);
-                ASF_Data_Object DataObject;
+                AsfDataObject DataObject;
                 archive_ >> DataObject;
                 if (!archive_) {
                     archive_.clear();
@@ -331,7 +331,7 @@ namespace ppbox
         }
 
         error_code AsfDemuxer::next_packet(
-            ASFIArchive & archive, 
+            AsfIArchive & archive, 
             ParseStatus & parse_status, 
             error_code & ec) const
         {
@@ -348,7 +348,7 @@ namespace ppbox
         }
 
         error_code AsfDemuxer::next_payload(
-            ASFIArchive & archive, 
+            AsfIArchive & archive, 
             ParseStatus & parse_status,  
             error_code & ec) const
         {

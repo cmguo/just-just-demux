@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_BASE_TIMESTAMP_H_
 #define _PPBOX_DEMUX_BASE_TIMESTAMP_H_
 
-#include <ppbox/avformat/Sample.h>
+#include <ppbox/demux/base/DemuxBase.h>
 
 #include <framework/system/ScaleTransform.h>
 
@@ -90,7 +90,7 @@ namespace ppbox
         public:
             // 调整时间戳
             void adjust(
-                ppbox::avformat::Sample & sample)
+                Sample & sample)
             {
                 assert(sample.itrack < dts_offset_.size());
                 boost::uint64_t time = time_trans_[sample.itrack].get();
@@ -111,7 +111,7 @@ namespace ppbox
             }
 
             void const_adjust(
-                ppbox::avformat::Sample & sample) const
+                Sample & sample) const
             {
                 assert(sample.itrack < dts_offset_.size());
                 boost::uint64_t time = time_trans_[sample.itrack].get();

@@ -4,8 +4,8 @@
 #define _PPBOX_DEMUX_BASIC_TS_TS_PES_PARSE_H_
 
 #include <ppbox/avformat/ts/PesPacket.h>
-#include <ppbox/avformat/codec/avc/AvcNaluHelper.h>
-#include <ppbox/avformat/codec/avc/AvcNalu.h>
+#include <ppbox/avcodec/avc/AvcNaluHelper.h>
+#include <ppbox/avcodec/avc/AvcNalu.h>
 
 #include <utility>
 
@@ -137,7 +137,7 @@ namespace ppbox
             bool is_sync_frame(
                 ppbox::avformat::TsIArchive & ar) const
             {
-                using namespace ppbox::avformat;
+                using namespace ppbox::avcodec;
                 using namespace framework::container;
 
                 if (frame_offset_[0] > 0) {

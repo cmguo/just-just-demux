@@ -4,7 +4,8 @@
 #define _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
 
 #include <ppbox/avformat/mkv/MkvObjectType.h>
-#include <ppbox/avformat/Format.h>
+
+#include <ppbox/avcodec/Format.h>
 
 namespace ppbox
 {
@@ -54,6 +55,7 @@ namespace ppbox
             void parse()
             {
                 using namespace ppbox::avformat;
+                using namespace ppbox::avcodec;
 
                 if (TrackType == MkvTrackType::VIDEO) { 
                     type = StreamType::VIDE;

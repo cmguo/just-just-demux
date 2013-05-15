@@ -45,7 +45,7 @@ namespace ppbox
 
             virtual boost::system::error_code get_stream_info(
                 size_t index, 
-                ppbox::avformat::StreamInfo & info, 
+                StreamInfo & info, 
                 boost::system::error_code & ec) const;
 
             virtual bool get_stream_status(
@@ -71,7 +71,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code get_sample(
-                ppbox::avformat::Sample & sample, 
+                Sample & sample, 
                 boost::system::error_code & ec);
 
         private:

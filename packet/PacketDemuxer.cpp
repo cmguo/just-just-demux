@@ -8,8 +8,6 @@
 #include <ppbox/data/packet/PacketBuffer.h>
 #include <ppbox/data/base/SourceBase.h>
 
-using namespace ppbox::avformat;
-
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 #include <framework/system/LogicError.h>

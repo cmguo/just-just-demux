@@ -16,7 +16,7 @@ namespace ppbox
     {
 
         class AsfDemuxer
-            : public ppbox::avformat::ASF_Object_Header
+            : public ppbox::avformat::AsfObjectHeader
             , public BasicDemuxer
         {
 
@@ -99,9 +99,9 @@ namespace ppbox
                     context.packet = &packet;
                 }
 
-                ppbox::avformat::ASF_Packet packet;
-                ppbox::avformat::ASF_PayloadHeader payload;
-                ppbox::avformat::ASF_ParseContext context;
+                ppbox::avformat::AsfPacket packet;
+                ppbox::avformat::AsfPayloadHeader payload;
+                ppbox::avformat::AsfParseContext context;
                 boost::uint64_t offset_packet;
                 boost::uint64_t offset;
                 boost::uint64_t num_packet;
@@ -109,21 +109,21 @@ namespace ppbox
             };
 
             boost::system::error_code next_packet(
-                ppbox::avformat::ASFIArchive & archive, 
+                ppbox::avformat::AsfIArchive & archive, 
                 ParseStatus & parse_status, 
                 boost::system::error_code & ec) const;
 
             boost::system::error_code next_payload(
-                ppbox::avformat::ASFIArchive & archive, 
+                ppbox::avformat::AsfIArchive & archive, 
                 ParseStatus & parse_status, 
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::avformat::ASFIArchive archive_;
+            ppbox::avformat::AsfIArchive archive_;
 
             size_t open_step_;
-            ppbox::avformat::ASF_Header_Object header_;
-            ppbox::avformat::ASF_File_Properties_Object_Data file_prop_;
+            ppbox::avformat::AsfHeaderObject header_;
+            ppbox::avformat::AsfFilePropertiesObjectData file_prop_;
             std::vector<AsfStream> streams_;
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order

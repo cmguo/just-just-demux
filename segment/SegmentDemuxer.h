@@ -72,7 +72,7 @@ namespace ppbox
 
             virtual boost::system::error_code get_stream_info(
                 size_t index, 
-                ppbox::avformat::StreamInfo & info, 
+                StreamInfo & info, 
                 boost::system::error_code & ec) const;
 
         public:
@@ -97,7 +97,7 @@ namespace ppbox
                 boost::system::error_code & ec);
 
             virtual boost::system::error_code get_sample(
-                ppbox::avformat::Sample & sample, 
+                Sample & sample, 
                 boost::system::error_code & ec);
 
             virtual bool free_sample(
@@ -195,7 +195,7 @@ namespace ppbox
 
         private:
             ppbox::data::MediaInfo media_info_;
-            std::vector<ppbox::avformat::StreamInfo> stream_infos_;
+            std::vector<StreamInfo> stream_infos_;
             JointContext joint_context_;
 
             DemuxerInfo * read_demuxer_;

@@ -12,9 +12,6 @@ namespace ppbox
     namespace demux
     {
 
-        using ppbox::avformat::StreamInfo;
-        using ppbox::avformat::Sample;
-
         class Demuxer
             : public DemuxerBase
             , public DemuxStatistic

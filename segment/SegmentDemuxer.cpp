@@ -11,8 +11,6 @@
 #include <ppbox/data/segment/SegmentSource.h>
 using namespace ppbox::data;
 
-using namespace ppbox::avformat;
-
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 #include <framework/configure/Config.h>

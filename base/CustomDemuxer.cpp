@@ -64,7 +64,7 @@ namespace ppbox
 
         boost::system::error_code CustomDemuxer::get_stream_info(
             size_t index, 
-            ppbox::avformat::StreamInfo & info, 
+            StreamInfo & info, 
             boost::system::error_code & ec) const
         {
             return demuxer_.get_stream_info(index, info, ec);
@@ -110,7 +110,7 @@ namespace ppbox
         }
 
         boost::system::error_code CustomDemuxer::get_sample(
-            ppbox::avformat::Sample & sample, 
+            Sample & sample, 
             boost::system::error_code & ec)
         {
             return demuxer_.get_sample(sample, ec);

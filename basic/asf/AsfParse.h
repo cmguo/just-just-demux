@@ -1,7 +1,7 @@
 // AsfParse.h
 
-#ifndef _PPBOX_DEMUX_BASIC_ASF_ASF_PARSE_H_
-#define _PPBOX_DEMUX_BASIC_ASF_ASF_PARSE_H_
+#ifndef _PPBOX_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
+#define _PPBOX_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
 
 #include <ppbox/avformat/asf/AsfObjectType.h>
 #include <ppbox/data/base/DataBlock.h>
@@ -26,13 +26,13 @@ namespace ppbox
 
         public:
             void add_packet(
-                ppbox::avformat::ASF_Packet const & pkt)
+                ppbox::avformat::AsfPacket const & pkt)
             {
             }
 
             bool add_payload(
-                ppbox::avformat::ASF_ParseContext const & context, 
-                ppbox::avformat::ASF_PayloadHeader const & payload)
+                ppbox::avformat::AsfParseContext const & context, 
+                ppbox::avformat::AsfPayloadHeader const & payload)
             {
                 if (!payloads_.empty() && payload.MediaObjNum != payload_.MediaObjNum) {
                     next_object_offset_ = 0;
@@ -104,7 +104,7 @@ namespace ppbox
             }
 
         private:
-            ppbox::avformat::ASF_PayloadHeader payload_;
+            ppbox::avformat::AsfPayloadHeader payload_;
             boost::uint64_t next_object_offset_; // not offset in file, just offset of this object
             bool is_discontinuity_;
             std::vector<ppbox::data::DataBlock> payloads_;
