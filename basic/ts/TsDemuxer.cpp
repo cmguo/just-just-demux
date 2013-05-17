@@ -6,8 +6,8 @@
 #include "ppbox/demux/basic/JointContext.h"
 #include "ppbox/demux/base/DemuxError.h"
 
+#include <ppbox/avformat/ts/TsEnum.h>
 using namespace ppbox::avformat;
-using namespace ppbox::avcodec;
 
 #include <util/serialization/Array.h>
 
@@ -122,7 +122,9 @@ namespace ppbox
                         streams_.push_back(TsStream(pmt_.streams[i]));
                         streams_[i].index = i;
                     }
-                    pes_parses_.resize(streams_.size());
+                    for (size_t i = 0; i < streams_.size(); ++i) {
+                        pes_parses_.push_back(PesParse(streams_[i].stream_type));
+                    }
                     open_step_ = 2;
                     header_offset_ = parse_.offset;
                     break;
@@ -360,7 +362,10 @@ namespace ppbox
                 TsJointShareInfo * ts_info = static_cast<TsJointShareInfo *>(info);
                 streams_ = ts_info->streams_;
                 stream_map_ = ts_info->stream_map_;
-                pes_parses_.resize(streams_.size());
+                pes_parses_.clear();
+                for (size_t i = 0; i < streams_.size(); ++i) {
+                    pes_parses_.push_back(PesParse(streams_[i].stream_type));
+                }
                 if (open_step_ < 3) {
                     open_step_ = 3;
                 }

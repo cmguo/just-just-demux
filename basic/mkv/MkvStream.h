@@ -4,8 +4,7 @@
 #define _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
 
 #include <ppbox/avformat/mkv/MkvObjectType.h>
-
-#include <ppbox/avcodec/Format.h>
+#include <ppbox/avformat/Format.h>
 
 namespace ppbox
 {
@@ -59,34 +58,18 @@ namespace ppbox
 
                 if (TrackType == MkvTrackType::VIDEO) { 
                     type = StreamType::VIDE;
-
                     video_format.width = (boost::uint32_t)Video.PixelWidth.value();
                     video_format.height = (boost::uint32_t)Video.PixelHeight.value();
                     video_format.frame_rate = 0;
-
-                    if (CodecID == "V_MPEG4/ISO/AVC") {
-                        sub_type = VideoSubType::AVC1;
-                        format_type = FormatType::video_avc_packet;
-                    } else {
-                        sub_type = VideoSubType::NONE;
-                        format_type = FormatType::none;
-                    }
                     format_data = CodecPrivate.value();
+                    Format::finish_stream_info(*this, FormatType::MKV, (intptr_t)CodecID.value().c_str());
                 } else if (TrackType == MkvTrackType::AUDIO) {
                     type = StreamType::AUDI;
-
                     audio_format.channel_count = (boost::uint32_t)Audio.Channels.value();
                     audio_format.sample_rate = (boost::uint32_t)(float)Audio.SamplingFrequency.value().as_int32();
                     audio_format.sample_size = (boost::uint32_t)Audio.BitDepth.value();
-
-                    if (CodecID == "A_AAC") {
-                        sub_type = AudioSubType::MP4A;
-                        format_type = FormatType::audio_raw;
-                    } else {
-                        sub_type = AudioSubType::NONE;
-                        format_type = FormatType::none;
-                    }
                     format_data = CodecPrivate.value();
+                    Format::finish_stream_info(*this, FormatType::MKV, (intptr_t)CodecID.value().c_str());
                 }
             }
         };

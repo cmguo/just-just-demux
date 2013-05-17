@@ -3,9 +3,12 @@
 #ifndef _PPBOX_DEMUX_BASIC_TS_TS_PES_PARSE_H_
 #define _PPBOX_DEMUX_BASIC_TS_TS_PES_PARSE_H_
 
+#include "ppbox/demux/basic/ts/PesStreamBuffer.h"
+#include "ppbox/demux/basic/ts/PesAdtsSplitter.h"
+
 #include <ppbox/avformat/ts/PesPacket.h>
-#include <ppbox/avcodec/avc/AvcNaluHelper.h>
-#include <ppbox/avcodec/avc/AvcNalu.h>
+
+#include <ppbox/avcodec/avc/AvcFrameType.h>
 
 #include <utility>
 
@@ -17,11 +20,12 @@ namespace ppbox
         class PesParse
         {
         public:
-            PesParse()
-                : size_(0)
+            PesParse(
+                boost::uint8_t stream_type)
+                : stream_type_(stream_type)
+                , size_(0)
                 , left_(0)
             {
-                frame_offset_[0] = frame_offset_[1] = 0;
             }
 
         public:
@@ -61,14 +65,28 @@ namespace ppbox
                 } else {
                     if (left_ > size) {
                         left_ -= size;
-                        return std::make_pair(false, false);
-                    }
-                    if (left_ < size) {
+                    } else if (left_ < size) {
                         LOG_WARN("[add_packet] payload size more than expect, size = " << size << ", more = " << size - left_);
                         size_ += size - left_;
                         left_ = 0;
+                    } else {
+                        left_ = 0;
                     }
-                    return std::make_pair(true, false);
+                    // aac adts
+                    if (stream_type_ == TsStreamType::iso_13818_7_audio) {
+                        if (adts_splitter_.finish(ar, payloads_, size_ - left_)) {
+                            size_ = adts_splitter_.size();
+                            if (adts_splitter_.save_size() >= size) {
+                                left_ += size;
+                                adts_splitter_.pop_payload();
+                                return std::make_pair(true, true);
+                            } else {
+                                return std::make_pair(true, false);
+                            }
+                        }
+                        assert(left_);
+                    }
+                    return std::make_pair(left_ == 0, false);
                 }
             }
 
@@ -89,7 +107,12 @@ namespace ppbox
                 std::vector<ppbox::data::DataBlock> & payloads)
             {
                 payloads.swap(payloads_);
+                payloads_.clear();
                 size_ = left_ = 0;
+                if (stream_type_ == TsStreamType::iso_13818_7_audio) {
+                    adts_splitter_.clear(payloads_);
+                    size_ = adts_splitter_.save_size() + left_;
+                }
             }
 
             boost::uint32_t size() const
@@ -123,88 +146,40 @@ namespace ppbox
             {
                 using namespace framework::container;
 
+                PesStreamBuffer buffer(*ar.rdbuf(), payloads_);
+                TsIArchive ar1(buffer);
+
                 data.resize(size_, 0);
-                boost::uint32_t read_offset = 0;
-                for (size_t i = 0; i < payloads_.size(); ++i) {
-                    ar.seekg(payloads_[i].offset, std::ios::beg);
-                    assert(ar);
-                    ar >> make_array(&data[read_offset], payloads_[i].size);
-                    assert(ar);
-                    read_offset += payloads_[i].size;
-                }
+                ar >> make_array(&data[0], size_);
+                assert(ar);
             }
 
             bool is_sync_frame(
                 ppbox::avformat::TsIArchive & ar) const
             {
-                using namespace ppbox::avcodec;
-                using namespace framework::container;
-
-                if (frame_offset_[0] > 0) {
-                    boost::uint8_t data[5];
-                    boost::uint32_t frame_offset = frame_offset_[0];
-                    boost::uint32_t read_size = 0;
-                    for (size_t i = 0; i < payloads_.size() && read_size < 5; ++i) {
-                        if (frame_offset < payloads_[i].size) {
-                            ar.seekg(payloads_[i].offset + frame_offset, std::ios::beg);
-                            assert(ar);
-                            boost::uint32_t read_size2 = 5 - read_size;
-                            if (frame_offset + read_size2 > payloads_[0].size) {
-                                read_size2 = payloads_[i].size - frame_offset;
-                            }
-                            ar >> make_array(data + read_size, read_size2);
-                            read_size += read_size2;
-                            frame_offset = 0;
-                        } else {
-                            frame_offset -= payloads_[i].size;
-                        }
-                    }
-                    if (read_size == 5 
-                        && *(boost::uint32_t *)data == MAKE_FOURC_TYPE(0, 0, 0, 1)) {
-                            NaluHeader h(data[4]);
-                            if (h.nal_unit_type == 1) {
-                                return false;
-                            } else if (h.nal_unit_type == 5) {
-                                return true;
-                            }
-                    }
+                PesStreamBuffer buffer(*ar.rdbuf(), payloads_);
+                std::basic_istream<boost::uint8_t> is(&buffer);
+                if (stream_type_ == TsStreamType::iso_13818_video) {
+                    avc_frame_.handle(is);
+                    return avc_frame_.is_sync_frame();
                 }
-
-                if (frame_offset_[1] > 0) {
-                    bool b = frame_offset_[1] == 1;
-                    frame_offset_[1] = 0;
-                    return b;
-                }
-
-                std::vector<boost::uint8_t> data;
-                get_data(data, ar);
-
-                AvcNaluHelper helper;
-                boost::uint8_t frame_type = helper.get_frame_type_from_stream(data, frame_offset_);
-                if (frame_type == 1) {
-                    return false;
-                } else if (frame_type == 5) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return false;
             }
 
             void save_for_joint(
                 ppbox::avformat::TsIArchive & ar)
             {
-                if (!payloads_.empty()) {
-                    frame_offset_[1] = is_sync_frame(ar) ? 1 : 2;
-                }
-                frame_offset_[0] = 0;
+                is_sync_frame(ar);
             }
 
         private:
             ppbox::avformat::PesPacket pkt_;
             std::vector<ppbox::data::DataBlock> payloads_;
+            boost::uint8_t stream_type_;
             boost::uint32_t size_;
             boost::uint32_t left_;
-            mutable boost::uint32_t frame_offset_[2];
+            mutable PesAdtsSplitter adts_splitter_;
+            mutable ppbox::avcodec::AvcFrameType avc_frame_;
             mutable framework::system::LimitNumber<33> time_pts_;
             mutable framework::system::LimitNumber<33> time_dts_;
         };

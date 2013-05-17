@@ -74,6 +74,12 @@ namespace ppbox
                 Sample & sample, 
                 boost::system::error_code & ec);
 
+        protected:
+            DemuxerBase & detach()
+            {
+                return demuxer_;
+            }
+
         private:
             DemuxerBase & demuxer_;
         };

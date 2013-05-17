@@ -49,6 +49,7 @@ namespace ppbox
                 delete source_;
                 source_ = NULL;
             }
+            delete &CustomDemuxer::detach();
         }
 
         void SingleDemuxer::async_open(
@@ -95,6 +96,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             DemuxStatistic::close();
+            CustomDemuxer::close(ec);
             media_.close(ec);
             seek_time_ = 0;
             open_state_ = not_open;

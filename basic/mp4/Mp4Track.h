@@ -5,7 +5,9 @@
 
 using namespace ppbox::demux::error;
 
-#include <ppbox/avcodec/Format.h>
+#include <ppbox/avcodec/CodecType.h>
+#include <ppbox/avcodec/avc/AvcFormatType.h>
+#include <ppbox/avcodec/aac/AacFormatType.h>
 using namespace ppbox::avcodec;
 
 #include <framework/container/OrderedUnidirList.h>
@@ -308,21 +310,47 @@ namespace ppbox
             void GetMediaInfo(
                 error_code & ec)
             {
-                StreamInfo & media_info = *this;
-                media_info.time_scale = track_->GetMediaTimeScale();
-                media_info.start_time = 0;
-                media_info.duration = track_->GetMediaDuration();
+                time_scale = track_->GetMediaTimeScale();
+                start_time = 0;
+                duration = track_->GetMediaDuration();
                 ec = bad_file_format;
+                /*
+                AP4_Atom * stsd_atom = track_->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd");
+                if (stsd_atom == NULL || AP4_DYNAMIC_CAST<AP4_AtomParent>(stsd_atom) == NULL) {
+                    return;
+                }
+                AP4_Atom * sample_entry_atom = AP4_DYNAMIC_CAST(AP4_AtomParent, stsdAtom)->GetChildren()->FirstItem();
+                AP4_SampleEntry * sample_entry = AP4_DYNAMIC_CAST(AP4_SampleEntry, sample_entry_atom);
+                if (sample_entry == NULL) {
+                    return;
+                }
+                if (track_->GetTrakAtom()->FindChild("mdia/minf/vmhd")) {
+                    type = StreamType::VIDE;
+                    AP4_VisualSampleEntry * video = AP4_DYNAMIC_CAST(AP4_VisualSampleEntry, sample_entry);
+                    video_format.width = video->GetWidth();
+                    video_format.height = video->GetHeight();
+                    video_format.frame_rate = track_->GetSampleCount() * 1000 / track_->GetDurationMs();
+                    video->
+                } else if (track_->GetTrakAtom()->FindChild("mdia/minf/smhd")) {
+                    type = StreamType::AUDI;
+                    AP4_MpegAudioSampleEntry * audio = AP4_DYNAMIC_CAST(AP4_MpegAudioSampleEntry, sample_entry);
+                    audio_format.sample_rate = audio->GetSampleRate();
+                    audio_format.sample_size = audio->GetSampleSize();
+                    audio_format.channel_count = audio->GetChannelCount();
+                } else {
+                    return;
+                }
+                */
                 if (AP4_Atom* avc1Atom = track_->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/avc1")) {
                     AP4_Avc1SampleEntry* avc1 = static_cast<AP4_Avc1SampleEntry*>(avc1Atom);
                     AP4_AvccAtom* avcc = AP4_DYNAMIC_CAST(AP4_AvccAtom, avc1->GetChild(AP4_ATOM_TYPE_AVCC));
                     if (avcc) {
-                        media_info.type = StreamType::VIDE;
-                        media_info.sub_type = VideoSubType::AVC1;
-                        media_info.format_type = FormatType::video_avc_packet;
-                        media_info.video_format.width = avc1->GetWidth();
-                        media_info.video_format.height = avc1->GetHeight();
-                        media_info.video_format.frame_rate = track_->GetSampleCount() * 1000 / track_->GetDurationMs();
+                        type = StreamType::VIDE;
+                        sub_type = VideoSubType::AVC1;
+                        format_type = AvcFormatType::packet;
+                        video_format.width = avc1->GetWidth();
+                        video_format.height = avc1->GetHeight();
+                        video_format.frame_rate = track_->GetSampleCount() * 1000 / track_->GetDurationMs();
                         const AP4_DataBuffer* di = &avcc->GetRawBytes();
                         if (di) {
                             AP4_Byte const * data = di->GetData();
@@ -342,7 +370,7 @@ namespace ppbox
                                 }
                             }
                             if (src <= src_end) {
-                                media_info.format_data.assign(data, src);
+                                format_data.assign(data, src);
                                 ec = error_code();
                             }
                         }
@@ -356,19 +384,19 @@ namespace ppbox
                         mpeg_desc = AP4_DYNAMIC_CAST(AP4_MpegSampleDescription, isma_desc->GetOriginalSampleDescription());
                     }
                     if (AP4_MpegVideoSampleDescription* video_desc = AP4_DYNAMIC_CAST(AP4_MpegVideoSampleDescription, mpeg_desc)) {
-                        media_info.type = StreamType::VIDE;
-                        media_info.video_format.width = video_desc->GetWidth();
-                        media_info.video_format.height = video_desc->GetHeight();
-                        media_info.video_format.frame_rate = track_->GetSampleCount()*1000/track_->GetDurationMs();
+                        type = StreamType::VIDE;
+                        video_format.width = video_desc->GetWidth();
+                        video_format.height = video_desc->GetHeight();
+                        video_format.frame_rate = track_->GetSampleCount()*1000/track_->GetDurationMs();
                         switch(video_desc->GetObjectTypeId()) {
                             case AP4_OTI_MPEG4_VISUAL:
-                                media_info.sub_type = VideoSubType::MP4V;
-                                media_info.format_type = FormatType::none;
+                                sub_type = VideoSubType::MP4V;
+                                format_type = StreamFormatType::none;
                                 {
                                     const AP4_DataBuffer & di = video_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
                                     AP4_Size size = di.GetDataSize();
-                                    media_info.format_data.assign(data, data + size);
+                                    format_data.assign(data, data + size);
                                 }
                                 ec = error_code();
                                 break;
@@ -376,39 +404,39 @@ namespace ppbox
                                 break;
                         }
                     } else if (AP4_MpegAudioSampleDescription* audio_desc = AP4_DYNAMIC_CAST(AP4_MpegAudioSampleDescription, mpeg_desc)) {
-                        media_info.type = StreamType::AUDI;
-                        media_info.audio_format.sample_rate = audio_desc->GetSampleRate();
-                        media_info.audio_format.sample_size = audio_desc->GetSampleSize();
-                        media_info.audio_format.channel_count = audio_desc->GetChannelCount();
+                        type = StreamType::AUDI;
+                        audio_format.sample_rate = audio_desc->GetSampleRate();
+                        audio_format.sample_size = audio_desc->GetSampleSize();
+                        audio_format.channel_count = audio_desc->GetChannelCount();
                         switch(audio_desc->GetObjectTypeId()) {
                             case AP4_OTI_MPEG4_AUDIO:
                             case AP4_OTI_MPEG2_AAC_AUDIO_MAIN: // ???
                             case AP4_OTI_MPEG2_AAC_AUDIO_LC: // ???
                             case AP4_OTI_MPEG2_AAC_AUDIO_SSRP: // ???
-                                media_info.sub_type = AudioSubType::MP4A;
-                                media_info.format_type = FormatType::audio_raw;
+                                sub_type = AudioSubType::MP4A;
+                                format_type = AacFormatType::raw;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
                                     AP4_Size size = di.GetDataSize();
-                                    media_info.format_data.assign(data, data + size);
+                                    format_data.assign(data, data + size);
                                 }
                                 ec = error_code();
                                 break;
                             case AP4_OTI_MPEG1_AUDIO: // mp3
-                                media_info.sub_type = AudioSubType::MP1A;
-                                media_info.format_type = FormatType::audio_raw;
+                                sub_type = AudioSubType::MP1A;
+                                format_type = StreamFormatType:: none;
                                 {
                                     const AP4_DataBuffer & di = audio_desc->GetDecoderInfo();
                                     AP4_Byte const * data = di.GetData();
                                     AP4_Size size = di.GetDataSize();
-                                    media_info.format_data.assign(data, data + size);
+                                    format_data.assign(data, data + size);
                                 }
                                 ec = error_code();
                                 break;
                             default:
-                                media_info.sub_type = AudioSubType::NONE;
-                                media_info.format_type = FormatType::none;
+                                sub_type = StreamSubType::NONE;
+                                format_type = StreamFormatType::none;
                                 break;
                         }
                     }
