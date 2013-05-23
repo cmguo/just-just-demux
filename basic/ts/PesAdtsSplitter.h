@@ -42,7 +42,7 @@ namespace ppbox
                 save_size_ = size - size_;
                 size = size_;
                 size_t i = 0;
-                while (size >= payloads[i].size) {
+                while (size && size >= payloads[i].size) {
                     size -= payloads[i].size;
                     ++i;
                 }
