@@ -67,14 +67,14 @@ namespace ppbox
                         video_format.height = Video_Media_Type.EncodeImageHeight;
                         video_format.frame_rate = 0;
                         format_data = Video_Media_Type.FormatData.CodecSpecificData;
-                        Format::finish_stream_info(*this, FormatType::ASF, Video_Media_Type.FormatData.CompressionID);
+                        Format::finish_from_stream(*this, "asf", Video_Media_Type.FormatData.CompressionID);
                     } else if (ASF_Audio_Media == StreamType) {
                         type = StreamType::AUDI;
                         audio_format.channel_count = Audio_Media_Type.NumberOfChannels;
                         audio_format.sample_rate = Audio_Media_Type.SamplesPerSecond;
                         audio_format.sample_size = Audio_Media_Type.BitsPerSample;
                         format_data = Audio_Media_Type.CodecSpecificData;
-                        Format::finish_stream_info(*this, FormatType::ASF, Audio_Media_Type.CodecId);
+                        Format::finish_from_stream(*this, "asf", Audio_Media_Type.CodecId);
                     }
                 }
             }

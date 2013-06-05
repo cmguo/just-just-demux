@@ -42,7 +42,7 @@ namespace ppbox
 
                 time_scale = TsPacket::TIME_SCALE;
                 format_data = data;
-                ready = Format::finish_stream_info(*this, FormatType::TS, stream_type);
+                ready = Format::finish_from_stream(*this, "ts", stream_type);
             }
 
             void clear()

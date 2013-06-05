@@ -54,7 +54,7 @@ namespace ppbox
                     video_format.width = 0;
                     video_format.height = 0;
                     format_data = codec_data;
-                    Format::finish_stream_info(*this, FormatType::FLV, VideoHeader.CodecID);
+                    Format::finish_from_stream(*this, "flv", VideoHeader.CodecID);
                     if (metadata.framerate) {
                         video_format.frame_rate = metadata.framerate;
                     }
@@ -73,7 +73,7 @@ namespace ppbox
                     audio_format.sample_size = size[AudioHeader.SoundSize];
                     audio_format.channel_count = channel[AudioHeader.SoundType];
                     format_data = codec_data;
-                    Format::finish_stream_info(*this, FormatType::FLV, AudioHeader.SoundFormat);
+                    Format::finish_from_stream(*this, "flv", AudioHeader.SoundFormat);
                     if (metadata.audiosamplerate > 0)
                         audio_format.sample_rate = metadata.audiosamplerate;
                     if (metadata.audiosamplesize > 0)
