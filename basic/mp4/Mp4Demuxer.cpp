@@ -379,7 +379,6 @@ namespace ppbox
             }
 
             for (size_t i = 0; i < tracks_.size(); ++i) {
-                AP4_Position seek_offset1 = seek_offset;
                 if (i == min_time_index) {
                     tracks_[i]->sample_.time = timestamp().const_adjust(i, tracks_[i]->sample_.GetDts());
                     sample_list_->push(&tracks_[i]->sample_);
