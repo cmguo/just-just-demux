@@ -458,6 +458,8 @@ namespace ppbox
                     if (joint_context_.read_ctx().data()) {
                         min_offset = joint_context_.read_ctx().data()->adjust_offset(buffer_->read_segment().byte_range.end);
                     }
+                    // ·ÀÖ¹ read_segment ³¬Ç° write_segment
+                    get_end_time(ec);
                     buffer_->read_next(duration, min_offset, ec);
                     if (buffer_->read_segment().valid()) {
                         read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
