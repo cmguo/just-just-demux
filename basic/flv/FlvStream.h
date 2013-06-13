@@ -50,13 +50,13 @@ namespace ppbox
 
                 if (FlvTagType::VIDEO == Type) { 
                     type = StreamType::VIDE;
-                    video_format.frame_rate = 0;
                     video_format.width = 0;
                     video_format.height = 0;
+                    video_format.frame_rate(0);
                     format_data = codec_data;
                     Format::finish_from_stream(*this, "flv", VideoHeader.CodecID);
                     if (metadata.framerate) {
-                        video_format.frame_rate = metadata.framerate;
+                        video_format.frame_rate(metadata.framerate);
                     }
                     if (metadata.width) {
                         video_format.width = metadata.width;

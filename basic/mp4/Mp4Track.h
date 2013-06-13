@@ -350,7 +350,7 @@ namespace ppbox
                         format_type = AvcFormatType::packet;
                         video_format.width = avc1->GetWidth();
                         video_format.height = avc1->GetHeight();
-                        video_format.frame_rate = track_->GetSampleCount() * 1000 / track_->GetDurationMs();
+                        video_format.frame_rate(track_->GetSampleCount() * track_->GetMediaTimeScale(), track_->GetMediaDuration());
                         const AP4_DataBuffer* di = &avcc->GetRawBytes();
                         if (di) {
                             AP4_Byte const * data = di->GetData();
@@ -387,7 +387,7 @@ namespace ppbox
                         type = StreamType::VIDE;
                         video_format.width = video_desc->GetWidth();
                         video_format.height = video_desc->GetHeight();
-                        video_format.frame_rate = track_->GetSampleCount()*1000/track_->GetDurationMs();
+                        video_format.frame_rate(track_->GetSampleCount() * track_->GetMediaTimeScale(), track_->GetMediaDuration());
                         switch(video_desc->GetObjectTypeId()) {
                             case AP4_OTI_MPEG4_VISUAL:
                                 sub_type = VideoSubType::MP4V;

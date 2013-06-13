@@ -59,7 +59,7 @@ namespace ppbox
                     type = StreamType::VIDE;
                     video_format.width = (boost::uint32_t)Video.PixelWidth.value();
                     video_format.height = (boost::uint32_t)Video.PixelHeight.value();
-                    video_format.frame_rate = 0;
+                    video_format.frame_rate(0);
                     format_data = CodecPrivate.value();
                     Format::finish_from_stream(*this, "mkv", MkvFormat::stream_type(CodecID.value()));
                 } else if (TrackType == MkvTrackType::AUDIO) {

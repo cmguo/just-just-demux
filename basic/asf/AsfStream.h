@@ -65,7 +65,7 @@ namespace ppbox
                         type = StreamType::VIDE;
                         video_format.width = Video_Media_Type.EncodeImageWidth;
                         video_format.height = Video_Media_Type.EncodeImageHeight;
-                        video_format.frame_rate = 0;
+                        video_format.frame_rate(0);
                         format_data = Video_Media_Type.FormatData.CodecSpecificData;
                         Format::finish_from_stream(*this, "asf", Video_Media_Type.FormatData.CompressionID);
                     } else if (ASF_Audio_Media == StreamType) {
