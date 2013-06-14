@@ -3,6 +3,8 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/packet/PacketDemuxer.h"
 #include "ppbox/demux/packet/filter/SourceFilter.h"
+#include "ppbox/demux/packet/filter/TimestampFilter.h"
+#include "ppbox/demux/packet/filter/SortFilter.h"
 
 #include <ppbox/data/packet/PacketMedia.h>
 #include <ppbox/data/packet/PacketBuffer.h>
@@ -135,6 +137,10 @@ namespace ppbox
                     source_->pause_stream();
                     if (!ec && check_open(ec)) { // 上面的reset可能已经有错误，所以判断ec
                         open_state_ = open_finished;
+                        filters_.push_back(new TimestampFilter(timestamp()));
+                        if (media_info_.flags & ppbox::data::PacketMediaFlags::f_non_ordered) {
+                            filters_.push_back(new SortFilter(stream_infos_.size()));
+                        }
                         on_open();
                         open_end();
                         source_->resume_stream();
@@ -344,8 +350,6 @@ namespace ppbox
             Sample sample;
             if (!filters_.last()->get_next_sample(sample, ec)) {
                 sample.time = seek_time_;
-            } else {
-                timestamp().const_adjust(sample);
             }
             return sample.time;
         }
@@ -356,8 +360,6 @@ namespace ppbox
             Sample sample;
             if (!filters_.last()->get_last_sample(sample, ec)) {
                 sample.time = seek_time_;
-            } else {
-                timestamp().const_adjust(sample);
             }
             return sample.time;
         }
@@ -384,9 +386,6 @@ namespace ppbox
                 sample = peek_samples_.front();
                 peek_samples_.pop_front();
                 ec.clear();
-            }
-            if (!ec && sample.itrack < stream_infos_.size()) {
-                Demuxer::adjust_timestamp(sample);
             }
         }
 

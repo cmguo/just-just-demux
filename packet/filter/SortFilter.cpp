@@ -23,7 +23,7 @@ namespace ppbox
             SampleQueue * l, 
             SampleQueue * r)
         {
-            return l->front().dts < r->front().dts;
+            return l->front().time < r->front().time;
         }
 
         bool SortFilter::get_sample(
