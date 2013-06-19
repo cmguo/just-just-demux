@@ -3,16 +3,21 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/packet/filter/SortFilter.h"
 
+#include <framework/logger/Logger.h>
+#include <framework/logger/StreamRecord.h>
+
 namespace ppbox
 {
     namespace demux
     {
 
+        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.SortFilter", framework::logger::Debug);
+
         SortFilter::SortFilter(
             boost::uint32_t stream_count)
             : eof_(false)
         {
-            samples_.resize(stream_count);
+            sample_queues_.resize(stream_count);
         }
 
         SortFilter::~SortFilter()
@@ -23,7 +28,9 @@ namespace ppbox
             SampleQueue * l, 
             SampleQueue * r)
         {
-            return l->front().time < r->front().time;
+            Sample & sl = l->front();
+            Sample & sr = r->front();
+            return sl.time < sr.time || (sl.time == sr.time && sl.itrack < sr.itrack);
         }
 
         bool SortFilter::get_sample(
@@ -35,9 +42,10 @@ namespace ppbox
                 return false;
             }
 
-            while (!eof_ && orders_.size() < samples_.size()) {
+            while (!eof_ && orders_.size() < sample_queues_.size()) {
                 if (Filter::get_sample(sample, ec)) {
-                    SampleQueue & queue = samples_[sample.itrack];
+                    LOG_TRACE("[get_sample] in itrack: " << sample.itrack << " time: " << sample.time << " dts: " << sample.dts);
+                    SampleQueue & queue = sample_queues_[sample.itrack];
                     if (queue.empty()) {
                         queue.push_back(sample);
                         sample.data.clear();
@@ -60,6 +68,7 @@ namespace ppbox
             SampleQueue & queue = **orders_.begin();
             orders_.erase(orders_.begin());
             sample = queue.front();
+            LOG_TRACE("[get_sample] out itrack: " << sample.itrack << " time: " << sample.time << " dts: " << sample.dts);
             queue.pop_front();
             if (!queue.empty()) {
                 orders_.insert(&queue);
@@ -73,8 +82,8 @@ namespace ppbox
             Sample & sample,
             boost::system::error_code & ec)
         {
-            for (size_t i = 0; i < samples_.size(); ++i) {
-                SampleQueue & queue = samples_[i];
+            for (size_t i = 0; i < sample_queues_.size(); ++i) {
+                SampleQueue & queue = sample_queues_[i];
                 for (size_t j = 0; j < queue.size(); ++j) {
                     sample.append(queue[j]);
                 }

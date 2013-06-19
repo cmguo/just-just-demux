@@ -38,7 +38,7 @@ namespace ppbox
             };
 
         private:
-            std::vector<SampleQueue> samples_;
+            std::vector<SampleQueue> sample_queues_;
             std::set<SampleQueue *, less_sample_queue> orders_; 
             bool eof_;
         };

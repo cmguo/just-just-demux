@@ -101,6 +101,7 @@ namespace ppbox
             }
 
             if (open_step_ == 0) {
+                is_.seekg(0, std::ios_base::beg);
                 head_size_ = mp4_head_size(is_, ec);
                 if (!ec) {
                     parse_head(ec);
