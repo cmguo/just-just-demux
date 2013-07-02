@@ -6,7 +6,6 @@
 #include <framework/string/Url.h>
 
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/function.hpp>
 
 namespace ppbox
@@ -42,20 +41,13 @@ namespace ppbox
                 boost::uint32_t buffer_size);
 
         public:
-            DemuxerBase * open(
+            DemuxerBase * create(
                 framework::string::Url const & play_link, 
                 framework::string::Url const & config, 
-                size_t & close_token, 
                 boost::system::error_code & ec);
 
-            void async_open(
-                framework::string::Url const & play_link, 
-                framework::string::Url const & config, 
-                size_t & close_token, 
-                open_response_type const & resp);
-
-            boost::system::error_code close(
-                size_t close_token, 
+            bool destroy(
+                DemuxerBase * demuxer, 
                 boost::system::error_code & ec);
 
             DemuxerBase * find(
@@ -65,34 +57,12 @@ namespace ppbox
             struct DemuxInfo;
 
         private:
-            DemuxInfo * create(
+            DemuxInfo * priv_create(
                 framework::string::Url const & play_link, 
                 framework::string::Url const & config, 
-                open_response_type const & resp, 
                 boost::system::error_code & ec);
 
-            void async_open(
-                boost::mutex::scoped_lock & lock, 
-                DemuxInfo * info);
-
-            void handle_open(
-                boost::system::error_code const & ec,
-                DemuxInfo * info);
-
-            boost::system::error_code close_locked(
-                DemuxInfo * info, 
-                bool inner_call, 
-                boost::system::error_code & ec);
-
-            boost::system::error_code close(
-                DemuxInfo * info, 
-                boost::system::error_code & ec);
-
-            boost::system::error_code cancel(
-                DemuxInfo * info, 
-                boost::system::error_code & ec);
-
-            void destory(
+            void priv_destroy(
                 DemuxInfo * info);
 
         private:
@@ -102,7 +72,6 @@ namespace ppbox
         private:
             std::vector<DemuxInfo *> demuxers_;
             boost::mutex mutex_;
-            boost::condition_variable cond_;
         };
 
     } // namespace demux

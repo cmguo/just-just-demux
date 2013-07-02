@@ -264,11 +264,13 @@ namespace ppbox
             DataStatistic & stat, 
             boost::system::error_code & ec) const
         {
-            if (is_open(ec)) {
+            if (source_) {
                 stat = *source_;
-                return true;
+                ec.clear();
+            } else {
+                ec = error::not_open;
             }
-            return false;
+            return !ec;
         }
 
         boost::system::error_code SingleDemuxer::get_sample(

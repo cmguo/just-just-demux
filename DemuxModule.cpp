@@ -32,49 +32,35 @@ namespace ppbox
 
         struct DemuxModule::DemuxInfo
         {
-            enum StatusEnum
-            {
-                closed, 
-                opening, 
-                canceled, 
-                opened, 
-            };
-
-            size_t id;
-            StatusEnum status;
             ppbox::data::MediaBase * media;
             DemuxerBase * demuxer;
             framework::string::Url play_link;
-            DemuxModule::open_response_type resp;
             error_code ec;
 
             DemuxInfo()
-                : status(closed)
-                , media(NULL)
+                : media(NULL)
                 , demuxer(NULL)
             {
-                static size_t sid = 0;
-                id = ++sid;
             }
 
             struct Finder
             {
                 Finder(
-                    size_t id)
-                    : id_(id)
+                    DemuxerBase * demuxer)
+                    : demuxer_(demuxer)
                 {
                 }
 
                 bool operator()(
                     DemuxInfo const * info)
                 {
-                    return info->id == id_;
+                    return info->demuxer == demuxer_;
                 }
 
             private:
-                size_t id_;
+                DemuxerBase * demuxer_;
             };
-        };
+       };
 
         DemuxModule::DemuxModule(
             util::daemon::Daemon & daemon)
@@ -85,6 +71,11 @@ namespace ppbox
 
         DemuxModule::~DemuxModule()
         {
+            boost::mutex::scoped_lock lock(mutex_);
+            std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
+            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
+                priv_destroy(demuxers_[i]);
+            }
         }
 
         error_code DemuxModule::startup()
@@ -97,115 +88,54 @@ namespace ppbox
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
+            error_code ec;
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
-                error_code ec;
-                close_locked(demuxers_[i], false, ec);
+                demuxers_[i]->demuxer->cancel(ec);
             }
-            /*while (!demuxers_.empty()) {
-                cond_.wait(lock);
-            }*/
         }
 
-        struct SyncResponse
-        {
-            SyncResponse(
-                error_code & ec, 
-                DemuxerBase *& demuxer, 
-                boost::condition_variable & cond, 
-                boost::mutex & mutex)
-                : ec_(ec)
-                , demuxer_(demuxer)
-                , cond_(cond)
-                , mutex_(mutex)
-                , is_return_(false)
-            {
-            }
-
-            void operator()(
-                error_code const & ec, 
-                DemuxerBase * demuxer)
-            {
-                boost::mutex::scoped_lock lock(mutex_);
-                ec_ = ec;
-                demuxer_ = demuxer;
-                is_return_ = true;
-
-                cond_.notify_all();
-            }
-
-            void wait(
-                boost::mutex::scoped_lock & lock)
-            {
-                while (!is_return_)
-                    cond_.wait(lock);
-            }
-
-        private:
-            error_code & ec_;
-            DemuxerBase *& demuxer_;
-            boost::condition_variable & cond_;
-
-            boost::mutex & mutex_;
-            bool is_return_;
-        };
-
-        DemuxerBase * DemuxModule::open(
+        DemuxerBase * DemuxModule::create(
             framework::string::Url const & play_link, 
             framework::string::Url const & config, 
-            size_t & close_token, 
             error_code & ec)
         {
-            DemuxerBase * demuxer = NULL;
-            SyncResponse resp(ec, demuxer, cond_, mutex_);
-            DemuxInfo * info = create(play_link, config, boost::ref(resp), ec);
-            close_token = info->id;
-            boost::mutex::scoped_lock lock(mutex_);
-            demuxers_.push_back(info);
-            if (!ec) {
-                async_open(lock, info);
-                resp.wait(lock);
-            }
-            return demuxer;
+            DemuxInfo * info = priv_create(play_link, config, ec);
+            return info ? info->demuxer : NULL;
         }
 
-        void DemuxModule::async_open(
-            framework::string::Url const & play_link, 
-            framework::string::Url const & config, 
-            size_t & close_token, 
-            open_response_type const & resp)
-        {
-            error_code ec;
-            DemuxInfo * info = create(play_link, config, resp, ec);
-            close_token = info->id;
-            boost::mutex::scoped_lock lock(mutex_);
-            demuxers_.push_back(info);
-            if (ec) {
-                io_svc().post(boost::bind(resp, ec, info->demuxer));
-            } else {
-                async_open(lock, info);
-            }
-        }
-
-        error_code DemuxModule::close(
-            size_t id, 
+        bool DemuxModule::destroy(
+            DemuxerBase * demuxer, 
             error_code & ec)
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::const_iterator iter = 
-                std::find_if(demuxers_.begin(), demuxers_.end(), DemuxInfo::Finder(id));
+                std::find_if(demuxers_.begin(), demuxers_.end(), DemuxInfo::Finder(demuxer));
             //assert(iter != demuxers_.end());
             if (iter == demuxers_.end()) {
                 ec = framework::system::logic_error::item_not_exist;
             } else {
-                close_locked(*iter, false, ec);
+                priv_destroy(*iter);
+                ec.clear();
             }
-            return ec;
+            return !ec;
         }
 
-        DemuxModule::DemuxInfo * DemuxModule::create(
+        DemuxerBase * DemuxModule::find(
+            framework::string::Url const & play_link)
+        {
+            boost::mutex::scoped_lock lock(mutex_);
+            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
+            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
+                if ((*iter)->play_link == play_link) {
+                    return (*iter)->demuxer;
+                }
+            }
+            return NULL;
+        }
+
+        DemuxModule::DemuxInfo * DemuxModule::priv_create(
             framework::string::Url const & play_link, 
             framework::string::Url const & config, 
-            open_response_type const & resp, 
             error_code & ec)
         {
             framework::string::Url playlink(play_link);
@@ -232,102 +162,19 @@ namespace ppbox
                     }
                 }
             }
-            DemuxInfo * info = new DemuxInfo;
-            info->media = media;
-            info->demuxer = demuxer;
-            info->play_link = playlink;
-            info->resp = resp;
-            return info;
-        }
-
-        void DemuxModule::async_open(
-            boost::mutex::scoped_lock & lock, 
-            DemuxInfo * info)
-        {
-            DemuxerBase * demuxer = info->demuxer;
-            lock.unlock();
-            demuxer->async_open(
-                boost::bind(&DemuxModule::handle_open, this, _1, info));
-            lock.lock();
-            info->status = DemuxInfo::opening;
-        }
-
-        void DemuxModule::handle_open(
-            error_code const & ecc,
-            DemuxInfo * info)
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-
-            error_code ec = ecc;
-            
-            DemuxerBase * demuxer = info->demuxer;
-
-            open_response_type resp;
-            resp.swap(info->resp);
-            //要放在close_locked之前对info->ec赋值
-            info->ec = ec;
-            if (info->status == DemuxInfo::canceled) {
-                close_locked(info, true, ec);
-                ec = boost::asio::error::operation_aborted;
-            } else {
-                info->status = DemuxInfo::opened;
+            if (demuxer) {
+                DemuxInfo * info = new DemuxInfo;
+                info->media = media;
+                info->demuxer = demuxer;
+                info->play_link = playlink;
+                boost::mutex::scoped_lock lock(mutex_);
+                demuxers_.push_back(info);
+                return info;
             }
-
-            lock.unlock();
-
-            resp(ec, demuxer);
+            return NULL;
         }
 
-        error_code DemuxModule::close_locked(
-            DemuxInfo * info, 
-            bool inner_call, 
-            error_code & ec)
-        {
-            assert(!inner_call || info->status == DemuxInfo::opening || info->status == DemuxInfo::canceled);
-            if (info->status == DemuxInfo::closed) {
-                ec = error::not_open;
-            } else if (info->status == DemuxInfo::opening) {
-                info->status = DemuxInfo::canceled;
-                cancel(info, ec);
-            } else if (info->status == DemuxInfo::canceled) {
-                if (inner_call) {
-                    info->status = DemuxInfo::closed;
-                    ec.clear();
-                } else {
-                    ec = error::not_open;
-                }
-            } else if (info->status == DemuxInfo::opened) {
-                info->status = DemuxInfo::closed;
-            }
-            if (info->status == DemuxInfo::closed) {
-                close(info, ec);
-                destory(info);
-            }
-            return ec;
-        }
-
-        error_code DemuxModule::cancel(
-            DemuxInfo * info, 
-            error_code & ec)
-        {
-            DemuxerBase * demuxer = info->demuxer;
-            if (demuxer)
-                demuxer->cancel(ec);
-            cond_.notify_all();
-            return ec;
-        }
-
-        error_code DemuxModule::close(
-            DemuxInfo * info, 
-            error_code & ec)
-        {
-            DemuxerBase * demuxer = info->demuxer;
-            if (demuxer)
-                demuxer->close(ec);
-            return ec;
-        }
-
-        void DemuxModule::destory(
+        void DemuxModule::priv_destroy(
             DemuxInfo * info)
         {
             DemuxerBase * demuxer = info->demuxer;
@@ -340,20 +187,6 @@ namespace ppbox
                 demuxers_.end());
             delete info;
             info = NULL;
-            cond_.notify_all();
-        }
-
-        DemuxerBase * DemuxModule::find(
-            framework::string::Url const & play_link)
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
-            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
-                if ((*iter)->play_link == play_link) {
-                    return (*iter)->demuxer;
-                }
-            }
-            return NULL;
         }
 
         void DemuxModule::set_download_buffer_size(
