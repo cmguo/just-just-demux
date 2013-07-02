@@ -98,7 +98,7 @@ namespace ppbox
                 assert(archive_);
                 while (!get_tag(flv_tag_, ec)) {
                     if (flv_tag_.Type == FlvTagType::DATA 
-                        && flv_tag_.DataTag.Name.String == "onMetaData") {
+                        && flv_tag_.DataTag.Name == "onMetaData") {
                         metadata_.from_data(flv_tag_.DataTag.Value);
                     }
                     if (flv_tag_.Type >= stream_map_.size() ||
@@ -280,7 +280,7 @@ namespace ppbox
                 BasicDemuxer::push_data(flv_tag_.data_offset, flv_tag_.DataSize);
                 BasicDemuxer::end_sample(sample);
             } else if (flv_tag_.Type == FlvTagType::DATA) {
-                LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.String.StringData);
+                LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.as<FlvDataString>().StringData);
                 return get_sample(sample, ec);
             } else if (flv_tag_.Type == FlvTagType::AUDIO) {
                 if (flv_tag_.AudioHeader.SoundFormat == FlvSoundCodec::AAC

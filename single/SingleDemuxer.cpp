@@ -154,6 +154,14 @@ namespace ppbox
                     if (!ec && !seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
                         open_state_ = open_finished;
                         stream_->set_track_count(get_stream_count(ec));
+                        media_info_.file_size = source_->total_size();
+                        using ppbox::data::invalid_size;
+                        if (media_info_.duration == invalid_size) {
+                            CustomDemuxer::get_media_info(media_info_, ec);
+                        }
+                        if (media_info_.bitrate == 0 && media_info_.file_size != invalid_size && media_info_.duration != invalid_size) {
+                            media_info_.bitrate = (boost::uint32_t)(media_info_.file_size * 8 * 1000 / media_info_.duration);
+                        }
                         open_end();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block || (ec == error::file_stream_error 
@@ -231,12 +239,7 @@ namespace ppbox
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
-                ppbox::data::MediaInfo info1;
-                CustomDemuxer::get_media_info(info1, ec);
-                media_.get_info(info, ec);
-                if (info.duration == ppbox::data::invalid_size) {
-                    info.duration = info1.duration;
-                }
+                info = media_info_;
             }
             return ec;
         }
