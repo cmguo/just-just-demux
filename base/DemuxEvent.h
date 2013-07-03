@@ -12,28 +12,13 @@ namespace ppbox
 
         class DemuxStatistic;
 
-        class StatusChangeEvent
-            : public util::event::EventBase<StatusChangeEvent>
+        class DemuxStatisticEvent
+            : public util::event::Event
         {
         public:
             DemuxStatistic const & stat;
 
-            StatusChangeEvent(
-                DemuxStatistic const & stat)
-                : stat(stat)
-            {
-            }
-        };
-
-        // 定期发出的缓存状态
-
-        class BufferingEvent
-            : public util::event::EventBase<BufferingEvent>
-        {
-        public:
-            DemuxStatistic const & stat;
-
-            BufferingEvent(
+            DemuxStatisticEvent(
                 DemuxStatistic const & stat)
                 : stat(stat)
             {

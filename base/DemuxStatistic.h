@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
 
 #include "ppbox/demux/base/DemuxBase.h"
+#include "ppbox/demux/base/DemuxEvent.h"
 
 #include <framework/timer/TimeCounter.h>
 
@@ -66,6 +67,12 @@ namespace ppbox
                 playing, 
                 buffering
             };
+
+        public:
+            DemuxStatisticEvent status_changed;
+
+            // 定期发出的缓存状态
+            DemuxStatisticEvent buffer_update;
 
         protected:
             DemuxStatistic(

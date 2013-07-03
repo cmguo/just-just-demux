@@ -419,7 +419,7 @@ namespace ppbox
         }
 
         bool SegmentDemuxer::get_data_stat(
-            DataStatistic & stat, 
+            SourceStatisticData & stat, 
             boost::system::error_code & ec) const
         {
             if (source_) {

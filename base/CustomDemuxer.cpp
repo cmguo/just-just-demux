@@ -78,7 +78,7 @@ namespace ppbox
         }
 
         bool CustomDemuxer::get_data_stat(
-            DataStatistic & stat, 
+            SourceStatisticData & stat, 
             boost::system::error_code & ec) const
         {
             return demuxer_.get_data_stat(stat, ec);

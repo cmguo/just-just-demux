@@ -5,7 +5,7 @@
 
 #include <ppbox/data/base/MediaInfo.h>
 #include <ppbox/data/base/StreamStatus.h>
-#include <ppbox/data/base/DataStatistic.h>
+#include <ppbox/data/base/SourceStatistic.h>
 
 #include <ppbox/avbase/StreamType.h>
 #include <ppbox/avbase/StreamInfo.h>
@@ -20,7 +20,7 @@ namespace ppbox
 
         using ppbox::data::MediaInfo;
         using ppbox::data::StreamStatus;
-        using ppbox::data::DataStatistic;
+        using ppbox::data::SourceStatisticData;
 
         using ppbox::avbase::StreamType;
         using ppbox::avbase::StreamInfo;

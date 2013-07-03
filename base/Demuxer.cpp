@@ -105,7 +105,7 @@ namespace ppbox
         }
 
         bool Demuxer::get_data_stat(
-            DataStatistic & stat, 
+            SourceStatisticData & stat, 
             boost::system::error_code & ec) const
         {
             ec = framework::system::logic_error::not_supported;

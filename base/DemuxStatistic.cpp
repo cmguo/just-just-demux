@@ -2,7 +2,6 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/base/DemuxStatistic.h"
-#include "ppbox/demux/base/DemuxEvent.h"
 #include "ppbox/demux/base/Demuxer.h"
 
 #include <framework/logger/Logger.h>
@@ -19,7 +18,9 @@ namespace ppbox
 
         DemuxStatistic::DemuxStatistic(
             DemuxerBase & demuxer)
-            : demuxer_(demuxer)
+            : status_changed(*this)
+            , buffer_update(*this)
+            , demuxer_(demuxer)
             , state_(stopped)
             , need_seek_time_(false)
             , seek_position_(0)
@@ -40,7 +41,7 @@ namespace ppbox
                 LOG_DEBUG("[buf_time] buf_time: " << buf_time() << " ms");
             }
 
-            raise(BufferingEvent(*this));
+            raise(buffer_update);
         }
         /*
         static char const * type_str[] = {
@@ -84,7 +85,7 @@ namespace ppbox
             status_infos_.push_back(info);
             state_ = (StatusEnum)new_state;
 
-            raise(StatusChangeEvent(*this));
+            raise(status_changed);
         }
 
         void DemuxStatistic::open_beg()
