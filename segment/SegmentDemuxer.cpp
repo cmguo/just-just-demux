@@ -232,14 +232,6 @@ namespace ppbox
         {
             if (&time != &seek_time_ && (!seek_pending_ || time != seek_time_)) {
                 LOG_DEBUG("[seek] begin, time: " << time);
-                if (write_demuxer_) {
-                    free_demuxer(write_demuxer_, false, ec);
-                    write_demuxer_ = NULL;
-                }
-                if (read_demuxer_) {
-                    free_demuxer(read_demuxer_, true, ec);
-                    write_demuxer_ = NULL;
-                }
                 SegmentPosition base(buffer_->base_segment());
                 SegmentPosition pos(buffer_->read_segment());
                 pos.byte_range.pos = 0; // 可能pos不是0
@@ -247,6 +239,14 @@ namespace ppbox
                     || !buffer_->seek(base, pos, pos.time_range.pos == 0 ? ppbox::data::invalid_size : pos.head_size, ec)) {
                         last_error(ec);
                         return ec;
+                }
+                if (write_demuxer_) {
+                    free_demuxer(write_demuxer_, false, ec);
+                    write_demuxer_ = NULL;
+                }
+                if (read_demuxer_) {
+                    free_demuxer(read_demuxer_, true, ec);
+                    read_demuxer_ = NULL;
                 }
                 joint_context_.reset(pos.time_range.big_beg());
                 read_demuxer_ = alloc_demuxer(pos, true, ec);
