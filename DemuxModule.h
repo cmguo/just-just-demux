@@ -1,15 +1,19 @@
-// DemuxerModule.h
+// DemuxModule.h
 
-#ifndef _PPBOX_DEMUX_DEMUXER_MODULE_H_
-#define _PPBOX_DEMUX_DEMUXER_MODULE_H_
+#ifndef _PPBOX_DEMUX_DEMUX_MODULE_H_
+#define _PPBOX_DEMUX_DEMUX_MODULE_H_
 
 #include <framework/string/Url.h>
 
 #include <boost/thread/mutex.hpp>
-#include <boost/function.hpp>
 
 namespace ppbox
 {
+    namespace data
+    {
+        class MediaBase;
+    }
+
     namespace demux
     {
 
@@ -19,12 +23,6 @@ namespace ppbox
         class DemuxModule
             : public ppbox::common::CommonModuleBase<DemuxModule>
         {
-        public:
-            typedef boost::function<void (
-                boost::system::error_code const &, 
-                DemuxerBase *)
-            > open_response_type;
-
         public:
             DemuxModule(
                 util::daemon::Daemon & daemon);
@@ -53,6 +51,9 @@ namespace ppbox
             DemuxerBase * find(
                 framework::string::Url const & play_link);
 
+            DemuxerBase * find(
+                ppbox::data::MediaBase const & media);
+
         private:
             struct DemuxInfo;
 
@@ -77,4 +78,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_DEMUXER_MODULE_H_
+#endif // _PPBOX_DEMUX_DEMUX_MODULE_H_

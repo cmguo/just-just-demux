@@ -9,7 +9,6 @@
 #include "ppbox/demux/single/SingleDemuxer.h"
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 #include "ppbox/demux/packet/PacketDemuxer.h"
-using namespace ppbox::demux;
 
 #include <ppbox/data/base/MediaBase.h>
 #include <ppbox/data/base/SourceBase.h>
@@ -72,7 +71,6 @@ namespace ppbox
         DemuxModule::~DemuxModule()
         {
             boost::mutex::scoped_lock lock(mutex_);
-            std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
                 priv_destroy(demuxers_[i]);
             }
@@ -87,7 +85,6 @@ namespace ppbox
         void DemuxModule::shutdown()
         {
             boost::mutex::scoped_lock lock(mutex_);
-            std::vector<DemuxInfo *>::iterator iter = demuxers_.begin();
             error_code ec;
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
                 demuxers_[i]->demuxer->cancel(ec);
@@ -125,8 +122,21 @@ namespace ppbox
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
-            for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
+            for (; iter != demuxers_.end(); ++iter) {
                 if ((*iter)->play_link == play_link) {
+                    return (*iter)->demuxer;
+                }
+            }
+            return NULL;
+        }
+
+        DemuxerBase * DemuxModule::find(
+            ppbox::data::MediaBase const & media)
+        {
+            boost::mutex::scoped_lock lock(mutex_);
+            std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
+            for (; iter != demuxers_.end(); ++iter) {
+                if ((*iter)->media == &media) {
                     return (*iter)->demuxer;
                 }
             }
