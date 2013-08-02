@@ -158,8 +158,6 @@ namespace ppbox
             if (play_position_ == seek_time)
                 return;
 
-            time_range.pos = time_range.buf = seek_time;
-
             block_type_ = BlockType::seek;
             if (ok) {
                 change_status(BlockType::seek | playing);
@@ -172,6 +170,8 @@ namespace ppbox
                 need_seek_time_ = true;
                 play_position_ = seek_time;
             }
+
+            update_stat();
         }
 
         void DemuxStatistic::last_error(
