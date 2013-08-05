@@ -235,6 +235,26 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint32_t MkvDemuxer::probe(
+            boost::uint8_t const * hbytes, 
+            size_t hsize)
+        {
+            if (hsize < 4 
+                || hbytes[0] != 0x1A
+                || hbytes[1] != 0x45
+                || hbytes[2] != 0xDF
+                || hbytes[3] != 0xA3) {
+                    return 0;
+            }
+            size_t len = sizeof("matroska") - 1;
+            for (size_t i = 4; i < 4 + len; ++i) {
+                if (memcmp(hbytes + i, "matroska", len) == 0) {
+                    return SCOPE_MAX;
+                }
+            }
+            return SCOPE_MAX / 2;
+        }
+
         boost::uint64_t MkvDemuxer::get_cur_time(
             error_code & ec) const
         {

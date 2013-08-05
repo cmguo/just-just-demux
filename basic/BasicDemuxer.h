@@ -31,6 +31,11 @@ namespace ppbox
             typedef std::basic_streambuf<boost::uint8_t> streambuffer_t;
 
         public:
+            static BasicDemuxer * BasicDemuxer::probe(
+                boost::asio::io_service & io_svc, 
+                std::basic_streambuf<boost::uint8_t> & content);
+
+        public:
             BasicDemuxer(
                 boost::asio::io_service & io_svc, 
                 streambuffer_t & buf);
@@ -64,6 +69,10 @@ namespace ppbox
                 boost::system::error_code & ec) const = 0;
 
         protected:
+            virtual boost::uint32_t probe(
+                boost::uint8_t const * header, 
+                size_t hsize);
+
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) const;
 
@@ -140,6 +149,9 @@ namespace ppbox
                 adjust_timestamp(sample);
                 sample.context = &datas_;
             }
+
+        protected:
+            static boost::uint32_t const SCOPE_MAX = 100;
 
         private:
             streambuffer_t & buf_;

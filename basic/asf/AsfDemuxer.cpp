@@ -293,6 +293,25 @@ namespace ppbox
             return ec = error_code();
         }
 
+        boost::uint32_t AsfDemuxer::probe(
+            boost::uint8_t const * hbytes, 
+            size_t hsize)
+        {
+            using framework::string::UUID;
+            using framework::string::Uuid;
+            if (hsize < sizeof(UUID)) {
+                return 0;
+            }
+            Uuid uuid;
+            Uuid::bytes_type bytes;
+            memcpy(bytes.elems, hbytes, sizeof(UUID));
+            uuid.from_little_endian_bytes(bytes);
+            if (uuid == ASF_HEADER_OBJECT) {
+                return SCOPE_MAX;
+            }
+            return 0;
+        }
+
         boost::uint64_t AsfDemuxer::get_cur_time(
             error_code & ec) const
         {

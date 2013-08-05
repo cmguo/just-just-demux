@@ -15,6 +15,9 @@ namespace ppbox
         {
         public:
             CustomDemuxer(
+                boost::asio::io_service & io_svc);
+
+            CustomDemuxer(
                 DemuxerBase & demuxer);
 
             virtual ~CustomDemuxer();
@@ -75,13 +78,21 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         protected:
+            void attach(DemuxerBase & demuxer)
+            {
+                assert(demuxer_ == NULL);
+                demuxer_ = &demuxer;
+            }
+
             DemuxerBase & detach()
             {
-                return demuxer_;
+                DemuxerBase * demuxer = demuxer_;
+                demuxer_ = NULL;
+                return *demuxer;
             }
 
         private:
-            DemuxerBase & demuxer_;
+            DemuxerBase * demuxer_;
         };
 
     } // namespace demux

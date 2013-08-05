@@ -301,6 +301,22 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint32_t TsDemuxer::probe(
+            boost::uint8_t const * hbytes, 
+            size_t hsize)
+        {
+            boost::uint32_t scope = 0;
+            for (size_t i = 0; i < hsize; i += TsPacket::PACKET_SIZE) {
+                if (hbytes[i] == 0x47) {
+                    ++scope;
+                }
+            }
+            if (scope > SCOPE_MAX) {
+                scope = SCOPE_MAX;
+            }
+            return scope;
+        }
+
         boost::uint64_t TsDemuxer::get_cur_time(
             error_code & ec) const
         {

@@ -92,7 +92,7 @@ namespace ppbox
             {
                 if (track->GetType() != AP4_Track::TYPE_AUDIO
                     && track->GetType() != AP4_Track::TYPE_VIDEO) {
-                        ec = bad_media_type;
+                        ec = bad_file_format;
                         return;
                 }
 

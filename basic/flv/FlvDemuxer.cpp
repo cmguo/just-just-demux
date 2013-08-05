@@ -306,6 +306,20 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint32_t FlvDemuxer::probe(
+            boost::uint8_t const * hbytes, 
+            size_t hsize)
+        {
+            if (hsize >= 3 
+                && hbytes[0] == 'F'
+                && hbytes[1] == 'L'
+                && hbytes[2] == 'V')
+            {
+                return SCOPE_MAX;
+            }
+            return 0;
+        }
+
         boost::uint64_t FlvDemuxer::get_cur_time(
             error_code & ec) const
         {

@@ -33,6 +33,7 @@ namespace ppbox
             {
                 not_open,
                 media_open,
+                demuxer_probe,
                 demuxer_open,
                 open_finished,
             };
@@ -45,6 +46,9 @@ namespace ppbox
             virtual ~SingleDemuxer();
 
         public:
+            boost::system::error_code open (
+                boost::system::error_code & ec);
+
             virtual void async_open(
                 open_response_type const & resp);
 
@@ -108,9 +112,8 @@ namespace ppbox
             }
 
         private:
-            DemuxerBase * create_demuxer(
-                boost::asio::io_service & io_svc, 
-                ppbox::data::MediaBase & media);
+            bool create_demuxer(
+                boost::system::error_code & ec);
 
             bool is_open(
                 boost::system::error_code & ec) const;

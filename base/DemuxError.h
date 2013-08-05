@@ -13,12 +13,11 @@ namespace ppbox
             enum errors
             {
                 already_open = 1,   // demux已经打开连接
-                not_open,       // demux连接未打开
+                not_open,           // demux连接未打开
                 no_more_sample, 
                 empty_name, 
-                bad_media_type, 
-                bad_file_type, 
-                bad_file_format, 
+                bad_file_type,      // 文件类型错误
+                bad_file_format,    // 文件内容的格式错误
                 bad_smaple_order, 
                 bad_offset_size, 
                 file_stream_error, 
@@ -51,8 +50,6 @@ namespace ppbox
                             return "demux: has no more samples";
                         if (value == error::empty_name)
                             return "demux: has empty name";
-                        if (value == error::bad_media_type)
-                            return "demux: bad media type";
                         if (value == error::bad_file_type)
                             return "demux: bad file type";
                         if (value == error::bad_file_format)
