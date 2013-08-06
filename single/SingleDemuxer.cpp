@@ -34,7 +34,7 @@ namespace ppbox
             , media_(media)
             , seek_time_(0)
             , seek_pending_(false)
-            , open_state_(not_open)
+            , open_state_(closed)
         {
             ppbox::data::UrlSource * source = 
                 ppbox::data::UrlSource::create(io_svc, media.get_protocol());
@@ -78,10 +78,10 @@ namespace ppbox
         bool SingleDemuxer::is_open(
             boost::system::error_code & ec) const
         {
-            if (open_state_ == open_finished) {
+            if (open_state_ == opened) {
                 ec.clear();
                 return true;
-            } else if (open_state_ == not_open) {
+            } else if (open_state_ == closed) {
                 ec = error::not_open;
                 return false;
             } else {
@@ -111,22 +111,23 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             DemuxStatistic::close();
-            if (open_state_ == open_finished) {
+            if (open_state_ > demuxer_probe) {
                 CustomDemuxer::close(ec);
             }
-            media_.close(ec);
+            if (open_state_ > media_open) {
+                media_.close(ec);
+            }
+            seek_pending_ = false;
             seek_time_ = 0;
-            open_state_ = not_open;
+            open_state_ = closed;
             return ec;
         }
 
         bool SingleDemuxer::create_demuxer(
             boost::system::error_code & ec)
         {
-            ppbox::data::MediaBasicInfo info;
-            media_.get_basic_info(info, ec);
-            if (!info.format.empty()) {
-                BasicDemuxer * demuxer = BasicDemuxer::create(info.format, get_io_service(), *stream_);
+            if (!media_info_.format.empty()) {
+                BasicDemuxer * demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), *stream_);
                 if (demuxer) {
                     attach(*demuxer);
                     return true;
@@ -156,7 +157,7 @@ namespace ppbox
             }
 
             switch(open_state_) {
-                case not_open:
+                case closed:
                     open_state_ = media_open;
                     DemuxStatistic::open_beg();
                     media_.async_open(
@@ -185,7 +186,7 @@ namespace ppbox
                 case demuxer_open:
                     stream_->pause_stream();
                     if (!ec && !seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
-                        open_state_ = open_finished;
+                        open_state_ = opened;
                         stream_->set_track_count(get_stream_count(ec));
                         media_info_.file_size = source_->total_size();
                         using ppbox::data::invalid_size;
@@ -203,7 +204,6 @@ namespace ppbox
                             stream_->async_prepare_some(0, 
                                 boost::bind(&SingleDemuxer::handle_async_open, this, _1));
                     } else {
-                        open_state_ = open_finished;
                         open_end();
                         response(ec);
                     }
@@ -233,7 +233,7 @@ namespace ppbox
             } else {
                 seek_pending_ = false;
             }
-            if (&time != &seek_time_ && open_state_ == open_finished) {
+            if (&time != &seek_time_ && open_state_ == opened) {
                 DemuxStatistic::seek(!ec, time);
             }
             return ec;

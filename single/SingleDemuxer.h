@@ -31,11 +31,11 @@ namespace ppbox
         public:
             enum StateEnum
             {
-                not_open,
+                closed,
                 media_open,
                 demuxer_probe,
                 demuxer_open,
-                open_finished,
+                opened,
             };
 
         public:
