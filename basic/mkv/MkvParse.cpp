@@ -2,6 +2,9 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/basic/mkv/MkvParse.h"
+using namespace ppbox::demux::error;
+
+using namespace ppbox::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -54,7 +57,7 @@ namespace ppbox
                 return true;
             } else {
                 ar.clear();
-                ec = error::file_stream_error;
+                ec = file_stream_error;
                 return false;
             }
         }
@@ -180,9 +183,9 @@ namespace ppbox
                 return true;
             } else {
                 if (ar.failed()) {
-                    ec = error::bad_file_format;
+                    ec = bad_media_format;
                 } else {
-                    ec = error::file_stream_error;
+                    ec = file_stream_error;
                 }
                 ar.clear();
                 ar.seekg(offset_, std::ios::beg);

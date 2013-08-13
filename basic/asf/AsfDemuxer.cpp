@@ -6,9 +6,11 @@ using namespace ppbox::demux::error;
 
 #include <ppbox/avformat/asf/AsfGuid.h>
 using namespace ppbox::avformat;
+using namespace ppbox::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
+#include <framework/system/LogicError.h>
 
 using namespace boost::system;
 
@@ -101,7 +103,7 @@ namespace ppbox
 
                 if (!archive_ || offset != header_.ObjLength || stream_map_.empty()) {
                     open_step_ = (size_t)-1;
-                    ec = bad_file_format;
+                    ec = bad_media_format;
                     return false;
                 }
 
@@ -136,7 +138,7 @@ namespace ppbox
                 if (!next_payload(archive_, object_parse_, ec)) {
                     if (object_parse_.payload.StreamNum >= stream_map_.size()) {
                         open_step_ = (size_t)-1;
-                        ec = bad_file_format;
+                        ec = bad_media_format;
                         return false;
                     }
                     timestamp_offset_ms_ = object_parse_.payload.PresTime;
@@ -210,7 +212,7 @@ namespace ppbox
         boost::uint64_t AsfDemuxer::get_duration(
             error_code & ec) const
         {
-            ec = error::not_support;
+            ec = framework::system::logic_error::not_supported;
             return ppbox::data::invalid_size;
         }
 
@@ -262,12 +264,12 @@ namespace ppbox
                     return ec;
                 }
                 if (object_parse_.payload.StreamNum >= stream_map_.size()) {
-                    ec = error::bad_file_format;
+                    ec = bad_media_format;
                     return ec;
                 }
                 size_t index = stream_map_[object_parse_.payload.StreamNum];
                 if (index >= streams_.size()) {
-                    ec = error::bad_file_format;
+                    ec = bad_media_format;
                     return ec;
                 }
                 AsfParse & parse(parses_[index]);
@@ -328,7 +330,7 @@ namespace ppbox
                 return 0;
             }
             if (fixed_packet_length_ == 0) {
-                ec = error::not_support;
+                ec = framework::system::logic_error::not_supported;
                 return 0;
             }
             boost::uint64_t beg = archive_.tellg();
@@ -359,7 +361,7 @@ namespace ppbox
                 return ec = error_code();
             } else if (archive.failed()) {
                 archive.clear();
-                return ec = bad_file_format;
+                return ec = bad_media_format;
             } else {
                 archive.clear();
                 return ec = file_stream_error;
@@ -405,7 +407,7 @@ namespace ppbox
                 }
             } else if (archive.failed()) {
                 archive.clear();
-                return ec = bad_file_format;
+                return ec = bad_media_format;
             } else {
                 archive.clear();
                 return ec = file_stream_error;

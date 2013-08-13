@@ -10,6 +10,8 @@
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 #include "ppbox/demux/packet/PacketDemuxer.h"
 
+using namespace ppbox::avformat::error;
+
 #include <ppbox/data/base/MediaBase.h>
 #include <ppbox/data/base/SourceBase.h>
 
@@ -153,7 +155,7 @@ namespace ppbox
             ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), playlink);
             DemuxerBase * demuxer = NULL;
             if (media == NULL) {
-                ec = error::bad_file_type;
+                ec = format_not_support;
                 //demuxer = new EmptyDemuxer(io_svc());
             } else {
                 ppbox::data::MediaBasicInfo info;
@@ -166,7 +168,7 @@ namespace ppbox
                         demuxer = new SingleDemuxer(io_svc(), *media);
                     }
                     if (demuxer == NULL) {
-                        ec = error::bad_file_type;
+                        ec = format_not_support;
                     } else {
                         ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
                     }

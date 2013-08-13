@@ -3,15 +3,11 @@
 #ifndef _PPBOX_DEMUX_DEMUX_BASE_H_
 #define _PPBOX_DEMUX_DEMUX_BASE_H_
 
-#include <ppbox/data/base/MediaInfo.h>
-#include <ppbox/data/base/StreamStatus.h>
-#include <ppbox/data/base/SourceStatistic.h>
+#include <ppbox/data/base/DataBase.h>
 
 #include <ppbox/avbase/StreamType.h>
 #include <ppbox/avbase/StreamInfo.h>
 #include <ppbox/avbase/Sample.h>
-
-#include <boost/function.hpp>
 
 namespace ppbox
 {
@@ -25,10 +21,6 @@ namespace ppbox
         using ppbox::avbase::StreamType;
         using ppbox::avbase::StreamInfo;
         using ppbox::avbase::Sample;
-
-        typedef boost::function<void (
-            boost::system::error_code const &)
-        > open_response_type;
 
         class DemuxerBase;
 

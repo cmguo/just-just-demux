@@ -4,6 +4,9 @@
 #include "ppbox/demux/basic/BasicDemuxer.h"
 #include "ppbox/demux/basic/JointContext.h"
 
+#include <ppbox/data/base/MediaInfo.h>
+#include <ppbox/data/base/StreamStatus.h>
+
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 

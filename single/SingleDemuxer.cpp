@@ -11,6 +11,7 @@
 #include <ppbox/data/single/SourceStream.h>
 
 #include <ppbox/avformat/Format.h>
+using namespace ppbox::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -132,7 +133,7 @@ namespace ppbox
                     attach(*demuxer);
                     return true;
                 } else {
-                    ec = error::bad_file_type;
+                    ec = format_not_support;
                 }
             } else {
                 BasicDemuxer * demuxer = BasicDemuxer::probe(get_io_service(), *stream_);
@@ -334,7 +335,7 @@ namespace ppbox
                 ec = stream_->last_error();
                 assert(ec);
                 if (ec == boost::asio::error::eof)
-                    ec = error::no_more_sample;
+                    ec = end_of_stream;
                 if (!ec) {
                     ec = boost::asio::error::would_block;
                 }

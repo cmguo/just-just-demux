@@ -155,7 +155,7 @@ namespace ppbox
 
             if (file->GetMovie() == NULL) {
                 delete file;
-                ec = bad_file_format;
+                ec = bad_media_format;
                 return ec;
             }
 
@@ -173,7 +173,7 @@ namespace ppbox
                         bitrate_ = size_mdat * 8 / file->GetMovie()->GetDurationMs();
                 } else {
                     delete file;
-                    ec = bad_file_format;
+                    ec = bad_media_format;
                     return ec;
                 }
             }
@@ -181,7 +181,7 @@ namespace ppbox
             AP4_Movie* movie = file->GetMovie();
             if (!movie || movie->GetTracks().ItemCount() == 0) {
                 delete file;
-                ec = bad_file_format;
+                ec = bad_media_format;
                 return ec;
             }
 
@@ -198,7 +198,7 @@ namespace ppbox
             }
 
             if (tracks_.empty()) {
-                ec = bad_file_format;
+                ec = bad_media_format;
             }
 
             if (ec) {
@@ -292,7 +292,7 @@ namespace ppbox
             framework::timer::TimeCounter tc;
 
             if (sample_list_->empty()) {
-                ec = no_more_sample;
+                ec = end_of_stream;
                 for (size_t i = 0; i < tracks_.size(); ++i) {
                     assert(tracks_[i]->next_index_ == tracks_[i]->total_index_);
                 }

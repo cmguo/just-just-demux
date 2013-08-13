@@ -6,6 +6,8 @@
 #include "ppbox/demux/packet/filter/TimestampFilter.h"
 #include "ppbox/demux/packet/filter/SortFilter.h"
 
+using namespace ppbox::avformat::error;
+
 #include <ppbox/data/packet/PacketMedia.h>
 #include <ppbox/data/packet/PacketBuffer.h>
 #include <ppbox/data/base/SourceBase.h>
@@ -327,7 +329,7 @@ namespace ppbox
                 if (ec == boost::asio::error::would_block) {
                     DemuxStatistic::block_on();
                 } else if (ec == boost::asio::error::eof) {
-                    ec = error::no_more_sample;
+                    ec = end_of_stream;
                 }
                 last_error(ec);
             }

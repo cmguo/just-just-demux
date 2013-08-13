@@ -5,14 +5,17 @@
 #include "ppbox/demux/basic/ts/TsStream.h"
 #include "ppbox/demux/basic/JointContext.h"
 #include "ppbox/demux/base/DemuxError.h"
+using namespace ppbox::demux::error;
 
 #include <ppbox/avformat/ts/TsEnum.h>
 using namespace ppbox::avformat;
+using namespace ppbox::avformat::error;
 
 #include <util/serialization/Array.h>
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
+#include <framework/system/LogicError.h>
 
 using namespace boost::system;
 
@@ -82,9 +85,9 @@ namespace ppbox
                     archive_ >> pat;
                     if (!archive_) {
                         if (archive_.failed()) {
-                            ec = error::bad_file_format;
+                            ec = bad_media_format;
                         } else {
-                            ec = error::file_stream_error;
+                            ec = file_stream_error;
                         }
                         archive_.clear();
                         break;
@@ -106,9 +109,9 @@ namespace ppbox
                     archive_ >> pmt;
                     if (!archive_) {
                         if (archive_.failed()) {
-                            ec = error::bad_file_format;
+                            ec = bad_media_format;
                         } else {
-                            ec = error::file_stream_error;
+                            ec = file_stream_error;
                         }
                         archive_.clear();
                         break;
@@ -244,7 +247,7 @@ namespace ppbox
         boost::uint64_t TsDemuxer::get_duration(
             error_code & ec) const
         {
-            ec = error::not_support;
+            ec = framework::system::logic_error::not_supported;
             return ppbox::data::invalid_size;
         }
 
@@ -430,14 +433,14 @@ namespace ppbox
                     return true;
                 } else if (archive_.failed()) {
                     archive_.clear();
-                    ec = error::bad_file_format;
+                    ec = bad_media_format;
                 } else {
                     archive_.clear();
-                    ec = error::file_stream_error;
+                    ec = file_stream_error;
                 }
             } else {
                 archive_.clear();
-                ec = error::file_stream_error;
+                ec = file_stream_error;
             }
             return false;
         }

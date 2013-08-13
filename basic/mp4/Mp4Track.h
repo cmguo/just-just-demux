@@ -5,6 +5,8 @@
 
 using namespace ppbox::demux::error;
 
+using namespace ppbox::avformat::error;
+
 #include <ppbox/avcodec/CodecType.h>
 #include <ppbox/avcodec/avc/AvcFormatType.h>
 #include <ppbox/avcodec/aac/AacFormatType.h>
@@ -92,7 +94,7 @@ namespace ppbox
             {
                 if (track->GetType() != AP4_Track::TYPE_AUDIO
                     && track->GetType() != AP4_Track::TYPE_VIDEO) {
-                        ec = bad_file_format;
+                        ec = bad_media_format;
                         return;
                 }
 
@@ -101,7 +103,7 @@ namespace ppbox
 
                 if (total_index_ > 0) { 
                     if (!AP4_SUCCEEDED(GetNextSample()) || sample_.GetDescriptionIndex() == 0xFFFFFFFF) {
-                        ec = bad_file_format;
+                        ec = bad_media_format;
                         return;
                     }
                 }
@@ -313,7 +315,7 @@ namespace ppbox
                 time_scale = track_->GetMediaTimeScale();
                 start_time = 0;
                 duration = track_->GetMediaDuration();
-                ec = bad_file_format;
+                ec = bad_media_format;
                 /*
                 AP4_Atom * stsd_atom = track_->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd");
                 if (stsd_atom == NULL || AP4_DYNAMIC_CAST<AP4_AtomParent>(stsd_atom) == NULL) {

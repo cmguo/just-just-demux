@@ -6,6 +6,8 @@
 #include "ppbox/demux/segment/DemuxStrategy.h"
 #include "ppbox/demux/basic/JointData.h"
 
+using namespace ppbox::avformat::error;
+
 #include <ppbox/data/base/MediaBase.h>
 #include <ppbox/data/base/SourceError.h>
 #include <ppbox/data/segment/SegmentSource.h>
@@ -450,7 +452,7 @@ namespace ppbox
             }
             sample.data.clear();
             while (read_demuxer_->demuxer->get_sample(sample, ec)) {
-                if (ec != error::file_stream_error && ec != error::no_more_sample) {
+                if (ec != error::file_stream_error && ec != end_of_stream) {
                     break;
                 }
                 if (buffer_->read_has_more()) {
@@ -472,13 +474,13 @@ namespace ppbox
                         //}
                         continue;
                     } else {
-                        ec = error::no_more_sample;
+                        ec = end_of_stream;
                     }
                 } else {
                     ec = buffer_->last_error();
                     assert(ec);
                     if (ec == ppbox::data::source_error::no_more_segment)
-                        ec = error::no_more_sample;
+                        ec = end_of_stream;
                     if (!ec) {
                         ec = boost::asio::error::would_block;
                     }

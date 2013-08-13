@@ -6,6 +6,8 @@
 #include "ppbox/demux/base/DemuxBase.h"
 #include "ppbox/demux/base/DemuxEvent.h"
 
+#include <ppbox/data/base/StreamStatus.h>
+
 #include <framework/timer/TimeCounter.h>
 
 #include <util/event/Observable.h>

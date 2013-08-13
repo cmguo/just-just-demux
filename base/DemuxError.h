@@ -3,6 +3,8 @@
 #ifndef _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
 #define _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
 
+#include <ppbox/avformat/Error.h>
+
 namespace ppbox
 {
     namespace demux
@@ -14,14 +16,8 @@ namespace ppbox
             {
                 already_open = 1,   // demux已经打开连接
                 not_open,           // demux连接未打开
-                no_more_sample, 
                 empty_name, 
-                bad_file_type,      // 文件类型错误
-                bad_file_format,    // 文件内容的格式错误
-                bad_smaple_order, 
-                bad_offset_size, 
                 file_stream_error, 
-                not_support,
             };
 
             namespace detail {
@@ -46,22 +42,8 @@ namespace ppbox
                             return "demux: has already opened";
                         if (value == error::not_open)
                             return "demux: has not opened";
-                        if (value == error::no_more_sample)
-                            return "demux: has no more samples";
-                        if (value == error::empty_name)
-                            return "demux: has empty name";
-                        if (value == error::bad_file_type)
-                            return "demux: bad file type";
-                        if (value == error::bad_file_format)
-                            return "demux: bad file format";
-                        if (value == error::bad_smaple_order)
-                            return "demux: bad smaple order";
-                        if (value == error::bad_offset_size)
-                            return "demux: bad offset size";
                         if (value == error::file_stream_error)
                             return "demux: file stream error";
-                        if (value == error::not_support)
-                            return "demux: not support";
                         return "demux: unknown error";
                     }
                 };

@@ -3,6 +3,8 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/packet/filter/SortFilter.h"
 
+using namespace ppbox::avformat::error;
+
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
@@ -38,7 +40,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (eof_ && orders_.empty()) {
-                ec = error::no_more_sample;
+                ec = end_of_stream;
                 return false;
             }
 
@@ -54,10 +56,10 @@ namespace ppbox
                         queue.push_back(sample);
                         sample.data.clear();
                     }
-                } else if (ec == error::no_more_sample) {
+                } else if (ec == end_of_stream) {
                     eof_ = true;
                     if (orders_.empty()) {
-                        ec = error::no_more_sample;
+                        ec = end_of_stream;
                         return false;
                     }
                 } else {

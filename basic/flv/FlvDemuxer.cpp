@@ -5,12 +5,14 @@
 using namespace ppbox::demux::error;
 
 using namespace ppbox::avformat;
+using namespace ppbox::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
-#include <framework/system/BytesOrder.h>
+#include <framework/system/LogicError.h>
 #include <framework/timer/TimeCounter.h>
 using namespace framework::system;
+
 using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", framework::logger::Warn)
@@ -85,9 +87,9 @@ namespace ppbox
                     parse_offset_ = std::ios::off_type(flv_header_.DataOffset) + 4; // + 4 PreTagSize
                 } else {
                     if (archive_.failed()) {
-                        ec = error::bad_file_format;
+                        ec = bad_media_format;
                     } else {
-                        ec = error::file_stream_error;
+                        ec = file_stream_error;
                     }
                     archive_.clear();
                 }
@@ -203,7 +205,7 @@ namespace ppbox
                     parse_offset_ = header_offset_;
                     return header_offset_;
                 //} else {
-                //    ec = error::not_support;
+                //    ec = framework::system::logic_error::not_supported;
                 //    return 0;
                 //}
             } else {
@@ -214,7 +216,7 @@ namespace ppbox
         boost::uint64_t FlvDemuxer::get_duration(
             error_code & ec) const
         {
-            ec = error::not_support;
+            ec = framework::system::logic_error::not_supported;
             return ppbox::data::invalid_size;
         }
 
@@ -288,7 +290,7 @@ namespace ppbox
                         LOG_DEBUG("[get_sample] duplicate aac sequence header");
                         return get_sample(sample, ec);
                 }
-                ec = bad_file_format;
+                ec = bad_media_format;
             } else if (flv_tag_.Type == FlvTagType::VIDEO) {
                 if (flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H264) {
                     if (flv_tag_.VideoHeader.AVCPacketType == 0) {
@@ -299,9 +301,9 @@ namespace ppbox
                         return get_sample(sample, ec);
                     }
                 } 
-                ec = bad_file_format;
+                ec = bad_media_format;
             } else {
-                ec = bad_file_format;
+                ec = bad_media_format;
             }
             return ec;
         }
@@ -361,10 +363,10 @@ namespace ppbox
                 return ec;
             } else if (archive_.failed()) {
                 archive_.clear();
-                return ec = error::bad_file_format;
+                return ec = bad_media_format;
             } else {
                 archive_.clear();
-                return ec = error::file_stream_error;
+                return ec = file_stream_error;
             }
         }
 

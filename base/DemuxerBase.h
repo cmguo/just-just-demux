@@ -7,6 +7,8 @@
 
 #include <framework/configure/Config.h>
 
+#include <boost/function.hpp>
+
 namespace ppbox
 {
     namespace demux
@@ -14,6 +16,11 @@ namespace ppbox
 
         class DemuxerBase
         {
+        public:
+            typedef boost::function<void (
+                boost::system::error_code const &)
+            > open_response_type;
+
         public:
             DemuxerBase(
                 boost::asio::io_service & io_svc)

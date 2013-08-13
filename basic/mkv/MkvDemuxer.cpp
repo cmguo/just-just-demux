@@ -7,6 +7,7 @@
 using namespace ppbox::demux::error;
 
 using namespace ppbox::avformat;
+using namespace ppbox::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -94,7 +95,7 @@ namespace ppbox
                     object_parse_.set_offset(header_offset_);
                     open_step_ = 1;
                 } else {
-                    ec = bad_file_format;
+                    ec = bad_media_format;
                     archive_.seekg(0, std::ios_base::beg);
                 }
             }
