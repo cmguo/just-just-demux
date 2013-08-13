@@ -200,7 +200,7 @@ namespace ppbox
                         }
                         open_end();
                         response(ec);
-                    } else if (ec == boost::asio::error::would_block || (ec == error::file_stream_error 
+                    } else if (ec == boost::asio::error::would_block || (ec == file_stream_error 
                         && stream_->last_error() == boost::asio::error::would_block)) {
                             stream_->async_prepare_some(0, 
                                 boost::bind(&SingleDemuxer::handle_async_open, this, _1));
@@ -331,7 +331,7 @@ namespace ppbox
 
             sample.data.clear();
             CustomDemuxer::get_sample(sample, ec);
-            if (ec == error::file_stream_error) {
+            if (ec == file_stream_error) {
                 ec = stream_->last_error();
                 assert(ec);
                 if (ec == boost::asio::error::eof)

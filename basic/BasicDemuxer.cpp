@@ -4,6 +4,8 @@
 #include "ppbox/demux/basic/BasicDemuxer.h"
 #include "ppbox/demux/basic/JointContext.h"
 
+using namespace ppbox::avformat::error;
+
 #include <ppbox/data/base/MediaInfo.h>
 #include <ppbox/data/base/StreamStatus.h>
 
@@ -90,7 +92,7 @@ namespace ppbox
                 return ec;
             }
             if (buf_.pubseekpos(offset) != std::streampos(offset)) {
-                ec = error::file_stream_error;
+                ec = file_stream_error;
                 return ec;
             }
             return ec;
@@ -111,7 +113,7 @@ namespace ppbox
                 return ec;
             }
             if (buf_.pubseekpos(offset) != std::streampos(offset)) {
-                ec = error::file_stream_error;
+                ec = file_stream_error;
                 return ec;
             }
             time = (boost::uint64_t)-1;
@@ -282,7 +284,7 @@ namespace ppbox
             boost::uint64_t t = get_cur_time(ec);
             if (!ec) {
                 joint_->read_ctx().last_time(t);
-            } else if (ec == error::file_stream_error 
+            } else if (ec == file_stream_error 
                 || ec == error::not_open) {
                     t = joint_->write_ctx().last_time();
             }
@@ -295,7 +297,7 @@ namespace ppbox
             boost::uint64_t t = get_end_time(ec);
             if (!ec) {
                 joint_->write_ctx().last_time(t);
-            } else if (ec == error::file_stream_error) {
+            } else if (ec == file_stream_error) {
                 t = joint_->write_ctx().last_time();
             }
             return t;

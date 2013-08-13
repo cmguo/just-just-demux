@@ -193,7 +193,7 @@ namespace ppbox
                         open_state_ = open_finished;
                         DemuxStatistic::open_end();
                         response(ec);
-                    } else if (ec == boost::asio::error::would_block || (ec == error::file_stream_error 
+                    } else if (ec == boost::asio::error::would_block || (ec == file_stream_error 
                         && buffer_->last_error() == boost::asio::error::would_block)) {
                             buffer_->async_prepare_some(0, 
                                 boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
@@ -272,7 +272,7 @@ namespace ppbox
                         free_demuxer(write_demuxer_, false, ec1);
                     buffer_->pause_stream();
                     write_demuxer_ = alloc_demuxer(buffer_->write_segment(), false, ec1);
-                } else if (ec == error::file_stream_error) {
+                } else if (ec == file_stream_error) {
                     if (buffer_->read_has_more()) {
                         boost::uint64_t duration = read_demuxer_->demuxer->get_duration(ec);
                         free_demuxer(read_demuxer_, true, ec);
@@ -452,7 +452,7 @@ namespace ppbox
             }
             sample.data.clear();
             while (read_demuxer_->demuxer->get_sample(sample, ec)) {
-                if (ec != error::file_stream_error && ec != end_of_stream) {
+                if (ec != file_stream_error && ec != end_of_stream) {
                     break;
                 }
                 if (buffer_->read_has_more()) {
@@ -533,7 +533,7 @@ namespace ppbox
                 time = read_demuxer_->demuxer->get_joint_cur_time(ec);
                 if (ec) {
                     last_error(ec);
-                    if (ec == error::file_stream_error) {
+                    if (ec == file_stream_error) {
                         ec = buffer_->last_error();
                     }
                 }
@@ -571,7 +571,7 @@ namespace ppbox
                     }
                 }
                 time = write_demuxer_->demuxer->get_joint_end_time(ec);
-                if (ec == error::file_stream_error) {
+                if (ec == file_stream_error) {
                     ec.clear();
                 }
                 if (ec) {

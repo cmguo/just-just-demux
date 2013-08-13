@@ -305,7 +305,7 @@ namespace ppbox
             if (!is_) {
                 is_.clear();
                 assert(is_);
-                return ec = error::file_stream_error;
+                return ec = file_stream_error;
             }
 
             sample_list_->pop();
