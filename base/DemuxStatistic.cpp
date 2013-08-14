@@ -22,6 +22,7 @@ namespace ppbox
             , buffer_update(*this)
             , demuxer_(demuxer)
             , status_ex_(closed)
+            , status_history_(0)
             , need_seek_time_(false)
             , seek_position_(0)
             , play_position_(0)
@@ -61,7 +62,7 @@ namespace ppbox
             last_time_ = now_time;
             // 两个Buffering状态，原因相同，并且中间间隔一个playing状态，并且持续play时间（sample时间）小于3秒
             // 那么合并Buffering状态，并且如果接下来是playing状态，也合并
-            boost::uint32_t const block_play_block = ((playing | 0x80) << 16) | (playing) | (playing | 0x80);
+            boost::uint32_t const block_play_block = ((playing | 0x80) << 16) | (playing << 8) | (playing | 0x80);
             if ((status_history_ & 0xffffff) == block_play_block
                 && (play_position_ - status_infos_[status_infos_.size() - 2].play_position < 3000)) {
                     // 合并Buffering状态，此后剩下一个Buffering状态加一个playing状态
@@ -79,7 +80,7 @@ namespace ppbox
             StatusInfo info(status, blocked, play_position_);
             status_infos_.push_back(info);
             status_ex_ = blocked ? (status | 0x80) : status;
-            status_history_ = status_history_ << 8 | status_ex_;
+            status_history_ = (status_history_ << 8) | status_ex_;
 
             raise(status_changed);
         }
