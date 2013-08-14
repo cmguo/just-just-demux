@@ -349,7 +349,7 @@ namespace ppbox
             } else if (metadata_.datarate) {
                 time = end * 8 / metadata_.datarate;
             } else {
-                time = 0;
+                time = end * 8 / 1024; // assume 1Mbps
             }
             return timestamp().const_adjust(0, timestamp_offset_ms_ + time);
         }
