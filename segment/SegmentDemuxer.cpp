@@ -144,7 +144,7 @@ namespace ppbox
         {
             boost::system::error_code ec = ecc;
             if (ec) {
-                last_error(ec);
+                DemuxStatistic::last_error(ec);
                 response(ec);
                 return;
             }
@@ -199,7 +199,7 @@ namespace ppbox
                                 boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
                     } else {
                         open_state_ = open_finished;
-                        open_end();
+                        DemuxStatistic::open_end();
                         response(ec);
                     }
                     break;
@@ -222,7 +222,7 @@ namespace ppbox
         {
             boost::uint64_t time; 
             if (!strategy_->reset(time, ec)) {
-                last_error(ec);
+                DemuxStatistic::last_error(ec);
                 return ec;
             }
             return seek(time, ec);
@@ -239,7 +239,7 @@ namespace ppbox
                 pos.byte_range.pos = 0; // 可能pos不是0
                 if (!strategy_->time_seek(time, base, pos, ec) 
                     || !buffer_->seek(base, pos, pos.time_range.pos == 0 ? ppbox::data::invalid_size : pos.head_size, ec)) {
-                        last_error(ec);
+                        DemuxStatistic::last_error(ec);
                         return ec;
                 }
                 if (write_demuxer_) {
@@ -309,12 +309,12 @@ namespace ppbox
                 break;
             }
             seek_time_ = time; // 用户连续seek，以最后一次为准
-            if (ec) {
-                seek_pending_ = true;
-                last_error(ec);
-            }
             if (&time != &seek_time_ && open_state_ == open_finished) {
                 DemuxStatistic::seek(!ec, time);
+            }
+            if (ec) {
+                seek_pending_ = true;
+                DemuxStatistic::last_error(ec);
             }
             buffer_->resume_stream();
             return ec;
@@ -439,9 +439,6 @@ namespace ppbox
         {
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                }
                 return ec;
             }
             assert(!seek_pending_);
@@ -497,10 +494,7 @@ namespace ppbox
                     ec);
                 assert(!ec);
             } else {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                }
-                last_error(ec);
+                DemuxStatistic::last_error(ec);
             }
             return ec;
         }
@@ -522,20 +516,17 @@ namespace ppbox
         {
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                    return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
-                }
+                return buffer_->read_segment().time_range.big_end(); // 这时间实践上没有意义的
             }
 
             boost::uint64_t time = 0;
             if (read_demuxer_) {
                 time = read_demuxer_->demuxer->get_joint_cur_time(ec);
                 if (ec) {
-                    last_error(ec);
                     if (ec == file_stream_error) {
                         ec = buffer_->last_error();
                     }
+                    DemuxStatistic::last_error(ec);
                 }
             } else {
                 ec.clear();
@@ -550,10 +541,7 @@ namespace ppbox
         {
             buffer_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                    return buffer_->write_segment().time_range.big_beg();
-                }
+                return buffer_->write_segment().time_range.big_beg();
             }
 
             boost::uint64_t time = 0;
@@ -575,7 +563,7 @@ namespace ppbox
                     ec.clear();
                 }
                 if (ec) {
-                    last_error(ec);
+                    DemuxStatistic::last_error(ec);
                 }
             } else {
                 ec.clear();

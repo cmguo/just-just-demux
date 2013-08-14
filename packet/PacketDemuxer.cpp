@@ -144,7 +144,7 @@ namespace ppbox
                             filters_.push_back(new SortFilter(stream_infos_.size()));
                         }
                         on_open();
-                        open_end();
+                        DemuxStatistic::open_end();
                         source_->resume_stream();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block) {
@@ -152,7 +152,7 @@ namespace ppbox
                             boost::bind(&PacketDemuxer::handle_async_open, this, _1));
                     } else {
                         open_state_ = open_finished;
-                        open_end();
+                        DemuxStatistic::open_end();
                         response(ec);
                     }
                     break;
@@ -234,6 +234,9 @@ namespace ppbox
             if (&time != &seek_time_ && open_state_ == open_finished) {
                 DemuxStatistic::seek(!ec, time);
             }
+            if (ec) {
+                DemuxStatistic::last_error(ec);
+            }
             return ec;
         }
 
@@ -312,9 +315,6 @@ namespace ppbox
         {
             source_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                }
                 return ec;
             }
             assert(!seek_pending_);

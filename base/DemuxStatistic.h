@@ -21,39 +21,6 @@ namespace ppbox
 
         class DemuxerBase;
 
-        struct BlockType
-        {
-            enum Enum
-            {
-                init = 0x0100, 
-                play = 0x0200, 
-                seek = 0x0300, 
-            };
-        };
-
-        struct StatusInfo
-        {
-            StatusInfo()
-                : status_type(0)
-                , play_position((boost::uint64_t)-1)
-                , elapse((boost::uint64_t)-1)
-            {
-            }
-
-            StatusInfo(
-                boost::uint16_t type, 
-                boost::uint64_t now_playing)
-                : status_type(type)
-                , play_position(now_playing)
-                , elapse(0)
-            {
-            }
-
-            boost::uint16_t status_type;
-            boost::uint64_t play_position;
-            boost::uint64_t elapse;
-        };
-
         class DemuxStatistic
             : public StreamStatus
             , public util::event::Observable
@@ -62,12 +29,39 @@ namespace ppbox
         public:
             enum StatusEnum
             {
-                stopped, 
+                closed, 
                 opening, 
                 opened, 
                 paused,
                 playing, 
-                buffering
+                seeking, 
+            };
+
+            struct StatusInfo
+            {
+                StatusInfo()
+                    : status(closed)
+                    , blocked(false)
+                    , play_position((boost::uint64_t)-1)
+                    , elapse((boost::uint64_t)-1)
+                {
+                }
+
+                StatusInfo(
+                    StatusEnum status, 
+                    bool blocked, 
+                    boost::uint64_t play_position)
+                    : status(status)
+                    , blocked(blocked)
+                    , play_position(play_position)
+                    , elapse(0)
+                {
+                }
+
+                StatusEnum status;
+                bool blocked;
+                boost::uint64_t play_position;
+                boost::uint64_t elapse;
             };
 
         public:
@@ -104,9 +98,14 @@ namespace ppbox
             void close();
 
         public:
-            StatusEnum state() const
+            StatusEnum status() const
             {
-                return state_;
+                return StatusEnum(status_ex_ & 0x007f);
+            }
+
+            bool blocked() const
+            {
+                return (status_ex_ & 0x80) != 0;
             }
 
             boost::uint64_t buf_time() const
@@ -136,7 +135,8 @@ namespace ppbox
 
         private:
             void change_status(
-                boost::uint16_t new_state);
+                StatusEnum status, 
+                bool blocked = false);
 
             void update_stat();
 
@@ -145,11 +145,11 @@ namespace ppbox
             framework::timer::Ticker * ticker_;
 
         protected:
-            StatusEnum state_;
+            boost::uint16_t status_ex_;
+            boost::uint32_t status_history_;
             bool need_seek_time_;
             boost::uint64_t seek_position_;        // 拖动后的位置（时间毫秒）
             boost::uint64_t play_position_;        // 播放的位置（时间毫秒）
-            BlockType::Enum block_type_;
             boost::uint64_t last_time_;
             std::vector<StatusInfo> status_infos_;
             boost::system::error_code last_error_;

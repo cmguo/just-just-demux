@@ -152,7 +152,7 @@ namespace ppbox
         {
             boost::system::error_code ec = ecc;
             if (ec) {
-                last_error(ec);
+                DemuxStatistic::last_error(ec);
                 resp_(ec);
                 return;
             }
@@ -237,6 +237,9 @@ namespace ppbox
             if (&time != &seek_time_ && open_state_ == opened) {
                 DemuxStatistic::seek(!ec, time);
             }
+            if (ec) {
+                DemuxStatistic::last_error(ec);
+            }
             return ec;
         }
 
@@ -317,9 +320,6 @@ namespace ppbox
         {
             stream_->prepare_some(ec);
             if (seek_pending_ && seek(seek_time_, ec)) {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                }
                 return ec;
             }
             assert(!seek_pending_);
@@ -345,10 +345,7 @@ namespace ppbox
                 sample.memory = stream_->fetch(sample.itrack, *(std::vector<ppbox::data::DataBlock> *)sample.context, sample.data, ec);
                 assert(!ec);
             } else {
-                if (ec == boost::asio::error::would_block) {
-                    DemuxStatistic::block_on();
-                }
-                last_error(ec);
+                DemuxStatistic::last_error(ec);
             }
             return ec;
         }

@@ -21,15 +21,14 @@ namespace ppbox
             : status_changed(*this)
             , buffer_update(*this)
             , demuxer_(demuxer)
-            , state_(stopped)
+            , status_ex_(closed)
             , need_seek_time_(false)
             , seek_position_(0)
             , play_position_(0)
-            , block_type_(BlockType::init)
             , last_time_(0)
         {
             ticker_ = new framework::timer::Ticker(1000,true);
-            status_infos_.push_back(StatusInfo(stopped, play_position_));
+            status_infos_.push_back(StatusInfo(closed, false, play_position_));
         }
 
         void DemuxStatistic::update_stat()
@@ -37,7 +36,7 @@ namespace ppbox
             boost::system::error_code ec;
             demuxer_.get_stream_status(*this, ec);
 
-            if (state_ == buffering) {
+            if (blocked()) {
                 LOG_DEBUG("[buf_time] buf_time: " << buf_time() << " ms");
             }
 
@@ -45,7 +44,7 @@ namespace ppbox
         }
         /*
         static char const * type_str[] = {
-            "stopped", 
+            "closed", 
             "opening", 
             "opened", 
             "paused",
@@ -54,22 +53,22 @@ namespace ppbox
         };
         */
         void DemuxStatistic::change_status(
-            boost::uint16_t new_state)
+            StatusEnum status, 
+            bool blocked)
         {
             boost::uint64_t now_time = TimeCounter::elapse();
             boost::uint64_t elapse = now_time - last_time_;
             last_time_ = now_time;
             // 两个Buffering状态，原因相同，并且中间间隔一个playing状态，并且持续play时间（sample时间）小于3秒
             // 那么合并Buffering状态，并且如果接下来是playing状态，也合并
-            if (state_ == buffering 
-                && status_infos_[status_infos_.size() - 1].status_type == status_infos_[status_infos_.size() - 3].status_type 
-                && status_infos_[status_infos_.size() - 2].status_type == playing 
+            boost::uint32_t const block_play_block = ((playing | 0x80) << 16) | (playing) | (playing | 0x80);
+            if ((status_history_ & 0xffffff) == block_play_block
                 && (play_position_ - status_infos_[status_infos_.size() - 2].play_position < 3000)) {
                     // 合并Buffering状态，此后剩下一个Buffering状态加一个playing状态
                     status_infos_[status_infos_.size() - 3].elapse += elapse;
                     status_infos_.pop_back();
                     // 如果接下来是playing状态，也合并
-                    if (new_state == playing) {
+                    if (status == playing) {
                         last_time_ -= status_infos_.back().elapse;
                         status_infos_.pop_back();
                     }
@@ -77,33 +76,30 @@ namespace ppbox
                 // 合并时间
                 status_infos_.back().elapse = elapse;
             }
-            boost::uint16_t type = new_state;
-            if (new_state == buffering) {
-                type |= block_type_;
-            }
-            StatusInfo info(type, play_position_);
+            StatusInfo info(status, blocked, play_position_);
             status_infos_.push_back(info);
-            state_ = (StatusEnum)new_state;
+            status_ex_ = blocked ? (status | 0x80) : status;
+            status_history_ = status_history_ << 8 | status_ex_;
 
             raise(status_changed);
         }
 
         void DemuxStatistic::open_beg()
         {
-            assert(state_ == stopped);
-            change_status(opening);
+            assert(status() == closed);
+            change_status(opening, true);
         }
 
         void DemuxStatistic::open_end()
         {
-            assert(state_ <= opening);
+            assert(status() <= opening);
             change_status(opened);
             play_position_ = 0;
         }
 
         void DemuxStatistic::pause()
         {
-            if (state_ == paused)
+            if (status_ex_ == paused)
                 return;
 
             change_status(paused);
@@ -111,7 +107,7 @@ namespace ppbox
 
         void DemuxStatistic::resume()
         {
-            if (state_ != paused)
+            if (status_ex_ != paused)
                 return;
 
             change_status(playing);
@@ -126,7 +122,7 @@ namespace ppbox
 
             play_position_ = sample_time;
 
-            if (state_ == playing)
+            if (status_ex_ == playing)
                 return;
 
             if (need_seek_time_) {
@@ -135,8 +131,6 @@ namespace ppbox
             }
 
             change_status(playing);
-
-            block_type_ = BlockType::play;
         }
 
         void DemuxStatistic::block_on()
@@ -145,9 +139,10 @@ namespace ppbox
                 update_stat();
             }
 
-            if (state_ == buffering)
+            if (blocked())
                 return;
-            change_status(buffering);
+
+            change_status(status(), true);
         }
 
         void DemuxStatistic::seek(
@@ -158,14 +153,13 @@ namespace ppbox
             if (play_position_ == seek_time)
                 return;
 
-            block_type_ = BlockType::seek;
             if (ok) {
-                change_status(BlockType::seek | playing);
+                change_status(seeking, false);
                 seek_position_ = seek_time;
                 need_seek_time_ = false;
                 play_on(seek_time);
             } else {
-                change_status(buffering);
+                change_status(seeking, true);
                 seek_position_ = seek_time;
                 need_seek_time_ = true;
                 play_position_ = seek_time;
@@ -177,14 +171,17 @@ namespace ppbox
         void DemuxStatistic::last_error(
             boost::system::error_code const & ec)
         {
+            if (ec == boost::asio::error::would_block) {
+                block_on();
+                return;
+            }
             last_error_ = ec;
         }
 
         void DemuxStatistic::close()
         {
-            change_status(stopped);
+            change_status(closed);
             status_infos_.back().elapse = 0;
-            block_type_ = BlockType::init;
         }
 
     }
