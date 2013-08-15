@@ -145,6 +145,7 @@ namespace ppbox
             boost::system::error_code ec = ecc;
             if (ec) {
                 DemuxStatistic::last_error(ec);
+                DemuxStatistic::open_end();
                 response(ec);
                 return;
             }
@@ -199,6 +200,7 @@ namespace ppbox
                                 boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
                     } else {
                         open_state_ = open_finished;
+                        DemuxStatistic::last_error(ec);
                         DemuxStatistic::open_end();
                         response(ec);
                     }
