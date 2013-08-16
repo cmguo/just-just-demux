@@ -5,6 +5,7 @@
 #include "ppbox/demux/packet/filter/SourceFilter.h"
 #include "ppbox/demux/packet/filter/TimestampFilter.h"
 #include "ppbox/demux/packet/filter/SortFilter.h"
+#include "ppbox/demux/base/DemuxError.h"
 
 using namespace ppbox::avformat::error;
 
@@ -25,6 +26,11 @@ namespace ppbox
 {
     namespace demux
     {
+
+        boost::system::error_code PacketDemuxer::error_not_found()
+        {
+            return error::not_support;
+        }
 
         PacketDemuxer::PacketDemuxer(
             boost::asio::io_service & io_svc, 

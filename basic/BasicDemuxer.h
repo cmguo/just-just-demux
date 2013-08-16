@@ -31,6 +31,8 @@ namespace ppbox
             typedef std::basic_streambuf<boost::uint8_t> streambuffer_t;
 
         public:
+            static boost::system::error_code error_not_found();
+
             static BasicDemuxer * probe(
                 boost::asio::io_service & io_svc, 
                 std::basic_streambuf<boost::uint8_t> & content);

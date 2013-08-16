@@ -2,7 +2,8 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/segment/DemuxStrategy.h"
-#include "ppbox/data/base/SourceError.h"
+
+#include <ppbox/data/base/Error.h>
 
 #include <framework/system/LogicError.h>
 #include <framework/logger/Logger.h>
@@ -81,7 +82,7 @@ namespace ppbox
                     pos.time_range.big_offset -= pos.time_range.beg;
                     return true;
                 } else {
-                    ec = ppbox::data::source_error::no_more_segment;
+                    ec = ppbox::data::error::no_more_segment;
                     return false; // 没有父节点了
                 }
             } else {

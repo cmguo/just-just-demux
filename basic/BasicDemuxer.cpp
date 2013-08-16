@@ -3,6 +3,7 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/basic/BasicDemuxer.h"
 #include "ppbox/demux/basic/JointContext.h"
+#include "ppbox/demux/base/DemuxError.h"
 
 using namespace ppbox::avformat::error;
 
@@ -20,6 +21,11 @@ namespace ppbox
 {
     namespace demux
     {
+
+        boost::system::error_code BasicDemuxer::error_not_found()
+        {
+            return error::not_support;
+        }
 
         BasicDemuxer::BasicDemuxer(
             boost::asio::io_service & io_svc, 

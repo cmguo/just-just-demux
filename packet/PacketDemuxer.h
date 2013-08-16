@@ -42,6 +42,9 @@ namespace ppbox
             };
 
         public:
+            static boost::system::error_code error_not_found();
+
+        public:
             PacketDemuxer(
                 boost::asio::io_service & io_svc, 
                 ppbox::data::PacketMedia & media);

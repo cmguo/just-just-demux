@@ -5,7 +5,7 @@
 #include "ppbox/demux/basic/BasicDemuxer.h"
 
 #include <ppbox/data/base/MediaBase.h>
-#include <ppbox/data/base/SourceError.h>
+#include <ppbox/data/base/Error.h>
 #include <ppbox/data/base/UrlSource.h>
 #include <ppbox/data/single/SingleSource.h>
 #include <ppbox/data/single/SourceStream.h>
@@ -37,29 +37,10 @@ namespace ppbox
             , seek_pending_(false)
             , open_state_(closed)
         {
-            ppbox::data::UrlSource * source = 
-                ppbox::data::UrlSource::create(io_svc, media.get_protocol());
-            error_code ec;
-            source->set_non_block(true, ec);
-            source_ = new ppbox::data::SingleSource(url_, *source);
-            source_->set_time_out(5000);
-            stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
         }
 
         SingleDemuxer::~SingleDemuxer()
         {
-            boost::system::error_code ec;
-            if (stream_) {
-                delete stream_;
-                stream_ = NULL;
-            }
-            if (source_) {
-                ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
-                ppbox::data::UrlSource::destroy(source);
-                delete source_;
-                source_ = NULL;
-            }
-            delete &CustomDemuxer::detach();
         }
 
         boost::system::error_code SingleDemuxer::open (
@@ -121,19 +102,39 @@ namespace ppbox
             seek_pending_ = false;
             seek_time_ = 0;
             open_state_ = closed;
+
+            if (stream_) {
+                delete stream_;
+                stream_ = NULL;
+            }
+            if (source_) {
+                ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
+                ppbox::data::UrlSource::destroy(source);
+                delete source_;
+                source_ = NULL;
+            }
+            delete &CustomDemuxer::detach();
+
             return ec;
         }
 
         bool SingleDemuxer::create_demuxer(
             boost::system::error_code & ec)
         {
+            ppbox::data::UrlSource * source = 
+                ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol(), ec);
+            if (source == NULL) {
+                return false;
+            }
+            source->set_non_block(true, ec);
+            source_ = new ppbox::data::SingleSource(url_, *source);
+            source_->set_time_out(5000);
+            stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
             if (!media_info_.format.empty()) {
-                BasicDemuxer * demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), *stream_);
+                BasicDemuxer * demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), *stream_, ec);
                 if (demuxer) {
                     attach(*demuxer);
                     return true;
-                } else {
-                    ec = format_not_support;
                 }
             } else {
                 BasicDemuxer * demuxer = BasicDemuxer::probe(get_io_service(), *stream_);

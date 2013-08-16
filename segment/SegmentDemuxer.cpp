@@ -9,7 +9,7 @@
 using namespace ppbox::avformat::error;
 
 #include <ppbox/data/base/MediaBase.h>
-#include <ppbox/data/base/SourceError.h>
+#include <ppbox/data/base/Error.h>
 #include <ppbox/data/segment/SegmentSource.h>
 using namespace ppbox::data;
 
@@ -153,17 +153,23 @@ namespace ppbox
             switch(open_state_) {
                 case not_open:
                     {
-                    strategy_ = new DemuxStrategy(media_);
-                    ppbox::data::UrlSource * source = 
-                        ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol());
-                    if (source == NULL) {
-                        source = ppbox::data::UrlSource::create(media_.get_io_service(), media_.segment_protocol());
-                    }
-                    error_code ec;
-                    source->set_non_block(true, ec);
-                    source_ = new ppbox::data::SegmentSource(*strategy_, *source);
-                    source_->set_time_out(source_time_out_);
-                    buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
+                        strategy_ = new DemuxStrategy(media_);
+                        ppbox::data::UrlSource * source = 
+                            ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol(), ec);
+                        if (source == NULL) {
+                            source = ppbox::data::UrlSource::create(media_.get_io_service(), media_.segment_protocol(), ec);
+                        }
+                        if (source == NULL) {
+                            response(ec);
+                            break;
+                        }
+                        {
+                            error_code ec;
+                            source->set_non_block(true, ec);
+                        }
+                        source_ = new ppbox::data::SegmentSource(*strategy_, *source);
+                        source_->set_time_out(source_time_out_);
+                        buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
                     }
                     open_state_ = media_open;
                     DemuxStatistic::open_beg();
@@ -478,7 +484,7 @@ namespace ppbox
                 } else {
                     ec = buffer_->last_error();
                     assert(ec);
-                    if (ec == ppbox::data::source_error::no_more_segment)
+                    if (ec == ppbox::data::error::no_more_segment)
                         ec = end_of_stream;
                     if (!ec) {
                         ec = boost::asio::error::would_block;
@@ -625,7 +631,7 @@ namespace ppbox
             DemuxerInfo * info = new DemuxerInfo(*buffer_);
             info->segment = segment;
             buffer_->attach_stream(info->stream, is_read);
-            info->demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), info->stream);
+            info->demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), info->stream, ec);
             if (is_read) {
                 info->demuxer->joint_begin(joint_context_);
             } else {

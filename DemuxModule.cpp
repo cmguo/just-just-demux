@@ -152,24 +152,19 @@ namespace ppbox
         {
             framework::string::Url playlink(play_link);
             ppbox::common::decode_url(playlink, ec);
-            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), playlink);
+            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), playlink, ec);
             DemuxerBase * demuxer = NULL;
-            if (media == NULL) {
-                ec = format_not_support;
-                //demuxer = new EmptyDemuxer(io_svc());
-            } else {
+            if (media != NULL) {
                 ppbox::data::MediaBasicInfo info;
                 if (media->get_basic_info(info, ec)) {
                     if ((info.flags & info.f_extend) == info.f_segment) {
                         demuxer = new SegmentDemuxer(io_svc(), *(ppbox::data::SegmentMedia *)media);
                     } else if ((info.flags & info.f_extend) == info.f_packet) {
-                        demuxer = PacketDemuxer::create(info.format, io_svc(), *(ppbox::data::PacketMedia *)media);
+                        demuxer = PacketDemuxer::create(info.format, io_svc(), *(ppbox::data::PacketMedia *)media, ec);
                     } else {
                         demuxer = new SingleDemuxer(io_svc(), *media);
                     }
-                    if (demuxer == NULL) {
-                        ec = format_not_support;
-                    } else {
+                    if (demuxer) {
                         ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
                     }
                 }

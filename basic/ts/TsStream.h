@@ -42,7 +42,8 @@ namespace ppbox
 
                 time_scale = TsPacket::TIME_SCALE;
                 format_data = data;
-                ready = Format::finish_from_stream(*this, "ts", stream_type);
+                boost::system::error_code ec;
+                ready = Format::finish_from_stream(*this, "ts", stream_type, ec);
             }
 
             void clear()

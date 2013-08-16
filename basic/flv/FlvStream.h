@@ -47,6 +47,7 @@ namespace ppbox
                 }
 
                 time_scale = 1000;
+                boost::system::error_code ec;
 
                 if (FlvTagType::VIDEO == Type) { 
                     type = StreamType::VIDE;
@@ -54,7 +55,7 @@ namespace ppbox
                     video_format.height = 0;
                     video_format.frame_rate(0);
                     format_data = codec_data;
-                    Format::finish_from_stream(*this, "flv", VideoHeader.CodecID);
+                    Format::finish_from_stream(*this, "flv", VideoHeader.CodecID, ec);
                     if (metadata.framerate) {
                         video_format.frame_rate(metadata.framerate);
                     }
@@ -73,7 +74,7 @@ namespace ppbox
                     audio_format.sample_size = size[AudioHeader.SoundSize];
                     audio_format.channel_count = channel[AudioHeader.SoundType];
                     format_data = codec_data;
-                    Format::finish_from_stream(*this, "flv", AudioHeader.SoundFormat);
+                    Format::finish_from_stream(*this, "flv", AudioHeader.SoundFormat, ec);
                     if (metadata.audiosamplerate > 0)
                         audio_format.sample_rate = metadata.audiosamplerate;
                     if (metadata.audiosamplesize > 0)

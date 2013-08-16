@@ -16,6 +16,7 @@ namespace ppbox
             {
                 already_open = 1,   // demux已经打开连接
                 not_open,           // demux连接未打开
+                not_support, 
             };
 
             namespace detail {
@@ -40,6 +41,8 @@ namespace ppbox
                             return "demux: has already opened";
                         if (value == error::not_open)
                             return "demux: has not opened";
+                        if (value == error::not_support)
+                            return "demux: not support";
                         return "demux: unknown error";
                     }
                 };
