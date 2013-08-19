@@ -44,7 +44,7 @@ namespace ppbox
             , max_demuxer_infos_(5)
             , seek_time_(0)
             , seek_pending_(false)
-            , open_state_(not_open)
+            , open_state_(closed)
         {
             config_.register_module("Source")
                 << CONFIG_PARAM_NAME_RDWR("time_out", source_time_out_);
@@ -52,8 +52,6 @@ namespace ppbox
             config_.register_module("Buffer")
                 << CONFIG_PARAM_NAME_RDWR("capacity", buffer_capacity_)
                 << CONFIG_PARAM_NAME_RDWR("read_size", buffer_read_size_);
-
-            events_.reset(new EventQueue);
         }
 
         SegmentDemuxer::~SegmentDemuxer()
@@ -86,10 +84,10 @@ namespace ppbox
         bool SegmentDemuxer::is_open(
             boost::system::error_code & ec) const
         {
-            if (open_state_ == open_finished) {
+            if (open_state_ == opened) {
                 ec.clear();
                 return true;
-            } else if (open_state_ == not_open) {
+            } else if (open_state_ == closed) {
                 ec = error::not_open;
                 return false;
             } else {
@@ -135,7 +133,7 @@ namespace ppbox
             }
             demuxer_infos_.clear();
 
-            open_state_ = not_open;
+            open_state_ = closed;
             return ec;
         }
 
@@ -151,7 +149,7 @@ namespace ppbox
             }
 
             switch(open_state_) {
-                case not_open:
+                case closed:
                     {
                         strategy_ = new DemuxStrategy(media_);
                         ppbox::data::UrlSource * source = 
@@ -159,17 +157,17 @@ namespace ppbox
                         if (source == NULL) {
                             source = ppbox::data::UrlSource::create(media_.get_io_service(), media_.segment_protocol(), ec);
                         }
-                        if (source == NULL) {
-                            response(ec);
-                            break;
-                        }
-                        {
+                        if (source) {
                             error_code ec;
                             source->set_non_block(true, ec);
+                            source_ = new ppbox::data::SegmentSource(*strategy_, *source);
+                            source_->set_time_out(source_time_out_);
+                            buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
+                        } else {
+                            get_io_service().post(
+                                boost::bind(&SegmentDemuxer::response, this, ec));
+                            break;
                         }
-                        source_ = new ppbox::data::SegmentSource(*strategy_, *source);
-                        source_->set_time_out(source_time_out_);
-                        buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
                     }
                     open_state_ = media_open;
                     DemuxStatistic::open_beg();
@@ -197,7 +195,7 @@ namespace ppbox
                             }
                         }
                         buffer_->set_track_count(stream_count);
-                        open_state_ = open_finished;
+                        open_state_ = opened;
                         DemuxStatistic::open_end();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block || (ec == file_stream_error 
@@ -205,7 +203,7 @@ namespace ppbox
                             buffer_->async_prepare_some(0, 
                                 boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
                     } else {
-                        open_state_ = open_finished;
+                        open_state_ = opened;
                         DemuxStatistic::last_error(ec);
                         DemuxStatistic::open_end();
                         response(ec);
@@ -317,7 +315,7 @@ namespace ppbox
                 break;
             }
             seek_time_ = time; // 用户连续seek，以最后一次为准
-            if (&time != &seek_time_ && open_state_ == open_finished) {
+            if (&time != &seek_time_ && open_state_ == opened) {
                 DemuxStatistic::seek(!ec, time);
             }
             if (ec) {
@@ -660,33 +658,6 @@ namespace ppbox
             } else {
                 buffer_->change_stream(info->stream, !is_read);
             }
-        }
-
-        SegmentDemuxer::post_event_func SegmentDemuxer::get_poster()
-        {
-            return boost::bind(SegmentDemuxer::post_event, events_, _1);
-        }
-
-        void SegmentDemuxer::post_event(
-            boost::shared_ptr<EventQueue> const & events, 
-            event_func const & event)
-        {
-            boost::mutex::scoped_lock lock(events->mutex);
-            events->events.push_back(event);
-        }
-
-        void SegmentDemuxer::handle_events()
-        {
-            boost::mutex::scoped_lock lock(events_->mutex);
-            for (size_t i = 0; i < events_->events.size(); ++i) {
-                events_->events[i]();
-            }
-            events_->events.clear();
-        }
-
-        void SegmentDemuxer::on_event(
-            util::event::Event const & event)
-        {
         }
 
     } // namespace demux

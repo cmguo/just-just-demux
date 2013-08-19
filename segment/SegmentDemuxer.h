@@ -10,8 +10,6 @@
 
 #include <ppbox/data/segment/SegmentMedia.h>
 
-#include <util/event/Event.h>
-
 #include <framework/timer/Ticker.h>
 
 namespace ppbox
@@ -33,15 +31,6 @@ namespace ppbox
         class SegmentDemuxer
             : public Demuxer
         {
-        public:
-            enum StateEnum
-            {
-                not_open,
-                media_open,
-                demuxer_open,
-                open_finished,
-            };
-
         public:
             SegmentDemuxer(
                 boost::asio::io_service & io_svc, 
@@ -128,10 +117,6 @@ namespace ppbox
                 return *buffer_;
             }
 
-        public:
-            virtual void on_event(
-                util::event::Event const & event);
-
         protected:
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec);
@@ -149,17 +134,13 @@ namespace ppbox
             post_event_func get_poster();
 
         private:
-            struct EventQueue
+            enum StateEnum
             {
-                boost::mutex mutex;
-                std::vector<event_func> events;
+                closed,
+                media_open,
+                demuxer_open,
+                opened,
             };
-
-            static void post_event(
-                boost::shared_ptr<EventQueue> const & events, 
-                event_func const & event);
-
-            void handle_events();
 
         private:
             bool is_open(
@@ -209,9 +190,6 @@ namespace ppbox
 
             StateEnum open_state_;
             open_response_type resp_;
-
-        private:
-            boost::shared_ptr<EventQueue> events_;
         };
 
     } // namespace demux
