@@ -30,7 +30,8 @@ namespace ppbox
             enum StatusEnum
             {
                 closed, 
-                opening, 
+                media_opening, 
+                demux_opening, 
                 opened, 
                 paused,
                 playing, 
@@ -75,7 +76,9 @@ namespace ppbox
                 DemuxerBase & demuxer);
 
         protected:
-            void open_beg();
+            void open_beg_media();
+
+            void open_beg_demux();
 
             void open_end();
 

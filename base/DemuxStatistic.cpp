@@ -85,15 +85,21 @@ namespace ppbox
             raise(status_changed);
         }
 
-        void DemuxStatistic::open_beg()
+        void DemuxStatistic::open_beg_media()
         {
             assert(status() == closed);
-            change_status(opening, true);
+            change_status(media_opening, true);
+        }
+
+        void DemuxStatistic::open_beg_demux()
+        {
+            assert(status() == media_opening);
+            change_status(demux_opening, true);
         }
 
         void DemuxStatistic::open_end()
         {
-            assert(status() <= opening);
+            assert(status() <= demux_opening);
             change_status(opened);
             play_position_ = 0;
         }

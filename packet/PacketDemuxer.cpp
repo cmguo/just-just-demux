@@ -126,24 +126,25 @@ namespace ppbox
             switch(open_state_) {
                 case not_open:
                     open_state_ = media_open;
-                    DemuxStatistic::open_beg();
+                    DemuxStatistic::open_beg_media();
                     media_.async_open(
                         boost::bind(&PacketDemuxer::handle_async_open, this, _1));
                     break;
                 case media_open:
-                    open_state_ = demuxer_open;
                     media_.get_info(media_info_, ec);
-                    {
+                    if (!ec) {
                         ppbox::data::PacketFeature feature;
                         media_.get_packet_feature(feature, ec);
                         source_ = new ppbox::data::PacketSource(feature, media_.source());
+                        boost::system::error_code ec1;
+                        media_.source().set_non_block(true, ec1);
+                        filters_.push_back(new SourceFilter(*source_));
+                        open_state_ = demuxer_open;
+                        DemuxStatistic::open_beg_demux();
                     }
-                    media_.source().set_non_block(true, ec);
-                    filters_.push_back(new SourceFilter(*source_));
-                    source_->pause_stream();
                 case demuxer_open:
                     source_->pause_stream();
-                    if (!ec && check_open(ec)) { // 上面的reset可能已经有错误，所以判断ec
+                    if (!ec && check_open(ec)) {
                         open_state_ = open_finished;
                         filters_.push_back(new TimestampFilter(timestamp()));
                         if (media_info_.flags & ppbox::data::PacketMediaFlags::f_non_ordered) {

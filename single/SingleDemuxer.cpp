@@ -33,6 +33,8 @@ namespace ppbox
             ppbox::data::MediaBase & media)
             : CustomDemuxer(io_svc)
             , media_(media)
+            , source_(NULL)
+            , stream_(NULL)
             , seek_time_(0)
             , seek_pending_(false)
             , open_state_(closed)
@@ -108,6 +110,7 @@ namespace ppbox
                 stream_ = NULL;
             }
             if (source_) {
+                source_->close(ec);
                 ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
                 ppbox::data::UrlSource::destroy(source);
                 delete source_;
@@ -121,15 +124,6 @@ namespace ppbox
         bool SingleDemuxer::create_demuxer(
             boost::system::error_code & ec)
         {
-            ppbox::data::UrlSource * source = 
-                ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol(), ec);
-            if (source == NULL) {
-                return false;
-            }
-            source->set_non_block(true, ec);
-            source_ = new ppbox::data::SingleSource(url_, *source);
-            source_->set_time_out(5000);
-            stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
             if (!media_info_.format.empty()) {
                 BasicDemuxer * demuxer = BasicDemuxer::create(media_info_.format, get_io_service(), *stream_, ec);
                 if (demuxer) {
@@ -161,19 +155,29 @@ namespace ppbox
             switch(open_state_) {
                 case closed:
                     open_state_ = media_open;
-                    DemuxStatistic::open_beg();
+                    DemuxStatistic::open_beg_media();
                     media_.async_open(
                         boost::bind(&SingleDemuxer::handle_async_open, this, _1));
                     break;
                 case media_open:
-                    open_state_ = demuxer_probe;
                     media_.get_info(media_info_, ec);
                     media_.get_url(url_, ec);
                     if (!ec) {
-                        // TODO:
-                        stream_->pause_stream();
-                        stream_->seek(0, ec);
-                        stream_->pause_stream();
+                        ppbox::data::UrlSource * source = 
+                            ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol(), ec);
+                        if (source) {
+                            boost::system::error_code ec1;
+                            source->set_non_block(true, ec1);
+                            source_ = new ppbox::data::SingleSource(url_, *source);
+                            source_->set_time_out(5000);
+                            stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
+                            // TODO:
+                            open_state_ = demuxer_probe;
+                            DemuxStatistic::open_beg_demux();
+                            stream_->pause_stream();
+                            stream_->seek(0, ec);
+                            stream_->pause_stream();
+                        }
                     }
                 case demuxer_probe:
                     if (!ec && create_demuxer(ec)) {
@@ -186,7 +190,6 @@ namespace ppbox
                         break;
                     }
                 case demuxer_open:
-                    stream_->pause_stream();
                     if (!ec && !seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
                         open_state_ = opened;
                         stream_->set_track_count(get_stream_count(ec));

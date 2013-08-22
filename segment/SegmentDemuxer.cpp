@@ -56,21 +56,6 @@ namespace ppbox
 
         SegmentDemuxer::~SegmentDemuxer()
         {
-            boost::system::error_code ec;
-            if (buffer_) {
-                delete buffer_;
-                buffer_ = NULL;
-            }
-            if (source_) {
-                ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
-                ppbox::data::UrlSource::destroy(source);
-                delete source_;
-                source_ = NULL;
-            }
-            if (strategy_) {
-                delete strategy_;
-                strategy_ = NULL;
-            }
         }
 
         void SegmentDemuxer::async_open(
@@ -134,6 +119,22 @@ namespace ppbox
             demuxer_infos_.clear();
 
             open_state_ = closed;
+
+            if (buffer_) {
+                delete buffer_;
+                buffer_ = NULL;
+            }
+            if (source_) {
+                source_->close(ec);
+                ppbox::data::UrlSource * source = (ppbox::data::UrlSource *)&source_->source();
+                ppbox::data::UrlSource::destroy(source);
+                delete source_;
+                source_ = NULL;
+            }
+            if (strategy_) {
+                delete strategy_;
+                strategy_ = NULL;
+            }
             return ec;
         }
 
@@ -150,7 +151,14 @@ namespace ppbox
 
             switch(open_state_) {
                 case closed:
-                    {
+                    open_state_ = media_open;
+                    DemuxStatistic::open_beg_media();
+                    media_.async_open(
+                        boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
+                    break;
+                case media_open:
+                    media_.get_info(media_info_, ec);
+                    if (!ec) {
                         strategy_ = new DemuxStrategy(media_);
                         ppbox::data::UrlSource * source = 
                             ppbox::data::UrlSource::create(get_io_service(), media_.get_protocol(), ec);
@@ -158,33 +166,19 @@ namespace ppbox
                             source = ppbox::data::UrlSource::create(media_.get_io_service(), media_.segment_protocol(), ec);
                         }
                         if (source) {
-                            error_code ec;
-                            source->set_non_block(true, ec);
+                            boost::system::error_code ec1;
+                            source->set_non_block(true, ec1);
                             source_ = new ppbox::data::SegmentSource(*strategy_, *source);
                             source_->set_time_out(source_time_out_);
                             buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
-                        } else {
-                            get_io_service().post(
-                                boost::bind(&SegmentDemuxer::response, this, ec));
-                            break;
+                            open_state_ = demuxer_open;
+                            DemuxStatistic::open_beg_demux();
+                            joint_context_.media_flags(media_info_.flags);
+                            buffer_->pause_stream();
+                            reset(ec);
                         }
                     }
-                    open_state_ = media_open;
-                    DemuxStatistic::open_beg();
-                    media_.async_open(
-                        boost::bind(&SegmentDemuxer::handle_async_open, this, _1));
-                    break;
-                case media_open:
-                    open_state_ = demuxer_open;
-                    media_.get_info(media_info_, ec);
-                    if (!ec) {
-                        // TODO:
-                        joint_context_.media_flags(media_info_.flags);
-                        buffer_->pause_stream();
-                        reset(ec);
-                    }
                 case demuxer_open:
-                    buffer_->pause_stream();
                     if (!ec && !seek(seek_time_, ec)) { // 上面的reset可能已经有错误，所以判断ec
                         size_t stream_count = read_demuxer_->demuxer->get_stream_count(ec);
                         if (!ec) {
