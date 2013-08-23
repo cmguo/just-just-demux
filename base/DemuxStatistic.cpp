@@ -79,10 +79,13 @@ namespace ppbox
             }
             StatusInfo info(status, blocked, play_position_);
             status_infos_.push_back(info);
+
+            bool changed = this->status() != status;
             status_ex_ = blocked ? (status | 0x80) : status;
             status_history_ = (status_history_ << 8) | status_ex_;
 
-            raise(status_changed);
+            if (changed)
+                raise(status_changed);
         }
 
         void DemuxStatistic::open_beg_media()
