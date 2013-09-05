@@ -306,7 +306,7 @@ namespace ppbox
         }
 
         bool SingleDemuxer::get_data_stat(
-            SourceStatisticData & stat, 
+            DataStat & stat, 
             boost::system::error_code & ec) const
         {
             if (source_) {

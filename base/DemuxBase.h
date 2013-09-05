@@ -16,7 +16,7 @@ namespace ppbox
 
         using ppbox::data::MediaInfo;
         using ppbox::data::StreamStatus;
-        using ppbox::data::SourceStatisticData;
+        using ppbox::data::DataStat;
 
         using ppbox::avbase::StreamType;
         using ppbox::avbase::StreamInfo;

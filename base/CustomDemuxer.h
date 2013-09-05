@@ -56,7 +56,7 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
             virtual bool get_data_stat(
-                SourceStatisticData & stat, 
+                DataStat & stat, 
                 boost::system::error_code & ec) const;
 
         public:
