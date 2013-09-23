@@ -7,7 +7,7 @@
 
 #include <ppbox/data/base/DataBlock.h>
 
-#include <ppbox/common/ClassFactory.h>
+#include <util/tools/ClassFactory.h>
 
 namespace ppbox
 {
@@ -19,7 +19,7 @@ namespace ppbox
 
         class BasicDemuxer
             : public Demuxer
-            , public ppbox::common::ClassFactory<
+            , public util::tools::ClassFactory<
                 BasicDemuxer, 
                 std::string, 
                 BasicDemuxer * (
@@ -167,6 +167,6 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#define PPBOX_REGISTER_BASIC_DEMUXER(k, c) PPBOX_REGISTER_CLASS(k, c)
+#define PPBOX_REGISTER_BASIC_DEMUXER(k, c) UTIL_REGISTER_CLASS(k, c)
 
 #endif // _PPBOX_DEMUX_BASIC_BASIC_DEMUXER_H_

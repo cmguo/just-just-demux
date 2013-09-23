@@ -11,7 +11,8 @@ using namespace ppbox::avformat::error;
 
 #include <ppbox/data/packet/PacketMedia.h>
 #include <ppbox/data/packet/PacketBuffer.h>
-#include <ppbox/data/base/SourceBase.h>
+
+#include <util/stream/Source.h>
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>

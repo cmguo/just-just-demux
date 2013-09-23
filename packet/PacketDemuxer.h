@@ -9,7 +9,7 @@
 #include <ppbox/data/packet/PacketMedia.h>
 #include <ppbox/data/packet/PacketSource.h>
 
-#include <ppbox/common/ClassFactory.h>
+#include <util/tools/ClassFactory.h>
 
 namespace ppbox
 {
@@ -24,7 +24,7 @@ namespace ppbox
 
         class PacketDemuxer
             : public Demuxer
-            , public ppbox::common::ClassFactory<
+            , public util::tools::ClassFactory<
                 PacketDemuxer, 
                 std::string, 
                 PacketDemuxer * (
@@ -183,6 +183,6 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#define PPBOX_REGISTER_PACKET_DEMUXER(k, c) PPBOX_REGISTER_CLASS(k, c)
+#define PPBOX_REGISTER_PACKET_DEMUXER(k, c) UTIL_REGISTER_CLASS(k, c)
 
 #endif // _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_

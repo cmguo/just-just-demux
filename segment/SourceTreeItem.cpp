@@ -3,8 +3,6 @@
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/segment/SourceTreeItem.h"
 
-#include <ppbox/data/base/SourceBase.h>
-
 namespace ppbox
 {
     namespace demux

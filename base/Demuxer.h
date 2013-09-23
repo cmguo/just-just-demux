@@ -108,6 +108,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#define PPBOX_REGISTER_BASIC_DEMUXER(k, c) PPBOX_REGISTER_CLASS(k, c)
-
 #endif // _PPBOX_DEMUX_DEMUXER_H_

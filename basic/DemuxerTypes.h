@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_DEMUXER_TYPES_H_
 #define _PPBOX_DEMUX_DEMUXER_TYPES_H_
 
-#include <ppbox/common/ClassRegister.h>
+#include <util/tools/ClassRegister.h>
 
 #include "ppbox/demux/basic/mp4/Mp4Demuxer.h"
 #include "ppbox/demux/basic/flv/FlvDemuxer.h"
