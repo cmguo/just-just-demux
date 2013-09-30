@@ -101,9 +101,13 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             DemuxStatistic::close();
+            Sample sample;
+            while (!peek_samples_.empty()) {
+                sample.append(peek_samples_.front());
+                peek_samples_.pop_front();
+            }
             if (!filters_.empty()) { // 可能没有打开成功
-                Sample sample;
-                filters_.last()->before_seek(sample, ec);
+                filters_.last()->before_seek(sample, ec); // will call source_->putback()
                 delete filters_.first(); // SourceFilter
                 filters_.clear();
             }
