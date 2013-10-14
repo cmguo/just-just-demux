@@ -238,7 +238,7 @@ namespace ppbox
 
         boost::uint32_t MkvDemuxer::probe(
             boost::uint8_t const * hbytes, 
-            size_t hsize)
+            size_t hsize) const
         {
             if (hsize < 4 
                 || hbytes[0] != 0x1A
@@ -247,8 +247,8 @@ namespace ppbox
                 || hbytes[3] != 0xA3) {
                     return 0;
             }
-            size_t len = sizeof("matroska") - 1;
-            for (size_t i = 4; i < 4 + len; ++i) {
+            size_t const len = sizeof("matroska") - 1;
+            for (size_t i = 4; i + len < hsize; ++i) {
                 if (memcmp(hbytes + i, "matroska", len) == 0) {
                     return SCOPE_MAX;
                 }

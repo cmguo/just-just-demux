@@ -427,6 +427,34 @@ namespace ppbox
             return ec;
         }
 
+        boost::uint32_t Mp4Demuxer::probe(
+            boost::uint8_t const * header, 
+            size_t hsize) const
+        {
+            if (hsize < 12)
+                return 0;
+            if (memcmp(header + 4, "ftypisom", 8) == 0) {
+                return SCOPE_MAX;
+            }
+            return 0;
+        }
+
+        boost::uint64_t Mp4Demuxer::get_cur_time(
+            error_code & ec) const
+        {
+            boost::uint64_t dts = 0;
+            if (is_open(ec)) {
+                if (sample_list_->empty()) {
+                    dts = (*tracks_[0])->GetMediaDuration();
+                    dts = timestamp().const_adjust(0, dts);
+                } else {
+                    dts = sample_list_->first()->GetDts();
+                    dts = timestamp().const_adjust(sample_list_->first()->itrack, dts);
+                }
+            }
+            return dts;
+        }
+
         boost::uint64_t Mp4Demuxer::get_end_time(
             boost::system::error_code & ec)
         {
@@ -460,22 +488,6 @@ namespace ppbox
 
             ec = error_code();
             return min_time;
-        }
-
-        boost::uint64_t Mp4Demuxer::get_cur_time(
-            error_code & ec) const
-        {
-            boost::uint64_t dts = 0;
-            if (is_open(ec)) {
-                if (sample_list_->empty()) {
-                    dts = (*tracks_[0])->GetMediaDuration();
-                    dts = timestamp().const_adjust(0, dts);
-                } else {
-                    dts = sample_list_->first()->GetDts();
-                    dts = timestamp().const_adjust(sample_list_->first()->itrack, dts);
-                }
-            }
-            return dts;
         }
 
     } // namespace demux

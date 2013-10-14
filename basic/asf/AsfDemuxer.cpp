@@ -297,7 +297,7 @@ namespace ppbox
 
         boost::uint32_t AsfDemuxer::probe(
             boost::uint8_t const * hbytes, 
-            size_t hsize)
+            size_t hsize) const
         {
             using framework::string::UUID;
             using framework::string::Uuid;

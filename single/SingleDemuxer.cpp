@@ -5,22 +5,15 @@
 #include "ppbox/demux/basic/BasicDemuxer.h"
 
 #include <ppbox/data/base/MediaBase.h>
-#include <ppbox/data/base/Error.h>
 #include <ppbox/data/single/SingleSource.h>
-#include <ppbox/data/single/SourceStream.h>
+#include <ppbox/data/single/SingleBuffer.h>
 
-#include <ppbox/avformat/Format.h>
 using namespace ppbox::avformat::error;
-
-#include <util/stream/UrlSource.h>
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
-#include <framework/timer/Ticker.h>
 
-#include <boost/thread/condition_variable.hpp>
 #include <boost/bind.hpp>
-using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.SingleDemuxer", framework::logger::Debug);
 
@@ -171,7 +164,7 @@ namespace ppbox
                             source->set_non_block(true, ec1);
                             source_ = new ppbox::data::SingleSource(url_, *source);
                             source_->set_time_out(5000);
-                            stream_ = new ppbox::data::SourceStream(*source_, 10 * 1024 * 1024, 10240);
+                            stream_ = new ppbox::data::SingleBuffer(*source_, 10 * 1024 * 1024, 10240);
                             // TODO:
                             open_state_ = demuxer_probe;
                             DemuxStatistic::open_beg_demux();

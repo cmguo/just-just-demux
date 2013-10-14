@@ -73,7 +73,7 @@ namespace ppbox
         protected:
             virtual boost::uint32_t probe(
                 boost::uint8_t const * header, 
-                size_t hsize);
+                size_t hsize) const;
 
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) const;

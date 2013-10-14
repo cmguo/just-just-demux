@@ -142,7 +142,7 @@ namespace ppbox
 
         boost::uint32_t BasicDemuxer::probe(
             boost::uint8_t const * header, 
-            size_t hsize)
+            size_t hsize) const
         {
             return 0;
         }

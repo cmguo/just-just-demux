@@ -1,15 +1,19 @@
-// SingleDemuxer.h
+// FFMpegDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASE_SINGLE_SINGLE_DEMUXER_H_
-#define _PPBOX_DEMUX_BASE_SINGLE_SINGLE_DEMUXER_H_
+#ifndef _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
+#define _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
 
-#include "ppbox/demux/base/CustomDemuxer.h"
+#include "ppbox/demux/base/Demuxer.h"
 
 #include <ppbox/data/base/MediaBase.h>
 
 #include <util/event/Event.h>
 
 #include <framework/timer/Ticker.h>
+#include <framework/memory/SmallFixedPool.h>
+
+struct AVFormatContext;
+struct AVPacket;
 
 namespace ppbox
 {
@@ -23,25 +27,24 @@ namespace ppbox
     namespace demux
     {
 
-        class SingleDemuxer
-            : public CustomDemuxer
+        class FFMpegDemuxer
+            : public Demuxer
         {
         public:
             enum StateEnum
             {
                 closed,
                 media_open,
-                demuxer_probe,
                 demuxer_open,
                 opened,
             };
 
         public:
-            SingleDemuxer(
+            FFMpegDemuxer(
                 boost::asio::io_service & io_svc, 
                 ppbox::data::MediaBase & media);
 
-            virtual ~SingleDemuxer();
+            virtual ~FFMpegDemuxer();
 
         public:
             boost::system::error_code open (
@@ -61,7 +64,15 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code get_media_info(
-                ppbox::data::MediaInfo & info,
+                MediaInfo & info,
+                boost::system::error_code & ec) const;
+
+            virtual size_t get_stream_count(
+                boost::system::error_code & ec) const;
+
+            virtual boost::system::error_code get_stream_info(
+                size_t index, 
+                StreamInfo & info, 
                 boost::system::error_code & ec) const;
 
         public:
@@ -110,7 +121,7 @@ namespace ppbox
             }
 
         private:
-            bool create_demuxer(
+            bool avformat_open(
                 boost::system::error_code & ec);
 
             bool is_open(
@@ -122,13 +133,21 @@ namespace ppbox
             void response(
                 boost::system::error_code const & ec);
 
+            void free_packet(
+                ppbox::data::MemoryLock * lock);
+
         private:
             ppbox::data::MediaBase & media_;
             ppbox::data::SingleSource * source_;
-            ppbox::data::SingleBuffer * stream_;
+            ppbox::data::SingleBuffer * buffer_;
+            framework::memory::SmallFixedPool mem_lock_pool_;
+            AVFormatContext * avf_ctx_;
+            std::deque<AVPacket *> peek_packets_;
+            boost::uint64_t start_time_; // AV_TIME_BASE units
 
             framework::string::Url url_;
-            ppbox::data::MediaInfo media_info_;
+            MediaInfo media_info_;
+            std::vector<StreamInfo> streams_;
 
             boost::uint64_t seek_time_;
             bool seek_pending_;
@@ -140,4 +159,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASE_SINGLE_SINGLE_DEMUXER_H_
+#endif // _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
