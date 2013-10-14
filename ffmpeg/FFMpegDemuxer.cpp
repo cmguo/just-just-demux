@@ -24,6 +24,9 @@ using namespace ppbox::avformat::error;
 #include <bitset>
 
 extern "C" {
+#define UINT64_C(c)   c ## ULL
+#define INT64_MIN     (-INT64_C(9223372036854775807-1))
+#define INT64_MAX     (INT64_C(9223372036854775807))
 #include <libavformat/avformat.h>
 }
 

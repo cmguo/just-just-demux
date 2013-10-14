@@ -14,6 +14,7 @@
 #include <boost/thread/mutex.hpp>
 
 extern "C" {
+#define UINT64_C(c)   c ## ULL
 #include <libavformat/avformat.h>
 #include <libavformat/url.h>
 }
@@ -87,7 +88,7 @@ namespace ppbox
         {
             ppbox::data::SingleBuffer * buffer = (ppbox::data::SingleBuffer *)h->priv_data;
             boost::system::error_code ec;
-            if (buffer->Buffer::in_avail() < size)
+            if (buffer->Buffer::in_avail() < (size_t)size)
                 buffer->prepare_some(ec);
             size = buffer->sgetn(buf, size);
             buffer->consume(size);
@@ -109,7 +110,8 @@ namespace ppbox
             if (whence & AVSEEK_SIZE) {
                 return buffer->source().total_size();
             }
-            pos = buffer->pubseekoff(pos, whence, std::ios::in | std::ios::out);
+            std::ios::seekdir const dirs[] = {std::ios::beg, std::ios::cur, std::ios::end};
+            pos = buffer->pubseekoff(pos, dirs[whence], std::ios::in | std::ios::out);
             if (pos != -1) {
                 return pos;
             }
