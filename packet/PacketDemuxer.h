@@ -24,13 +24,6 @@ namespace ppbox
 
         class PacketDemuxer
             : public Demuxer
-            , public util::tools::ClassFactory<
-                PacketDemuxer, 
-                std::string, 
-                PacketDemuxer * (
-                    boost::asio::io_service &, 
-                    ppbox::data::PacketMedia &)
-                >
         {
         public:
             enum StateEnum
@@ -40,9 +33,6 @@ namespace ppbox
                 demuxer_open,
                 open_finished,
             };
-
-        public:
-            static boost::system::error_code error_not_found();
 
         public:
             PacketDemuxer(
@@ -180,9 +170,22 @@ namespace ppbox
             open_response_type resp_;
         };
 
+        struct PacketDemuxerTraits
+            : util::tools::ClassFactoryTraits
+        {
+            typedef std::string key_type;
+            typedef PacketDemuxer * (create_proto)(
+                boost::asio::io_service &, 
+                ppbox::data::PacketMedia & media);
+
+            static boost::system::error_code error_not_found();
+        };
+
+        typedef util::tools::ClassFactory<PacketDemuxerTraits> PacketDemuxerFactory;
+
     } // namespace demux
 } // namespace ppbox
 
-#define PPBOX_REGISTER_PACKET_DEMUXER(k, c) UTIL_REGISTER_CLASS(k, c)
+#define PPBOX_REGISTER_PACKET_DEMUXER(k, c) UTIL_REGISTER_CLASS(ppbox::demux::PacketDemuxerFactory, k, c)
 
 #endif // _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_

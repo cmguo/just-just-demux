@@ -22,11 +22,6 @@ namespace ppbox
     namespace demux
     {
 
-        boost::system::error_code BasicDemuxer::error_not_found()
-        {
-            return error::not_support;
-        }
-
         BasicDemuxer::BasicDemuxer(
             boost::asio::io_service & io_svc, 
             streambuffer_t & buf)
@@ -145,29 +140,6 @@ namespace ppbox
             size_t hsize) const
         {
             return 0;
-        }
-
-        BasicDemuxer * BasicDemuxer::probe(
-            boost::asio::io_service & io_svc, 
-            std::basic_streambuf<boost::uint8_t> & content)
-        {
-            creator_map_type & map(creator_map());
-            creator_map_type::const_iterator iter = map.begin();
-            creator_map_type::const_iterator max_iter = map.end();
-            boost::uint32_t max_scope = 0;
-            boost::uint8_t hbytes[32];
-            size_t hsize = content.sgetn(hbytes, sizeof(hbytes));
-            for (; iter != map.end(); ++iter) {
-                BasicDemuxer * demuxer = iter->second(io_svc, content);
-                boost::uint32_t scope = demuxer->probe(hbytes, hsize);
-                if (scope > max_scope) {
-                    max_iter = iter;
-                    max_scope = scope;
-                }
-                delete demuxer;
-            }
-            content.pubseekpos(0, std::ios::in);
-            return max_iter == map.end() ? NULL : max_iter->second(io_svc, content);
         }
 
         boost::uint64_t BasicDemuxer::get_cur_time(
@@ -307,6 +279,34 @@ namespace ppbox
                 t = joint_->write_ctx().last_time();
             }
             return t;
+        }
+
+        boost::system::error_code BasicDemuxerTraits::error_not_found()
+        {
+            return error::not_support;
+        }
+
+        BasicDemuxer * BasicDemuxerFactory::probe(
+            boost::asio::io_service & io_svc, 
+            std::basic_streambuf<boost::uint8_t> & content)
+        {
+            creator_map_type & map(creator_map());
+            creator_map_type::const_iterator iter = map.begin();
+            creator_map_type::const_iterator max_iter = map.end();
+            boost::uint32_t max_scope = 0;
+            boost::uint8_t hbytes[32];
+            size_t hsize = content.sgetn(hbytes, sizeof(hbytes));
+            for (; iter != map.end(); ++iter) {
+                BasicDemuxer * demuxer = iter->second(io_svc, content);
+                boost::uint32_t scope = demuxer->probe(hbytes, hsize);
+                if (scope > max_scope) {
+                    max_iter = iter;
+                    max_scope = scope;
+                }
+                delete demuxer;
+            }
+            content.pubseekpos(0, std::ios::in);
+            return max_iter == map.end() ? NULL : max_iter->second(io_svc, content);
         }
 
     } // namespace demux

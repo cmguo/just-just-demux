@@ -19,23 +19,9 @@ namespace ppbox
 
         class BasicDemuxer
             : public Demuxer
-            , public util::tools::ClassFactory<
-                BasicDemuxer, 
-                std::string, 
-                BasicDemuxer * (
-                    boost::asio::io_service &, 
-                    std::basic_streambuf<boost::uint8_t> &)
-            >
         {
         public:
             typedef std::basic_streambuf<boost::uint8_t> streambuffer_t;
-
-        public:
-            static boost::system::error_code error_not_found();
-
-            static BasicDemuxer * probe(
-                boost::asio::io_service & io_svc, 
-                std::basic_streambuf<boost::uint8_t> & content);
 
         public:
             BasicDemuxer(
@@ -70,11 +56,11 @@ namespace ppbox
             virtual boost::uint64_t get_duration(
                 boost::system::error_code & ec) const = 0;
 
-        protected:
             virtual boost::uint32_t probe(
                 boost::uint8_t const * header, 
                 size_t hsize) const;
 
+        protected:
             virtual boost::uint64_t get_cur_time(
                 boost::system::error_code & ec) const;
 
@@ -164,9 +150,29 @@ namespace ppbox
             TimestampHelper * timestamp2_;
         };
 
+        struct BasicDemuxerTraits
+            : util::tools::ClassFactoryTraits
+        {
+            typedef std::string key_type;
+            typedef BasicDemuxer * (create_proto)(
+                boost::asio::io_service &, 
+                std::basic_streambuf<boost::uint8_t> &);
+
+            static boost::system::error_code error_not_found();
+        };
+
+        class BasicDemuxerFactory
+            : public util::tools::ClassFactory<BasicDemuxerTraits>
+        {
+        public:
+            static BasicDemuxer * probe(
+                boost::asio::io_service & io_svc, 
+                std::basic_streambuf<boost::uint8_t> & content);
+        };
+
     } // namespace demux
 } // namespace ppbox
 
-#define PPBOX_REGISTER_BASIC_DEMUXER(k, c) UTIL_REGISTER_CLASS(k, c)
+#define PPBOX_REGISTER_BASIC_DEMUXER(k, c) UTIL_REGISTER_CLASS(ppbox::demux::BasicDemuxerFactory, k, c)
 
 #endif // _PPBOX_DEMUX_BASIC_BASIC_DEMUXER_H_

@@ -28,11 +28,6 @@ namespace ppbox
     namespace demux
     {
 
-        boost::system::error_code PacketDemuxer::error_not_found()
-        {
-            return error::not_support;
-        }
-
         PacketDemuxer::PacketDemuxer(
             boost::asio::io_service & io_svc, 
             ppbox::data::PacketMedia & media)
@@ -423,6 +418,11 @@ namespace ppbox
             boost::system::error_code ec;
             free_sample(peek_samples_.back(), ec);
             peek_samples_.pop_back();
+        }
+
+        boost::system::error_code PacketDemuxerTraits::error_not_found()
+        {
+            return error::not_support;
         }
 
     } // namespace demux
