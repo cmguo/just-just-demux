@@ -162,8 +162,8 @@ namespace ppbox
                     } else if ((info.flags & info.f_extend) == info.f_packet) {
                         demuxer = PacketDemuxerFactory::create(info.format, io_svc(), *(ppbox::data::PacketMedia *)media, ec);
                     } else {
-                        demuxer = new SingleDemuxer(io_svc(), *media);
-                        //demuxer = new FFMpegDemuxer(io_svc(), *media);
+                        //demuxer = new SingleDemuxer(io_svc(), *media);
+                        demuxer = new FFMpegDemuxer(io_svc(), *media);
                     }
                     if (demuxer) {
                         ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
