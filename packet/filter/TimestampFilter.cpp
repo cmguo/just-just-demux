@@ -26,7 +26,8 @@ namespace ppbox
                 return false;
             }
 
-            helper_.adjust(sample);
+            if ((sample.flags & sample.f_config) == 0)
+                helper_.adjust(sample);
 
             return true;
         }
