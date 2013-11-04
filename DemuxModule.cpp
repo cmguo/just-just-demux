@@ -9,7 +9,7 @@
 #include "ppbox/demux/single/SingleDemuxer.h"
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 #include "ppbox/demux/packet/PacketDemuxer.h"
-#include "ppbox/demux/ffmpeg/FFMpegDemuxer.h"
+//#include "ppbox/demux/ffmpeg/FFMpegDemuxer.h"
 
 using namespace ppbox::avformat::error;
 
