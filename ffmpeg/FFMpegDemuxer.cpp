@@ -205,6 +205,10 @@ namespace ppbox
             boost::uint64_t & time, 
             boost::system::error_code & ec)
         {
+            while (!peek_packets_.empty()) {
+                av_free_packet(peek_packets_.front());
+                peek_packets_.pop_front();
+            }
             int64_t ts = time * (AV_TIME_BASE / 1000) + start_time_;
             int result = avformat_seek_file(avf_ctx_, -1, INT64_MIN, ts, INT64_MAX, 0);
             seek_time_ = time;

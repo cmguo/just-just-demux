@@ -52,7 +52,6 @@ namespace ppbox
                 assert(dts.size() == dts_offset_.size());
                 for (size_t i = 0; i < dts.size(); ++i) {
                     dts_offset_[i] -= dts[i];
-                    time_trans_[i].last_in(time_trans_[i].last_in() + dts[i]);
                 }
             }
 
@@ -63,8 +62,6 @@ namespace ppbox
                 assert(dts.size() == dts_offset_.size());
                 for (size_t i = 0; i < dts.size(); ++i) {
                     dts_offset_[i] += dts[i];
-                    time_trans_[i].transfer(dts[i]);
-                    time_trans_[i].last_in(0);
                 }
             }
 
@@ -93,12 +90,12 @@ namespace ppbox
                 Sample & sample)
             {
                 assert(sample.itrack < dts_offset_.size());
+                sample.dts += dts_offset_[sample.itrack];
                 boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
                     sample.flags |= sample.f_discontinuity;
                 }
-                sample.dts += dts_offset_[sample.itrack];
             }
 
             boost::uint64_t adjust(
@@ -106,7 +103,7 @@ namespace ppbox
                 boost::uint64_t dts)
             {
                 assert(itrack < dts_offset_.size());
-                boost::uint64_t time = time_trans_[itrack].transfer(dts);
+                boost::uint64_t time = time_trans_[itrack].transfer(dts + dts_offset_[itrack]);
                 return time;
             }
 
@@ -114,12 +111,12 @@ namespace ppbox
                 Sample & sample) const
             {
                 assert(sample.itrack < dts_offset_.size());
+                sample.dts += dts_offset_[sample.itrack];
                 boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
                 if (time + max_delta_ < sample.time) {
                     sample.flags |= sample.f_discontinuity;
                 }
-                sample.dts += dts_offset_[sample.itrack];
             }
 
             boost::uint64_t const_adjust(
@@ -127,7 +124,7 @@ namespace ppbox
                 boost::uint64_t dts) const
             {
                 assert(itrack < dts_offset_.size());
-                boost::uint64_t time = time_trans_[itrack].transfer(dts);
+                boost::uint64_t time = time_trans_[itrack].transfer(dts + dts_offset_[itrack]);
                 return time;
             }
 
@@ -136,7 +133,7 @@ namespace ppbox
                 std::vector<boost::uint64_t> & dts) const
             {
                 for (size_t i = 0; i < time_trans_.size(); ++i) {
-                    dts.push_back(time_trans_[i].revert(time));
+                    dts.push_back(time_trans_[i].revert(time) - dts_offset_[i]);
                 }
             }
 
