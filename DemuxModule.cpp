@@ -9,7 +9,7 @@
 #include "ppbox/demux/single/SingleDemuxer.h"
 #include "ppbox/demux/segment/SegmentDemuxer.h"
 #include "ppbox/demux/packet/PacketDemuxer.h"
-//#include "ppbox/demux/ffmpeg/FFMpegDemuxer.h"
+#include "ppbox/demux/ffmpeg/FFMpegDemuxer.h"
 
 using namespace ppbox::avformat::error;
 
@@ -162,8 +162,8 @@ namespace ppbox
                     } else if ((info.flags & info.f_extend) == info.f_packet) {
                         demuxer = PacketDemuxerFactory::create(info.format, io_svc(), *(ppbox::data::PacketMedia *)media, ec);
                     } else {
-                        demuxer = new SingleDemuxer(io_svc(), *media);
-                        //demuxer = new FFMpegDemuxer(io_svc(), *media);
+                        //demuxer = new SingleDemuxer(io_svc(), *media);
+                        demuxer = new FFMpegDemuxer(io_svc(), *media);
                     }
                     if (demuxer) {
                         ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
