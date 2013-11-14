@@ -36,7 +36,7 @@ PROJECT_COMMON_HEADERS  	:= ppbox/demux/Common.h
 
 ## 内部包含目录（相对于源文件根目录ROOT_SOURCE_DIRECTORY）
 
-PROJECT_INTERNAL_INCLUDES	:= ppbox
+PROJECT_INTERNAL_INCLUDES	:=
 
 ## 额外包含目录（多个，相对于包含根目录ROOT_INCLUDE_DIRECTORY）
 
@@ -56,6 +56,7 @@ PROJECT_DEPENDS			:= \
 				/ppbox/data \
 				/ppbox/avformat \
 				/bento4 \
+				/thirdparty/ffmpeg-1.2 \
 				$(PROJECT_DEPENDS) \
 
 ## 该项目特定的引用库
