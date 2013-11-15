@@ -449,6 +449,7 @@ namespace ppbox
                     stream1.audio_format.channel_count = stream2->codec->channels;
                     stream1.audio_format.sample_size = stream2->codec->bits_per_coded_sample;
                     stream1.audio_format.sample_rate = stream2->codec->sample_rate;
+                    stream1.audio_format.block_align = stream2->codec->block_align;
                     stream1.audio_format.sample_per_frame = stream2->codec->frame_size;
                 }
                 stream1.index = i;
