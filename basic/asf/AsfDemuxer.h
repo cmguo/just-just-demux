@@ -97,7 +97,10 @@ namespace ppbox
             struct ParseStatus
             {
                 ParseStatus()
-                    : num_packet(0)
+                    : data_end(0)
+                    , offset_packet(0)
+                    , offset(0)
+                    , num_packet(0)
                     , num_payload(0)
                 {
                     context.packet = &packet;
@@ -106,6 +109,7 @@ namespace ppbox
                 ppbox::avformat::AsfPacket packet;
                 ppbox::avformat::AsfPayloadHeader payload;
                 ppbox::avformat::AsfParseContext context;
+                boost::uint64_t data_end;
                 boost::uint64_t offset_packet;
                 boost::uint64_t offset;
                 boost::uint64_t num_packet;
@@ -128,6 +132,7 @@ namespace ppbox
             size_t open_step_;
             ppbox::avformat::AsfHeaderObject header_;
             ppbox::avformat::AsfFilePropertiesObjectData file_prop_;
+            ppbox::avformat::AsfDataObject data_;
             std::vector<AsfStream> streams_;
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order
@@ -146,6 +151,7 @@ namespace ppbox
         };
 
         PPBOX_REGISTER_BASIC_DEMUXER("asf", AsfDemuxer);
+        PPBOX_REGISTER_BASIC_DEMUXER("wmv", AsfDemuxer);
 
     } // namespace demux
 } // namespace ppbox

@@ -83,7 +83,6 @@ namespace ppbox
                     if (obj_head.ObjectId == ASF_FILE_PROPERTIES_OBJECT) {
                         archive_ >> file_prop_;
                         object_parse_.context.max_packet_size = file_prop_.MaximumDataPacketSize;
-                        buffer_parse_.context.max_packet_size = file_prop_.MaximumDataPacketSize;
                     } else if (obj_head.ObjectId == ASF_STREAM_PROPERTIES_OBJECT) {
                         AsfStreamPropertiesObjectData obj_data;
                         archive_ >> obj_data;
@@ -114,14 +113,14 @@ namespace ppbox
             if (open_step_ == 1) {
                 archive_.seekg(std::ios::off_type(header_.ObjLength), std::ios_base::beg);
                 assert(archive_);
-                AsfDataObject DataObject;
-                archive_ >> DataObject;
+                archive_ >> data_;
                 if (!archive_) {
                     archive_.clear();
                     ec = file_stream_error;
                     return false;
                 }
                 header_offset_ = archive_.tellg();
+                object_parse_.data_end = header_.ObjLength + data_.ObjLength;
                 object_parse_.packet.PayloadNum = 0;
                 object_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
                 object_parse_.offset = header_offset_;
@@ -131,9 +130,7 @@ namespace ppbox
                 } else {
                     fixed_packet_length_ = 0;
                 }
-                buffer_parse_.packet.PayloadNum = 0;
-                buffer_parse_.packet.PayLoadParseInfo.PaddingLength = 0;
-                buffer_parse_.offset = header_offset_;
+                buffer_parse_ = object_parse_;
 
                 if (!next_payload(archive_, object_parse_, ec)) {
                     if (object_parse_.payload.StreamNum >= stream_map_.size()) {
@@ -356,7 +353,9 @@ namespace ppbox
             ParseStatus & parse_status, 
             error_code & ec) const
         {
-            if (archive >> parse_status.packet) {
+            if (parse_status.offset_packet >= parse_status.data_end) {
+                return ec = end_of_stream;
+            } else if (archive >> parse_status.packet) {
                 ++parse_status.num_packet;
                 return ec = error_code();
             } else if (archive.failed()) {
