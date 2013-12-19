@@ -13,6 +13,7 @@
 #include <ppbox/avformat/Format.h>
 using namespace ppbox::avformat::error;
 #include <ppbox/avcodec/Codec.h>
+#include <ppbox/avcodec/ffmpeg/FFMpegLog.h>
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -51,6 +52,7 @@ namespace ppbox
             , seek_pending_(false)
             , open_state_(closed)
         {
+            ppbox::avcodec::ffmpeg_log_setup();
             av_register_all();
         }
 
