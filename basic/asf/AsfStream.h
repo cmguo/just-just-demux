@@ -74,6 +74,7 @@ namespace ppbox
                         audio_format.channel_count = Audio_Media_Type.NumberOfChannels;
                         audio_format.sample_rate = Audio_Media_Type.SamplesPerSecond;
                         audio_format.sample_size = Audio_Media_Type.BitsPerSample;
+                        audio_format.block_align = Audio_Media_Type.BlockAlignment;
                         format_data = Audio_Media_Type.CodecSpecificData;
                         Format::finish_from_stream(*this, "asf", Audio_Media_Type.CodecId, ec);
                     }

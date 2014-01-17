@@ -85,6 +85,7 @@ namespace ppbox
                     streams_.resize(n);
                     open_step_ = 1;
                     parse_offset_ = std::ios::off_type(flv_header_.DataOffset) + 4; // + 4 PreTagSize
+                    header_offset_ = parse_offset_;
                 } else {
                     if (archive_.failed()) {
                         ec = bad_media_format;
@@ -99,6 +100,10 @@ namespace ppbox
                 archive_.seekg(parse_offset_, std::ios_base::beg);
                 assert(archive_);
                 while (!get_tag(flv_tag_, ec)) {
+                    if (!flv_tag_.is_sample && header_offset_ == parse_offset_) {
+                        header_offset_ = parse_offset_;
+                    }
+                    parse_offset_ = (boost::uint64_t)archive_.tellg();
                     if (flv_tag_.Type == FlvTagType::DATA 
                         && flv_tag_.DataTag.Name == "onMetaData") {
                         metadata_.from_data(flv_tag_.DataTag.Value);
@@ -107,14 +112,16 @@ namespace ppbox
                         stream_map_[(size_t)flv_tag_.Type] >= streams_.size()) {
                             continue;
                     }
+                    size_t index = stream_map_[(size_t)flv_tag_.Type];
+                    if (streams_[index].ready) {
+                        continue;
+                    }
                     std::vector<boost::uint8_t> codec_data;
                     archive_.seekg(std::streamoff(flv_tag_.data_offset), std::ios_base::beg);
                     assert(archive_);
                     util::serialization::serialize_collection(archive_, codec_data, (boost::uint64_t)flv_tag_.DataSize);
                     archive_.seekg(4, std::ios_base::cur);
                     assert(archive_);
-                    parse_offset_ = (boost::uint64_t)archive_.tellg();
-                    size_t index = stream_map_[(size_t)flv_tag_.Type];
                     streams_[index] = FlvStream(flv_tag_, codec_data, metadata_);
                     streams_[index].index = index;
                     streams_[index].ready = true;
@@ -134,22 +141,21 @@ namespace ppbox
             }
 
             if (open_step_ == 2) {
-                archive_.seekg(parse_offset_, std::ios_base::beg);
+                archive_.seekg(header_offset_, std::ios_base::beg);
                 assert(archive_);
                 while (!get_tag(flv_tag_, ec)) {
-                    if (flv_tag_.Type < stream_map_.size() &&
+                    if (flv_tag_.Type < stream_map_.size() && flv_tag_.is_sample &&
                         stream_map_[(size_t)flv_tag_.Type] < stream_map_.size()) {
                             break;
                     }
                 }
                 if (!ec) {
-                    archive_.seekg(parse_offset_, std::ios_base::beg);
+                    archive_.seekg(header_offset_, std::ios_base::beg);
                     assert(archive_);
                     timestamp_offset_ms_ = flv_tag_.Timestamp;
                     for (size_t i = 0; i < streams_.size(); ++i) {
                         streams_[i].start_time = timestamp_offset_ms_;
                     }
-                    header_offset_ = parse_offset_;
                     open_step_ = 3;
                 }
             }
