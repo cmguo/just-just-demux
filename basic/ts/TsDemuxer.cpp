@@ -93,6 +93,10 @@ namespace ppbox
                         break;
                     }
                     pat_ = pat.sections[0].programs[0];
+                    while (pat_.number == 0) {
+                        pat.sections[0].programs.erase(pat.sections[0].programs.begin());
+                        pat_ = pat.sections[0].programs[0];
+                    }
                     parse_.offset = archive_.tellg();
                     open_step_ = 1;
                     break;

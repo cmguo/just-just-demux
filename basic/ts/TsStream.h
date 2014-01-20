@@ -43,7 +43,18 @@ namespace ppbox
                 time_scale = TsPacket::TIME_SCALE;
                 format_data = data;
                 boost::system::error_code ec;
-                ready = Format::finish_from_stream(*this, "ts", stream_type, ec);
+                if (stream_type > 0x80) {
+                    // search for registration_descriptor, descriptor_tag = 5
+                    boost::uint32_t format_identifier = 0;
+                    for (size_t i = 0; i < descriptor.size(); ++i) {
+                        if (descriptor[i].descriptor_tag == 5) {
+                            memcpy(&format_identifier, &descriptor[i].descriptor.front(), 4);
+                        }
+                    }
+                    ready = Format::finish_from_stream(*this, "ts", format_identifier, ec);
+                } else {
+                    ready = Format::finish_from_stream(*this, "ts", stream_type, ec);
+                }
             }
 
             void clear()
