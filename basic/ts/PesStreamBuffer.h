@@ -80,7 +80,7 @@ namespace ppbox
                 if (mode != std::ios_base::in) {
                     return pos_type(-1);// Ä£Ê½´íÎó
                 }
-                boost::uint32_t left = (size_t)position;
+                boost::uint32_t left = (boost::uint32_t)position;
                 for (size_t i = 0; i < payloads_.size(); ++i) {
                     if (left <= payloads_[i].size) {
                         pos_type offset = payloads_[i].offset + left;

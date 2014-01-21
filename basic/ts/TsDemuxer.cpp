@@ -126,8 +126,8 @@ namespace ppbox
                         if (stream_map_.size() <= pmt_.streams[i].elementary_pid)
                             stream_map_.resize(pmt_.streams[i].elementary_pid + 1, (size_t)-1);
                         stream_map_[pmt_.streams[i].elementary_pid] = streams_.size();
-                        streams_.push_back(TsStream(pmt_.streams[i]));
-                        streams_[i].index = i;
+                        streams_.push_back(TsStream(pmt_, pmt_.streams[i]));
+                        streams_[i].index = (boost::uint32_t)i;
                     }
                     for (size_t i = 0; i < streams_.size(); ++i) {
                         pes_parses_.push_back(PesParse(streams_[i].stream_type));
@@ -291,7 +291,7 @@ namespace ppbox
                 TsStream & stream = streams_[pes_index_];
                 PesParse & parse = pes_parses_[pes_index_];
                 BasicDemuxer::begin_sample(sample);
-                sample.itrack = pes_index_;
+                sample.itrack = (boost::uint32_t)pes_index_;
                 sample.flags = 0; // TODO: is_sync
                 if (stream.type == StreamType::VIDE && parse.is_sync_frame(archive_)) {
                     sample.flags |= Sample::f_sync;

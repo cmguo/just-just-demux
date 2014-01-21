@@ -56,20 +56,20 @@ namespace ppbox
                 using namespace ppbox::avformat;
                 boost::system::error_code ec;
 
+                format_data = CodecPrivate.value();
+                context = CodecID.value().c_str();
                 if (TrackType == MkvTrackType::VIDEO) { 
                     type = StreamType::VIDE;
                     video_format.width = (boost::uint32_t)Video.PixelWidth.value();
                     video_format.height = (boost::uint32_t)Video.PixelHeight.value();
                     video_format.frame_rate(0);
-                    format_data = CodecPrivate.value();
-                    Format::finish_from_stream(*this, "mkv", MkvFormat::stream_type(CodecID.value()), ec);
+                    Format::finish_from_stream(*this, "mkv", 0, ec);
                 } else if (TrackType == MkvTrackType::AUDIO) {
                     type = StreamType::AUDI;
                     audio_format.channel_count = (boost::uint32_t)Audio.Channels.value();
                     audio_format.sample_rate = (boost::uint32_t)(float)Audio.SamplingFrequency.value().as_int32();
                     audio_format.sample_size = (boost::uint32_t)Audio.BitDepth.value();
-                    format_data = CodecPrivate.value();
-                    Format::finish_from_stream(*this, "mkv", MkvFormat::stream_type(CodecID.value()), ec);
+                    Format::finish_from_stream(*this, "mkv", 0, ec);
                 }
             }
         };

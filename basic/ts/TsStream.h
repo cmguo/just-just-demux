@@ -3,7 +3,7 @@
 #ifndef _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
 #define _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
 
-#include <ppbox/avformat/Format.h>
+#include <ppbox/avformat/ts/TsFormat.h>
 
 namespace ppbox
 {
@@ -18,16 +18,48 @@ namespace ppbox
             TsStream()
                 : ready(false)
             {
-                index = (size_t)-1;
+                index = (boost::uint32_t)-1;
+                ppbox::avformat::TsContext c = {0, 0, 0};
+                context_ = c;
             }
 
             TsStream(
+                ppbox::avformat::PmtSection const & sec, 
                 ppbox::avformat::PmtStream const & info)
                 : ppbox::avformat::PmtStream(info)
                 , ready(false)
             {
-                index = (size_t)-1;
-                //time_offset_us = TimeOffset / 10;
+                index = (boost::uint32_t)-1;
+                ppbox::avformat::TsContext c = {0, 0, 0};
+                context_ = c;
+                context = &context_;
+
+                // search for registration_descriptor, descriptor_tag = 5
+                {
+                    boost::uint32_t format_identifier = 0;
+                    for (size_t i = 0; i < sec.descriptor.size(); ++i) {
+                        if (sec.descriptor[i].descriptor_tag == 5) {
+                            memcpy(&format_identifier, &sec.descriptor[i].descriptor.front(), 4);
+                        }
+                    }
+                    if (format_identifier == MAKE_FOURC_TYPE('H', 'D', 'M', 'V')
+                        || format_identifier == MAKE_FOURC_TYPE('H', 'D', 'P', 'R')) {
+                            context_.hdmv_type = stream_type;
+                    }
+                }
+
+                // search for registration_descriptor, descriptor_tag = 5
+                {
+                    boost::uint32_t format_identifier = 0;
+                    for (size_t i = 0; i < descriptor.size(); ++i) {
+                        if (descriptor[i].descriptor_tag == 5) {
+                            memcpy(&format_identifier, &descriptor[i].descriptor.front(), 4);
+                        }
+                    }
+                    if (format_identifier) {
+                        context_.regd_type = format_identifier;
+                    }
+                }
             }
 
             ~TsStream()
@@ -43,18 +75,7 @@ namespace ppbox
                 time_scale = TsPacket::TIME_SCALE;
                 format_data = data;
                 boost::system::error_code ec;
-                if (stream_type > 0x80) {
-                    // search for registration_descriptor, descriptor_tag = 5
-                    boost::uint32_t format_identifier = 0;
-                    for (size_t i = 0; i < descriptor.size(); ++i) {
-                        if (descriptor[i].descriptor_tag == 5) {
-                            memcpy(&format_identifier, &descriptor[i].descriptor.front(), 4);
-                        }
-                    }
-                    ready = Format::finish_from_stream(*this, "ts", format_identifier, ec);
-                } else {
-                    ready = Format::finish_from_stream(*this, "ts", stream_type, ec);
-                }
+                ready = Format::finish_from_stream(*this, "ts", stream_type, ec);
             }
 
             void clear()
@@ -64,6 +85,9 @@ namespace ppbox
 
         public:
             bool ready;
+
+        private:
+            ppbox::avformat::TsContext context_;
         };
 
     } // namespace demux
