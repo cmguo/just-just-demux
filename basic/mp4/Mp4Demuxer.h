@@ -6,7 +6,7 @@
 #include "ppbox/demux/basic/BasicDemuxer.h"
 #include "ppbox/demux/basic/mp4/Mp4Stream.h"
 
-#include <ppbox/avformat/mp4/Mp4File.h>
+#include <ppbox/avformat/mp4/lib/Mp4File.h>
 #include <ppbox/avformat/mp4/box/Mp4BoxArchive.h>
 
 class AP4_File;
