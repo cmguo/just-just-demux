@@ -94,10 +94,10 @@ namespace ppbox
             if (open_step_ == 0) {
                 Mp4Box & box(file_.ftyp);
                 while (archive_ >> box) {
+                    parse_offset_ = archive_.tellg();
                     if (box.type != Mp4BoxType::ftyp) {
                         continue;
                     }
-                    parse_offset_ = archive_.tellg();
                     open_step_ = 1;
                     break;
                 }
@@ -108,16 +108,16 @@ namespace ppbox
                 while (archive_ >> box) {
                     if (box.type == Mp4BoxType::mdat) {
                         file_.mdat = box;
-                        parse_offset_ = archive_.tellg() + (std::streamoff)box.data_size();
-                        header_offset_ = archive_.tellg() - (std::streamoff)box.head_size();
-                        archive_.seekg(parse_offset_, std::ios::beg);
+                        std::streamoff end = archive_.tellg() + (std::streamoff)box.data_size();
+                        header_offset_ = archive_.tellg();
+                        archive_.rdbuf()->pubseekoff(end, std::ios::beg, std::ios::in | std::ios::out);
                         if (!archive_)
                             break;
                     }
+                    parse_offset_ = archive_.tellg();
                     if (box.type != Mp4BoxType::moov) {
                         continue;
                     }
-                    parse_offset_ = archive_.tellg();
                     if (header_offset_)
                         open_step_ = 3;
                     else
@@ -129,10 +129,10 @@ namespace ppbox
             if (open_step_ == 2) {
                 Mp4Box & box(file_.mdat);
                 while (archive_ >> box) {
+                    parse_offset_ = archive_.tellg();
                     if (box.type != Mp4BoxType::mdat) {
                         continue;
                     }
-                    parse_offset_ = archive_.tellg();
                     header_offset_ = archive_.tellg() - (std::streamoff)box.head_size();
                     //bitrate_ = (boost::uint64_t)(box.byte_size() * 8 / file->GetMovie()->GetDurationMs());
                     open_step_ = 3;
@@ -150,7 +150,7 @@ namespace ppbox
                                 continue;
                         }
                         Mp4Stream * stream = new Mp4Stream(streams_.size(), track, timestamp());
-                        if (stream->parse(timestamp(), ec)) {
+                        if (stream->parse(ec)) {
                             streams_.push_back(stream);
                         } else {
                             delete stream;
