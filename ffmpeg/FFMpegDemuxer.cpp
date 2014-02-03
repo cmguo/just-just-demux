@@ -491,7 +491,8 @@ namespace ppbox
                     start_time_ = streams_[i].start_time * AV_TIME_BASE / streams_[i].time_scale;
             }
             for (size_t i = 0; i < streams_.size(); ++i) {
-                streams_[i].start_time = start_time_ * streams_[i].time_scale / AV_TIME_BASE;
+                if ((boost::int64_t)streams_[i].start_time >= 0)
+                    streams_[i].start_time = start_time_ * streams_[i].time_scale / AV_TIME_BASE;
             }
             return true;
         }
