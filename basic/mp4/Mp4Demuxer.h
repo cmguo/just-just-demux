@@ -4,8 +4,10 @@
 #define _PPBOX_DEMUX_BASIC_MP4_MP4_DEMUXER_H_
 
 #include "ppbox/demux/basic/BasicDemuxer.h"
+#include "ppbox/demux/basic/mp4/Mp4Stream.h"
 
-#include <framework/container/OrderedUnidirList.h>
+#include <ppbox/avformat/mp4/Mp4File.h>
+#include <ppbox/avformat/mp4/box/Mp4BoxArchive.h>
 
 class AP4_File;
 
@@ -14,31 +16,14 @@ namespace ppbox
     namespace demux
     {
 
-        class SampleListItem;
-        struct SampleOffsetLess;
-        struct SampleTimeLess;
-        class Track;
-
         class Mp4Demuxer
             : public BasicDemuxer
         {
         public:
-            typedef framework::container::OrderedUnidirList<
-                SampleListItem, 
-                framework::container::identity<SampleListItem>, 
-                SampleOffsetLess
-            > SampleOffsetList;
-
-            typedef framework::container::OrderedUnidirList<
-                SampleListItem, 
-                framework::container::identity<SampleListItem>, 
-                SampleTimeLess
-            > SampleTimeList;
-
 #ifdef PPBOX_DEMUX_MP4_NO_TIME_ORDER
-            typedef SampleOffsetList SampleList;
+            typedef Mp4Stream::StreamOffsetList StreamList;
 #else
-            typedef SampleTimeList SampleList;
+            typedef Mp4Stream::StreamTimeList StreamList;
 #endif
 
         public:
@@ -104,13 +89,16 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            std::basic_istream<boost::uint8_t> is_;
-            boost::uint64_t head_size_;
+            ppbox::avformat::Mp4BoxIArchive archive_;
+
             boost::uint64_t open_step_;
-            AP4_File * file_;
-            std::vector<Track *> tracks_;
+            boost::uint64_t parse_offset_;
+            boost::uint64_t header_offset_;
+
+            ppbox::avformat::Mp4File file_;
+            std::vector<Mp4Stream *> streams_;
             boost::uint64_t bitrate_;
-            SampleList * sample_list_;
+            StreamList * stream_list_;
             //const_pointer copy_from_;
         };
 
