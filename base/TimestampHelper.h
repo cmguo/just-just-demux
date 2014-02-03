@@ -83,6 +83,11 @@ namespace ppbox
                 return max_delta_;
             }
 
+            bool empty() const
+            {
+                return time_trans_.empty();
+            }
+
         public:
             // 调整时间戳
             void adjust(
@@ -134,6 +139,13 @@ namespace ppbox
                 for (size_t i = 0; i < time_trans_.size(); ++i) {
                     dts.push_back(time_trans_[i].revert(time) - dts_offset_[i]);
                 }
+            }
+
+            boost::uint64_t revert(
+                boost::uint32_t itrack, 
+                boost::uint64_t time) const
+            {
+                return time_trans_[itrack].revert(time) - dts_offset_[itrack];
             }
 
         public:
