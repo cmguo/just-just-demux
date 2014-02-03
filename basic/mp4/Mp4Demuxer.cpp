@@ -29,7 +29,7 @@ namespace ppbox
             , parse_offset_(0)
             , header_offset_(0)
             , bitrate_(0)
-            , stream_list_(NULL)
+            , stream_list_(new StreamList)
         {
         }
 
@@ -118,7 +118,6 @@ namespace ppbox
                         continue;
                     }
                     parse_offset_ = archive_.tellg();
-                    Mp4MovieBox const & moov(box.as<Mp4MovieBox>());
                     if (header_offset_)
                         open_step_ = 3;
                     else
