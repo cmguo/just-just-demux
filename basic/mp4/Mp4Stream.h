@@ -80,7 +80,6 @@ namespace ppbox
 
         public:
             bool parse(
-                TimestampHelper & helper, 
                 boost::system::error_code & ec)
             {
                 using namespace ppbox::avformat;
@@ -105,7 +104,8 @@ namespace ppbox
 
                 Mp4EsDescription const * es_desc = entry.es_description();
                 if (es_desc) {
-                    format_data = es_desc->decoder_info()->Info;
+                    if (es_desc->decoder_info())
+                        format_data = es_desc->decoder_info()->Info;
                     boost::uint8_t object_type = es_desc->decoder_config()->ObjectTypeIndication;
                     Format::finish_from_stream(*this, "mp4", object_type, ec);
                 } else if (Mp4Box const * avcC = entry.find_item("/avcC")) {
