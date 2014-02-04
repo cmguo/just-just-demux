@@ -152,6 +152,7 @@ namespace ppbox
                         Mp4Stream * stream = new Mp4Stream(streams_.size(), track, timestamp());
                         if (stream->parse(ec)) {
                             streams_.push_back(stream);
+                            stream_list_->push(stream);
                         } else {
                             delete stream;
                             ec .clear();
@@ -325,26 +326,6 @@ namespace ppbox
             return seek_offset;
         }
 
-        boost::system::error_code Mp4Demuxer::reset2(
-            boost::system::error_code & ec)
-        {
-            if (is_open(ec)) {
-                stream_list_->clear();
-                //boost::uint64_t min_offset = head_offset_;
-                //for (size_t i = 0; i < streams_.size(); ++i) {
-                //    streams_[i]->Rewind();
-                //    if (AP4_SUCCEEDED(streams_[i]->GetNextSample())) {
-                //        streams_[i]->sample_.time = timestamp().const_adjust(i, streams_[i]->sample_.GetDts());
-                //        stream_list_->push(&streams_[i]->sample_);
-                //        if (streams_[i]->sample_.GetOffset() < min_offset) {
-                //            min_offset = streams_[i]->sample_.GetOffset();
-                //        }
-                //    }
-                //}
-            }
-            return ec;
-        }
-
         boost::uint32_t Mp4Demuxer::probe(
             boost::uint8_t const * header, 
             size_t hsize) const
@@ -360,17 +341,15 @@ namespace ppbox
         boost::uint64_t Mp4Demuxer::get_cur_time(
             boost::system::error_code & ec) const
         {
-            boost::uint64_t dts = 0;
+            boost::uint64_t time = 0;
             if (is_open(ec)) {
-                //if (stream_list_->empty()) {
-                //    dts = (*streams_[0])->GetMediaDuration();
-                //    dts = timestamp().const_adjust(0, dts);
-                //} else {
-                //    dts = stream_list_->first()->GetDts();
-                //    dts = timestamp().const_adjust(stream_list_->first()->itrack, dts);
-                //}
+                if (stream_list_->empty()) {
+                    time = get_duration(ec);
+                } else {
+                    time = stream_list_->first()->time();
+                }
             }
-            return dts;
+            return time;
         }
 
         boost::uint64_t Mp4Demuxer::get_end_time(
@@ -394,15 +373,14 @@ namespace ppbox
             }
 
             boost::uint64_t min_time = (boost::uint64_t)-1;
-            //for (size_t i = 0; i < streams_.size(); ++i) {
-            //    boost::uint64_t time = AP4_ConvertTime(time_hint, 1000, (*streams_[i])->GetMediaTimeScale());
-            //    if (AP4_SUCCEEDED(streams_[i]->GetBufferTime(offset, time))) {
-            //        time = timestamp().const_adjust(i, time);
-            //        if (time < min_time) {
-            //            min_time = time;
-            //        }
-            //    }
-            //}
+            for (size_t i = 0; i < streams_.size(); ++i) {
+                boost::uint64_t time = 0;
+                streams_[i]->limit(offset, time, ec);
+                time = timestamp().const_adjust(i, time);
+                if (time < min_time) {
+                    min_time = time;
+                }
+            }
 
             ec.clear();
             return min_time;

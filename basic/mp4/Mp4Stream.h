@@ -72,6 +72,14 @@ namespace ppbox
                 return samples_.next(ec) && update();
             }
 
+            bool limit(
+                boost::uint64_t offset, 
+                boost::uint64_t & time, 
+                boost::system::error_code & ec)
+            {
+                return samples_.limit(offset, time, ec);
+            }
+
             void get_sample(
                 Sample & sample)
             {

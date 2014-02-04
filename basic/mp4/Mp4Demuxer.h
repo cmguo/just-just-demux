@@ -82,13 +82,6 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         private:
-            boost::system::error_code parse_head(
-                boost::system::error_code & ec);
-
-            boost::system::error_code reset2(
-                boost::system::error_code & ec);
-
-        private:
             ppbox::avformat::Mp4BoxIArchive archive_;
 
             boost::uint64_t open_step_;
