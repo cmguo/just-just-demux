@@ -95,6 +95,7 @@ namespace ppbox
                 ec.clear();
 
                 Mp4SampleEntry const & entry(track_.sample_table().description());
+                Mp4Box const * box = NULL;
 
                 if (track_.type() == Mp4HandlerType::vide) {
                     type = StreamType::VIDE;
@@ -102,26 +103,27 @@ namespace ppbox
                     video_format.width = video.width();
                     video_format.height = video.height();
                     video_format.frame_rate(sample_count_ * time_scale, (boost::uint32_t)duration);
+                    box = &video.box();
                 } else {
                     type = StreamType::AUDI;
                     Mp4AudioSampleEntry const & audio(static_cast<Mp4AudioSampleEntry const &>(entry));
                     audio_format.sample_rate = audio.sample_rate();
                     audio_format.sample_size = audio.sample_size();
                     audio_format.channel_count = audio.channel_count();
+                    box = &audio.box();
                 }
 
-                Mp4EsDescription const * es_desc = entry.es_description();
-                if (es_desc) {
+                if (Mp4EsDescription const * es_desc = entry.es_description()) {
                     if (es_desc->decoder_info())
                         format_data = es_desc->decoder_info()->Info;
                     boost::uint8_t object_type = es_desc->decoder_config()->ObjectTypeIndication;
                     Format::finish_from_stream(*this, "mp4", object_type, ec);
-                } else if (Mp4Box const * avcC = entry.find_item("/avcC")) {
-                    Mp4Box::raw_data_t raw_data = avcC->raw_data();
-                    format_data.assign(raw_data.address(), raw_data.address() + raw_data.size());
-                    Format::finish_from_stream(*this, "mp4", MpegObjectType::MPEG4_PART10_VISUAL, ec);
                 } else {
-                    ec = ppbox::avformat::error::bad_media_format;
+                    if (Mp4Box const * avcC = entry.find_item("/avcC")) {
+                        Mp4Box::raw_data_t raw_data = avcC->raw_data();
+                        format_data.assign(raw_data.address(), raw_data.address() + raw_data.size());
+                    }
+                    Format::finish_from_stream(*this, "mp4", box->type, ec);
                 }
 
                 return !ec;
