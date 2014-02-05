@@ -90,7 +90,6 @@ namespace ppbox
 
             ppbox::avformat::Mp4File file_;
             std::vector<Mp4Stream *> streams_;
-            boost::uint64_t bitrate_;
             StreamList * stream_list_;
             //const_pointer copy_from_;
         };

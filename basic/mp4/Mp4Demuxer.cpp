@@ -28,7 +28,6 @@ namespace ppbox
             , open_step_((boost::uint64_t)-1)
             , parse_offset_(0)
             , header_offset_(0)
-            , bitrate_(0)
             , stream_list_(new StreamList)
         {
         }
@@ -134,7 +133,6 @@ namespace ppbox
                         continue;
                     }
                     header_offset_ = archive_.tellg() - (std::streamoff)box.head_size();
-                    //bitrate_ = (boost::uint64_t)(box.byte_size() * 8 / file->GetMovie()->GetDurationMs());
                     open_step_ = 3;
                     break;
                 }
@@ -310,6 +308,9 @@ namespace ppbox
             while ((stream = stream_time_list.first())) {
                 stream_time_list.pop();
                 boost::uint64_t time = timestamp().revert(stream->itrack(), min_time);
+                if ((boost::int64_t)time < 0) {
+                    time = 0;
+                }
                 if (stream->seek(time, ec)) {
                     dts[stream->itrack()] = time;
                     stream_offset_list.push(stream);
@@ -365,12 +366,6 @@ namespace ppbox
             boost::uint64_t offset = archive_.tellg();
             archive_.seekg(position, std::ios_base::beg);
             assert(archive_);
-
-
-            boost::uint64_t time_hint = 0;
-            if (bitrate_ != 0 && offset > header_offset_) {
-                time_hint = (boost::uint64_t)((offset - header_offset_) * 8 * 1000 / bitrate_);
-            }
 
             boost::uint64_t min_time = (boost::uint64_t)-1;
             for (size_t i = 0; i < streams_.size(); ++i) {
