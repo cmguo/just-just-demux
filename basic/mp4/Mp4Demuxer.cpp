@@ -52,22 +52,17 @@ namespace ppbox
         boost::system::error_code Mp4Demuxer::close(
             boost::system::error_code & ec)
         {
-            if (open_step_ == 1) {
+            if (open_step_ == 4) {
                 on_close();
             }
             open_step_ = boost::uint64_t(-1);
-            if (stream_list_) {
-                delete stream_list_;
-                stream_list_ = NULL;
-            }
+            parse_offset_ = header_offset_ = 0;
+            stream_list_->clear();
             for (size_t i = 0; i < streams_.size(); ++i) {
                 delete streams_[i];
                 streams_.clear();
             }
-            //if (file_) {
-            //    delete file_;
-            //    file_ = NULL;
-            //}
+            file_.close();
             return ec;
         }
 
