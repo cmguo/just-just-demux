@@ -473,7 +473,7 @@ namespace ppbox
                     } else {
                         ec = end_of_stream;
                     }
-                } else if (ec == end_of_stream) {
+                } else if (ec == end_of_stream && !buffer_->last_error()) {
                     ec = boost::asio::error::would_block;
                 } else {
                     ec = buffer_->last_error();
