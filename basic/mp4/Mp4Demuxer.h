@@ -89,6 +89,7 @@ namespace ppbox
             boost::uint64_t header_offset_;
 
             ppbox::avformat::Mp4File file_;
+            std::auto_ptr<ppbox::avformat::Mp4Box> box_;
             std::vector<Mp4Stream *> streams_;
             StreamList * stream_list_;
             //const_pointer copy_from_;

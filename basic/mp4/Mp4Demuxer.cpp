@@ -52,7 +52,7 @@ namespace ppbox
         boost::system::error_code Mp4Demuxer::close(
             boost::system::error_code & ec)
         {
-            if (open_step_ == 4) {
+            if (open_step_ == 2) {
                 on_close();
             }
             open_step_ = boost::uint64_t(-1);
@@ -71,7 +71,7 @@ namespace ppbox
         {
             ec.clear();
 
-            if (open_step_ == 4) {
+            if (open_step_ == 2) {
                 return true;
             }
 
@@ -85,82 +85,55 @@ namespace ppbox
             archive_.seekg(parse_offset_, std::ios::beg);
             assert(archive_);
 
-            if (open_step_ == 0) {
-                Mp4Box & box(file_.ftyp);
-                while (archive_ >> box) {
-                    parse_offset_ = archive_.tellg();
-                    if (box.type != Mp4BoxType::ftyp) {
-                        continue;
-                    }
+            if (box_.get() == NULL)
+                box_.reset(new Mp4Box);
+            while (archive_ >> *box_) {
+                Mp4Box * box = box_.release();
+                parse_offset_ = archive_.tellg();
+                if (file_.open(box, ec)) {
                     open_step_ = 1;
                     break;
                 }
+                if (ec) {
+                    break;
+                }
+                if (box->type == Mp4BoxType::mdat) {
+                    std::streamoff end = archive_.tellg() + (std::streamoff)box->data_size();
+                    header_offset_ = archive_.tellg();
+                    archive_.rdbuf()->pubseekoff(end, std::ios::beg, std::ios::in | std::ios::out);
+                    if (!archive_)
+                        break;
+                }
+                box_.reset(new Mp4Box);
             }
 
             if (open_step_ == 1) {
-                Mp4Box & box(file_.moov);
-                while (archive_ >> box) {
-                    if (box.type == Mp4BoxType::mdat) {
-                        file_.mdat = box;
-                        std::streamoff end = archive_.tellg() + (std::streamoff)box.data_size();
-                        header_offset_ = archive_.tellg();
-                        archive_.rdbuf()->pubseekoff(end, std::ios::beg, std::ios::in | std::ios::out);
-                        if (!archive_)
-                            break;
+                std::vector<Mp4Track *> & tracks(file_.movie().tracks());
+                for (std::vector<Mp4Track *>::iterator iter = tracks.begin(); iter != tracks.end(); ++iter) {
+                    Mp4Track & track(**iter);
+                    if (track.type() != Mp4HandlerType::soun
+                        && track.type() != Mp4HandlerType::vide) {
+                            continue;
                     }
-                    parse_offset_ = archive_.tellg();
-                    if (box.type != Mp4BoxType::moov) {
-                        continue;
-                    }
-                    if (header_offset_)
-                        open_step_ = 3;
-                    else
-                        open_step_ = 2;
-                    break;
-                }
-            }
-
-            if (open_step_ == 2) {
-                Mp4Box & box(file_.mdat);
-                while (archive_ >> box) {
-                    parse_offset_ = archive_.tellg();
-                    if (box.type != Mp4BoxType::mdat) {
-                        continue;
-                    }
-                    header_offset_ = archive_.tellg() - (std::streamoff)box.head_size();
-                    open_step_ = 3;
-                    break;
-                }
-            }
-
-            if (open_step_ == 3) {
-                if (file_.parse(ec)) {
-                    std::vector<Mp4Track *> & tracks(file_.movie().tracks());
-                    for (std::vector<Mp4Track *>::iterator iter = tracks.begin(); iter != tracks.end(); ++iter) {
-                        Mp4Track & track(**iter);
-                        if (track.type() != Mp4HandlerType::soun
-                            && track.type() != Mp4HandlerType::vide) {
-                                continue;
-                        }
-                        Mp4Stream * stream = new Mp4Stream(streams_.size(), track, timestamp());
-                        if (stream->parse(ec)) {
-                            streams_.push_back(stream);
-                            stream_list_->push(stream);
-                        } else {
-                            delete stream;
-                            ec .clear();
-                        }
-                    }
-                    if (streams_.empty()) {
-                        ec = bad_media_format;
+                    Mp4Stream * stream = new Mp4Stream(streams_.size(), track, timestamp());
+                    if (stream->parse(ec)) {
+                        streams_.push_back(stream);
+                        stream_list_->push(stream);
                     } else {
-                        open_step_ = 4;
-                        on_open();
+                        delete stream;
+                        ec .clear();
                     }
+                }
+                if (streams_.empty()) {
+                    ec = bad_media_format;
+                } else {
+                    open_step_ = 2;
+                    on_open();
                 }
             } else {
                 if (!archive_) {
                     if (archive_.failed()) {
+                        box_.reset();
                         ec = bad_media_format;
                     } else {
                         ec = file_stream_error;
@@ -175,7 +148,7 @@ namespace ppbox
         bool Mp4Demuxer::is_open(
             boost::system::error_code & ec) const
         {
-            if (open_step_ == 4) {
+            if (open_step_ == 2) {
                 ec.clear();
                 return true;
             } else {
