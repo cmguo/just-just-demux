@@ -27,13 +27,13 @@ namespace ppbox
                 size_t itrack, 
                 ppbox::avformat::Mp4Track & track, 
                 TimestampHelper & helper)
-                : itrack_(itrack)
-                , track_(track)
+                : track_(track)
                 , helper_(helper)
                 , samples_(track.sample_table())
                 , time_(0)
                 , offset_(0)
             {
+                index = (boost::uint32_t)itrack;
                 time_scale = track_.timescale();
                 start_time = 0;
                 duration = track_.duration();
@@ -43,11 +43,6 @@ namespace ppbox
             }
 
         public:
-            size_t itrack() const
-            {
-                return itrack_;
-            }
-
             boost::uint64_t time() const
             {
                 return time_;
@@ -132,7 +127,7 @@ namespace ppbox
         private:
             bool update()
             {
-                time_ = helper_.const_adjust(itrack_, samples_.dts());
+                time_ = helper_.const_adjust(index, samples_.dts());
                 offset_ = samples_.offset();
                 return true;
             }
@@ -155,7 +150,7 @@ namespace ppbox
                     Mp4Stream const & r)
                 {
                     return l.time_ < r.time_ 
-                        || (l.time_ == r.time_ && l.itrack_ < r.itrack_);
+                        || (l.time_ == r.time_ && l.index < r.index);
                 }
             };
 
@@ -176,7 +171,6 @@ namespace ppbox
             > StreamTimeList;
 
         private:
-            size_t itrack_;
             ppbox::avformat::Mp4Track & track_;
             TimestampHelper & helper_;
             ppbox::avformat::Mp4SampleTable & samples_;

@@ -13,6 +13,8 @@ using namespace ppbox::avformat::error;
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
+#include <stdio.h>
+
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", framework::logger::Warn)
 
 namespace ppbox
@@ -219,7 +221,7 @@ namespace ppbox
             stream_list_->pop();
 
             BasicDemuxer::begin_sample(sample);
-            sample.itrack = stream.itrack();
+            sample.itrack = stream.index;
             sample.stream_info = streams_[sample.itrack];
             BasicDemuxer::push_data(sample.time, sample.size);
             BasicDemuxer::end_sample(sample);
@@ -256,6 +258,8 @@ namespace ppbox
             stream_list_->clear();
 
             Mp4Stream::StreamTimeList stream_time_list;
+            Mp4Stream::StreamOffsetList stream_offset_list;
+
             for (size_t i = 0; i < streams_.size(); ++i) {
                 boost::uint64_t time = (boost::uint64_t)dts[i];
                 if (streams_[i]->seek(time, ec)) {
@@ -267,7 +271,6 @@ namespace ppbox
                 return 0;
             }
 
-            Mp4Stream::StreamOffsetList stream_offset_list;
             Mp4Stream * stream = stream_time_list.first();
             stream_time_list.pop();
             stream_offset_list.push(stream);
@@ -275,12 +278,12 @@ namespace ppbox
             boost::uint64_t min_time = stream->time();
             while ((stream = stream_time_list.first())) {
                 stream_time_list.pop();
-                boost::uint64_t time = timestamp().revert(stream->itrack(), min_time);
+                boost::uint64_t time = timestamp().revert(stream->index, min_time);
                 if ((boost::int64_t)time < 0) {
                     time = 0;
                 }
                 if (stream->seek(time, ec)) {
-                    dts[stream->itrack()] = time;
+                    dts[stream->index] = time;
                     stream_offset_list.push(stream);
                 }
             }
@@ -288,7 +291,7 @@ namespace ppbox
             boost::uint64_t seek_offset = stream_offset_list.first()->offset();
 
             while ((stream = stream_offset_list.first())) {
-               stream_offset_list.pop();
+                stream_offset_list.pop();
                 stream_list_->push(stream);
             }
 
