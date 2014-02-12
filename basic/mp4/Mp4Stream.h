@@ -4,6 +4,7 @@
 #define _PPBOX_DEMUX_BASIC_MP4_MP4_STREAM_H_
 
 #include <ppbox/avformat/Format.h>
+#include <ppbox/avformat/mp4/Mp4Format.h>
 #include <ppbox/avformat/mp4/lib/Mp4Track.h>
 #include <ppbox/avformat/mp4/box/Mp4BoxEnum.h>
 
@@ -109,18 +110,24 @@ namespace ppbox
                 }
 
                 if (Mp4EsDescription const * es_desc = entry->es_description()) {
-                    if (es_desc->decoder_info())
-                        format_data = es_desc->decoder_info()->Info;
-                    boost::uint8_t object_type = es_desc->decoder_config()->ObjectTypeIndication;
-                    context = (void const *)object_type;
+                    Mp4DecoderConfigDescriptor const * config = es_desc->decoder_config();
+                    if (config) {
+                        bitrate = config->AverageBitrate;
+                        boost::uint8_t object_type = es_desc->decoder_config()->ObjectTypeIndication;
+                        context = (void const *)object_type;
+                        if (es_desc->decoder_info())
+                            format_data = es_desc->decoder_info()->Info;
+                    }
                 } else {
-                    Mp4BoxVector const & vec = entry->vector();
-                    if (!vec.empty()) {
-                        Mp4Box & config(*vec.front());
-                        Mp4Box::raw_data_t raw_data = config.raw_data();
-                        format_data.assign(raw_data.address(), raw_data.address() + raw_data.size());
-                        boost::uint32_t type = config.type;
-                        context = (void const *)type;
+                    Mp4Format format;
+                    CodecInfo const * codec = format.codec_from_stream(StreamType::VIDE, box->type, NULL, ec);
+                    if (codec) {
+                        boost::uint32_t config_box = (boost::uint32_t)(intptr_t)codec->context;
+                        Mp4Box const * config = entry->find_item(config_box);
+                        if (config) {
+                            Mp4Box::raw_data_t raw_data = config->raw_data();
+                            format_data.assign(raw_data.address(), raw_data.address() + raw_data.size());
+                        }
                     }
                 }
 
