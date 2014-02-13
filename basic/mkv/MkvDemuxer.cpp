@@ -28,6 +28,8 @@ namespace ppbox
             , archive_(buf)
             , open_step_(size_t(-1))
             , header_offset_(0)
+            , object_parse_(streams_, stream_map_)
+            , buffer_parse_(streams_, stream_map_)
             , timestamp_offset_ms_(boost::uint64_t(-1))
         {
         }
@@ -78,21 +80,21 @@ namespace ppbox
 
                 if (archive_) {
                     file_prop_ = segment.SegmentInfo;
-                    file_prop_.Time_Code_Scale = (boost::uint32_t)(1000000000 / file_prop_.Time_Code_Scale.value_or(1000000));
                     for (size_t i = 0; i < segment.Tracks.Tracks.size(); ++i) {
                         MkvTrackEntry const & track = segment.Tracks.Tracks[i];
-                        MkvStream stream(track);
+                        MkvStream stream(file_prop_, track);
                         stream.index = streams_.size();
-                        stream.time_scale = (boost::uint32_t)file_prop_.Time_Code_Scale.value();
-                        stream.start_time = 0;
-                        if (stream_map_.size() <= track.TrackNumber.value()) {
-                            stream_map_.resize(track.TrackNumber.value() + 1, size_t(-1));
-                            stream_map_[track.TrackNumber.value()] = streams_.size();
+                        if (file_prop_.Time_Code_Scale.empty()) {
+                            file_prop_.Time_Code_Scale = 1000000;
+                        }
+                        if (stream_map_.size() <= (size_t)track.TrackNumber.value()) {
+                            stream_map_.resize((size_t)track.TrackNumber.value() + 1, size_t(-1));
+                            stream_map_[(size_t)track.TrackNumber.value()] = streams_.size();
                         }
                         streams_.push_back(stream);
                     }
                     header_offset_ = eia.skip_elements().front().offset;
-                    object_parse_.set_offset(header_offset_);
+                    object_parse_.reset(header_offset_);
                     open_step_ = 1;
                 } else {
                     ec = bad_media_format;
@@ -101,12 +103,12 @@ namespace ppbox
             }
 
             if (open_step_ == 1) {
-                if (object_parse_.next_frame(archive_, ec)) {
+                if (object_parse_.ready(archive_, ec)) {
                     boost::uint64_t start_time = object_parse_. cluster_time_code();
                     for (size_t i = 0; i < streams_.size(); ++i) {
-                        streams_[i].start_time = start_time;
+                        streams_[i].set_start_time(start_time);
                     }
-                    object_parse_.set_offset(header_offset_);
+                    object_parse_.reset(header_offset_);
                     archive_.seekg(header_offset_, std::ios_base::beg);
                     open_step_ = 2;
                     on_open();
@@ -149,8 +151,7 @@ namespace ppbox
             ec.clear();
             dts.assign(dts.size(), timestamp_offset_ms_);
             //current_time_ = 0;
-            object_parse_ = MkvParse();
-            object_parse_.set_offset(header_offset_);
+            object_parse_.reset(header_offset_);
             return header_offset_;
         }
 
@@ -163,7 +164,7 @@ namespace ppbox
             if (file_prop_.Duration.empty())
                 return ppbox::data::invalid_size;
             else
-                return (boost::uint64_t)file_prop_.Duration.value().as_int64() * 1000 / file_prop_.Time_Code_Scale.value();
+                return (boost::uint64_t)file_prop_.Duration.value().as_int64() * file_prop_.Time_Code_Scale.value() / 1000000;
         }
 
         size_t MkvDemuxer::get_stream_count(
@@ -196,24 +197,33 @@ namespace ppbox
             if (!is_open(ec)) {
                 return ec;
             }
-            if (!object_parse_.next_frame(archive_, ec)) {
+            if (!object_parse_.ready(archive_, ec)) {
                 return ec;
             }
-            if (object_parse_.track() >= stream_map_.size()) {
-                LOG_WARN("[get_sample] stream index out of range: " << object_parse_.track());
+            if (object_parse_.itrack() >= streams_.size()) {
+                LOG_WARN("[get_sample] stream index out of range: " << object_parse_.itrack());
                 return get_sample(sample, ec);
             }
-            size_t index = stream_map_[object_parse_.track()];
-            MkvStream & stream = streams_[index];
+            MkvStream & stream = streams_[object_parse_.itrack()];
             BasicDemuxer::begin_sample(sample);
-            sample.itrack = index;
+            sample.itrack = object_parse_.itrack();
+            sample.flags = 0;
             if (object_parse_.is_sync_frame())
                 sample.flags |= Sample::f_sync;
-            sample.dts = object_parse_.dts();
-            sample.cts_delta = 0;
+            if (stream.has_dts()) {
+                sample.dts = stream.dts();
+                stream.next();
+                sample.cts_delta = (boost::uint32_t)(object_parse_.pts() - sample.dts);
+                sample.duration = (boost::uint32_t)(stream.dts() - sample.dts);
+            } else {
+                sample.dts = object_parse_.pts();
+                sample.cts_delta = 0;
+                sample.duration = object_parse_.duration();
+            }
             sample.size = object_parse_.size();
             sample.stream_info = &stream;
             BasicDemuxer::push_data(object_parse_.offset(), sample.size);
+            object_parse_.next();
             sample.data.clear();
             for (size_t i = 0; i < stream.ContentEncodings.ContentEncodings.size(); ++i) {
                 MkvContentEncoding const & encoding = stream.ContentEncodings.ContentEncodings[i];

@@ -3,6 +3,8 @@
 #ifndef _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
 #define _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
 
+#include "ppbox/demux/base/DemuxBase.h"
+
 #include <ppbox/avformat/mkv/MkvObjectType.h>
 #include <ppbox/avformat/Format.h>
 
@@ -17,45 +19,61 @@ namespace ppbox
         {
         public:
             MkvStream()
+                : time_code_scale_(1)
+                , dts_orgin_(0)
+                , dts_(0)
             {
                 index = (size_t)-1;
             }
 
             MkvStream(
+                ppbox::avformat::MkvSegmentInfo file_prop, 
                 ppbox::avformat::MkvTrackEntryData const & track)
                 : ppbox::avformat::MkvTrackEntryData(track)
+                , dts_orgin_(0)
+                , dts_(0)
             {
                 index = (size_t)-1;
+                time_code_scale_ = (boost::uint32_t)file_prop.Time_Code_Scale.value();
                 parse();
             }
-/*
-            void get_start_sample(
-                std::vector<Sample> & samples)
+
+        public:
+            bool has_dts() const
             {
-                if (sub_type == VideoSubType::AVC1) {
-                    Sample sample;
-                    sample.itrack = index_to_map;
-                    sample.time = 0;
-                    sample.ustime = 0;
-                    sample.offset = 0;
-                    sample.size = format_data.size();
-                    sample.duration = 0;
-                    sample.idesc = 0;
-                    sample.dts = 0;
-                    sample.cts_delta = 0;
-                    sample.is_sync = false;
-                    sample.is_discontinuity = false;
-                    sample.data.swap(format_data);
-                    samples.push_back(sample);
-                }
+                return !DefaultDuration.empty();
             }
-*/
+
+            boost::uint64_t dts() const
+            {
+                return dts_;
+            }
+
+            boost::uint32_t sample_duration() const
+            {
+                return (boost::uint32_t)(DefaultDuration.value() / time_code_scale_);
+            }
+
+            void next()
+            {
+                dts_orgin_ += DefaultDuration.value();
+                dts_ = dts_orgin_ / time_code_scale_;
+            }
+
+            void set_start_time(
+                boost::uint64_t dts)
+            {
+                dts_orgin_ = dts * time_code_scale_;
+                dts_ = dts;
+            }
+
         private:
             void parse()
             {
                 using namespace ppbox::avformat;
                 boost::system::error_code ec;
 
+                time_scale = (boost::uint32_t)(1000000000 / time_code_scale_);
                 format_data = CodecPrivate.value();
                 context = CodecID.value().c_str();
                 if (TrackType == MkvTrackType::VIDEO) { 
@@ -72,6 +90,11 @@ namespace ppbox
                     Format::finish_from_stream(*this, "mkv", 0, ec);
                 }
             }
+
+        private:
+            boost::uint32_t time_code_scale_;
+            boost::uint64_t dts_orgin_;
+            boost::uint64_t dts_;
         };
 
     } // namespace demux

@@ -2,6 +2,7 @@
 
 #include "ppbox/demux/Common.h"
 #include "ppbox/demux/basic/mkv/MkvParse.h"
+#include "ppbox/demux/basic/mkv/MkvStream.h"
 using namespace ppbox::demux::error;
 
 using namespace ppbox::avformat::error;
@@ -16,18 +17,23 @@ namespace ppbox
     namespace demux
     {
 
-        MkvParse::MkvParse()
-            : offset_(0)
+        MkvParse::MkvParse(
+            std::vector<MkvStream> & streams, 
+            std::vector<size_t> & stream_map)
+            : streams_(streams)
+            , stream_map_(stream_map)
+            , offset_(0)
             , end_(0)
             , cluster_end_(0)
             , offset_block_(0)
             , size_block_(0)
-            , next_frame_(0)
+            , frame_(0)
             , in_group_(false)
+            , duration_(0)
         {
         }
 
-        void MkvParse::set_offset(
+        void MkvParse::reset(
             boost::uint64_t off)
         {
             offset_ = off;
@@ -37,29 +43,37 @@ namespace ppbox
             cluster_end_ = 0;
             offset_block_ = 0;
             size_block_ = 0;
-            next_frame_= 0;
+            frame_= 0;
+            in_group_ = false;
+            duration_ = 0;
         }
 
-        bool MkvParse::next_frame(
+        bool MkvParse::ready(
             ppbox::avformat::EBML_IArchive & ar, 
             boost::system::error_code & ec)
         {
-            if (block_.sizes.empty() || next_frame_ == block_.sizes.size()) {
+            if (frame_ >= block_.sizes.size()) {
                 block_.sizes.clear();
                 if (!next_block(ar, ec))
                     return false;
+                duration_ = (boost::int16_t)streams_[itrack()].sample_duration();
             }
 
-            ar.seekg(offset_block_ + block_.sizes[next_frame_], std::ios::beg);
+            ar.seekg(offset_block_ + block_.sizes[frame_], std::ios::beg);
             if (ar) {
-                offset_block_ += block_.sizes[next_frame_];
-                ++next_frame_;
                 return true;
             } else {
                 ar.clear();
                 ec = file_stream_error;
                 return false;
             }
+        }
+
+        void MkvParse::next()
+        {
+            block_.TimeCode += duration_;
+            offset_block_ += block_.sizes[frame_];
+            ++frame_;
         }
 
         bool MkvParse::next_block(
@@ -106,9 +120,11 @@ namespace ppbox
                             ar >> block_;
                             if (ar) {
                                 offset_block_ = ar.tellg();
-                                size_block_ = data_end - offset_block_;
+                                size_block_ = (boost::uint32_t)(data_end - offset_block_);
                                 block_.compelte_load(size_block_);
-                                next_frame_ = 0;
+                                frame_ = 0;
+                            } else {
+                                frame_ = block_.sizes.size();
                             }
                             break;
                         case 0x7B: // MkvBlockGroup::ReferenceBlock
@@ -143,9 +159,11 @@ namespace ppbox
                             ar >> block_;
                             if (ar) {
                                 offset_block_ = ar.tellg();
-                                size_block_ = data_end - offset_block_;
+                                size_block_ = (boost::uint32_t)(data_end - offset_block_);
                                 block_.compelte_load(size_block_);
-                                next_frame_ = 0;
+                                frame_ = 0;
+                            } else {
+                                frame_ = block_.sizes.size();
                             }
                             break;
                         case MkvBlockGroup::StaticId:
