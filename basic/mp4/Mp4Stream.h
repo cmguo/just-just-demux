@@ -121,7 +121,7 @@ namespace ppbox
                 } else {
                     Mp4Format format;
                     CodecInfo const * codec = format.codec_from_stream(StreamType::VIDE, box->type, NULL, ec);
-                    if (codec) {
+                    if (codec && codec->context) {
                         boost::uint32_t config_box = (boost::uint32_t)(intptr_t)codec->context;
                         Mp4Box const * config = entry->find_item(config_box);
                         if (config) {
