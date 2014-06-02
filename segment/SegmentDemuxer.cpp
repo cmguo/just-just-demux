@@ -255,7 +255,10 @@ namespace ppbox
                 //read_demuxer_->demuxer->joint_begin(joint_context_);
             }
             while (true) {
-                read_demuxer_->demuxer->seek(time, ec);
+                if (read_demuxer_ == NULL)
+                    read_demuxer_ = alloc_demuxer(buffer_->read_segment(), true, ec);
+                if (read_demuxer_)
+                    read_demuxer_->demuxer->seek(time, ec);
                 /* 可能失败原因
                     1. 数据不够 file_stream_error
                         a. 没有下载到足够数据（使用下载错误作为错误码）
@@ -621,6 +624,17 @@ namespace ppbox
                         // TODO: 没有考虑格式变化的情况
                     }
                 }
+            }
+            if (media_info_.format.empty()) {
+                SegmentStream stream(*buffer_, false);
+                buffer_->attach_stream(stream, true);
+                media_info_.format = BasicDemuxerFactory::probe(stream);
+                buffer_->detach_stream(stream);
+                if (media_info_.format.empty()) {
+                    ec = boost::asio::error::would_block;
+                    return NULL;
+                }
+                LOG_INFO("[alloc_demuxer] detect media format: " << media_info_.format);
             }
             DemuxerInfo * info = new DemuxerInfo(*buffer_);
             info->segment = segment;

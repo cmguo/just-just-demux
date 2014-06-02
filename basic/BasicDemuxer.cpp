@@ -286,7 +286,24 @@ namespace ppbox
             return error::not_support;
         }
 
+        std::string BasicDemuxerFactory::probe(
+            std::basic_streambuf<boost::uint8_t> & content)
+        {
+            boost::asio::io_service io_svc;
+            creator_map_type::const_iterator iter = priv_probe(io_svc, content);
+            return iter == creator_map().end() ? std::string() : iter->first;
+        }
+
         BasicDemuxer * BasicDemuxerFactory::probe(
+            boost::asio::io_service & io_svc, 
+            std::basic_streambuf<boost::uint8_t> & content)
+        {
+            creator_map_type::const_iterator iter = priv_probe(io_svc, content);
+            return iter == creator_map().end() ? NULL : iter->second(io_svc, content);
+        }
+
+        BasicDemuxerFactory::creator_map_type::const_iterator 
+        BasicDemuxerFactory::priv_probe(
             boost::asio::io_service & io_svc, 
             std::basic_streambuf<boost::uint8_t> & content)
         {
@@ -306,7 +323,7 @@ namespace ppbox
                 delete demuxer;
             }
             content.pubseekpos(0, std::ios::in);
-            return max_iter == map.end() ? NULL : max_iter->second(io_svc, content);
+            return max_iter;
         }
 
     } // namespace demux

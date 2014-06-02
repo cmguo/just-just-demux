@@ -165,7 +165,15 @@ namespace ppbox
             : public util::tools::ClassFactory<BasicDemuxerTraits>
         {
         public:
+            static std::string probe(
+                std::basic_streambuf<boost::uint8_t> & content);
+
             static BasicDemuxer * probe(
+                boost::asio::io_service & io_svc, 
+                std::basic_streambuf<boost::uint8_t> & content);
+
+        public:
+            static creator_map_type::const_iterator priv_probe(
                 boost::asio::io_service & io_svc, 
                 std::basic_streambuf<boost::uint8_t> & content);
         };
