@@ -140,7 +140,7 @@ namespace ppbox
                         media_.source().set_non_block(true, ec1);
                         filters_.push_back(new SourceFilter(*source_));
                         open_state_ = demuxer_open;
-                        DemuxStatistic::open_beg_demux();
+                        DemuxStatistic::open_beg_stream();
                     }
                 case demuxer_open:
                     source_->pause_stream();

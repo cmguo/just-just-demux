@@ -172,7 +172,7 @@ namespace ppbox
                             source_->set_time_out(source_time_out_);
                             buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
                             open_state_ = demuxer_open;
-                            DemuxStatistic::open_beg_demux();
+                            DemuxStatistic::open_beg_stream();
                             joint_context_.media_flags(media_info_.flags);
                             buffer_->pause_stream();
                             reset(ec);

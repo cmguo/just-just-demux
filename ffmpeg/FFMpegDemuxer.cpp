@@ -169,7 +169,7 @@ namespace ppbox
                             insert_buffer(*buffer_);
                             // TODO:
                             open_state_ = demuxer_open;
-                            DemuxStatistic::open_beg_demux();
+                            DemuxStatistic::open_beg_stream();
                             buffer_->pause_stream();
                             buffer_->seek(0, ec);
                             buffer_->pause_stream();

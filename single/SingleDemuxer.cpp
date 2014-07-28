@@ -167,7 +167,7 @@ namespace ppbox
                             stream_ = new ppbox::data::SingleBuffer(*source_, 10 * 1024 * 1024, 10240);
                             // TODO:
                             open_state_ = demuxer_probe;
-                            DemuxStatistic::open_beg_demux();
+                            DemuxStatistic::open_beg_stream();
                             stream_->pause_stream();
                             stream_->seek(0, ec);
                             stream_->pause_stream();
@@ -196,14 +196,14 @@ namespace ppbox
                         if (media_info_.bitrate == 0 && media_info_.file_size != invalid_size && media_info_.duration != invalid_size) {
                             media_info_.bitrate = (boost::uint32_t)(media_info_.file_size * 8 * 1000 / media_info_.duration);
                         }
-                        open_end();
+                        DemuxStatistic::open_end();
                         response(ec);
                     } else if (ec == boost::asio::error::would_block || (ec == file_stream_error 
                         && stream_->last_error() == boost::asio::error::would_block)) {
                             stream_->async_prepare_some(0, 
                                 boost::bind(&SingleDemuxer::handle_async_open, this, _1));
                     } else {
-                        open_end();
+                        DemuxStatistic::open_end();
                         response(ec);
                     }
                     break;
