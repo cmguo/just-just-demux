@@ -1,13 +1,13 @@
 // TsDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/ts/TsDemuxer.h"
-#include "ppbox/demux/basic/ts/TsStream.h"
+#include "ppbox/demux/basic/mp2/TsDemuxer.h"
+#include "ppbox/demux/basic/mp2/TsStream.h"
 #include "ppbox/demux/basic/JointContext.h"
 #include "ppbox/demux/base/DemuxError.h"
 using namespace ppbox::demux::error;
 
-#include <ppbox/avformat/ts/TsEnum.h>
+#include <ppbox/avformat/mp2/Mp2Enum.h>
 using namespace ppbox::avformat;
 using namespace ppbox::avformat::error;
 
@@ -21,9 +21,9 @@ using namespace boost::system;
 
 FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", framework::logger::Warn)
 
-#include "ppbox/demux/basic/ts/PesParse.h"
-#include "ppbox/demux/basic/ts/TsJointData.h"
-#include "ppbox/demux/basic/ts/TsJointShareInfo.h"
+#include "ppbox/demux/basic/mp2/PesParse.h"
+#include "ppbox/demux/basic/mp2/TsJointData.h"
+#include "ppbox/demux/basic/mp2/TsJointShareInfo.h"
 
 namespace ppbox
 {

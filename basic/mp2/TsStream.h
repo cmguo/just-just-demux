@@ -1,9 +1,9 @@
 // TsStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_TS_STREAM_H_
+#define _PPBOX_DEMUX_BASIC_MP2_TS_STREAM_H_
 
-#include <ppbox/avformat/ts/TsFormat.h>
+#include <ppbox/avformat/mp2/Mp2Format.h>
 
 namespace ppbox
 {
@@ -19,7 +19,7 @@ namespace ppbox
                 : ready(false)
             {
                 index = (boost::uint32_t)-1;
-                ppbox::avformat::TsContext c = {0, 0, 0};
+                ppbox::avformat::Mp2Context c = {0, 0, 0};
                 context_ = c;
             }
 
@@ -30,7 +30,7 @@ namespace ppbox
                 , ready(false)
             {
                 index = (boost::uint32_t)-1;
-                ppbox::avformat::TsContext c = {0, 0, 0};
+                ppbox::avformat::Mp2Context c = {0, 0, 0};
                 context_ = c;
                 context = &context_;
 
@@ -87,10 +87,10 @@ namespace ppbox
             bool ready;
 
         private:
-            ppbox::avformat::TsContext context_;
+            ppbox::avformat::Mp2Context context_;
         };
 
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_TS_STREAM_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_TS_STREAM_H_

@@ -1,9 +1,9 @@
 // PesAdtsSplitter.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_PES_ADTS_SPLITTER_H_
-#define _PPBOX_DEMUX_BASIC_TS_PES_ADTS_SPLITTER_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
+#define _PPBOX_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
 
-#include "ppbox/demux/basic/ts/PesStreamBuffer.h"
+#include "ppbox/demux/basic/mp2/PesStreamBuffer.h"
 
 #include <ppbox/avcodec/aac/AacAdts.h>
 #include <ppbox/avbase/stream/BitsIStream.h>
@@ -22,7 +22,7 @@ namespace ppbox
             }
 
             bool finish(
-                ppbox::avformat::TsIArchive & ar, 
+                ppbox::avformat::Mp2IArchive & ar, 
                 std::vector<ppbox::data::DataBlock> & payloads, 
                 boost::uint32_t size)
             {
@@ -93,4 +93,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_PES_ADTS_SPLITTER_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_

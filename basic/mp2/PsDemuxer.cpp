@@ -1,13 +1,13 @@
 // PsDemuxer.cpp
 
 #include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/ts/PsDemuxer.h"
-#include "ppbox/demux/basic/ts/PsStream.h"
+#include "ppbox/demux/basic/mp2/PsDemuxer.h"
+#include "ppbox/demux/basic/mp2/PsStream.h"
 #include "ppbox/demux/basic/JointContext.h"
 #include "ppbox/demux/base/DemuxError.h"
 using namespace ppbox::demux::error;
 
-#include <ppbox/avformat/ts/TsEnum.h>
+#include <ppbox/avformat/mp2/Mp2Enum.h>
 using namespace ppbox::avformat;
 using namespace ppbox::avformat::error;
 
@@ -78,8 +78,8 @@ namespace ppbox
                             parse_.pkt.system_headers[0].streams;
                         for (size_t i = 0; i < streams.size(); ++i) {
                             PsSystemHeader::Stream const & stream = streams[i];
-                            if (stream.stream_id < TsStreamId::audio_base 
-                                && stream.stream_id >= TsStreamId::ecm_stream) {
+                            if (stream.stream_id < Mp2StreamId::audio_base 
+                                && stream.stream_id >= Mp2StreamId::ecm_stream) {
                                     continue;
                             }
                             if (stream_map_.size() <= stream.stream_id)

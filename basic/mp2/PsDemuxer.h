@@ -1,12 +1,13 @@
-// TsDemuxer.h
+// PsDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_TS_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_TS_TS_DEMUXER_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_PS_DEMUXER_H_
+#define _PPBOX_DEMUX_BASIC_MP2_PS_DEMUXER_H_
 
 #include "ppbox/demux/basic/BasicDemuxer.h"
 
-#include <ppbox/avformat/ts/PatPacket.h>
-#include <ppbox/avformat/ts/PmtPacket.h>
+#include <ppbox/avformat/mp2/PsPacket.h>
+#include <ppbox/avformat/mp2/PsmPacket.h>
+#include <ppbox/avformat/mp2/PesPacket.h>
 
 #include <framework/system/LimitNumber.h>
 
@@ -15,34 +16,67 @@ namespace ppbox
     namespace demux
     {
 
-        class TsStream;
+        class PsStream;
         class PesParse;
         class TsJointData;
 
-        struct TsParse
+        struct PsParse
         {
-            TsParse()
+            PsParse()
                 : offset(0)
-                , had_pcr(false)
             {
             }
 
             boost::uint64_t offset;
-            bool had_pcr;
-            ppbox::avformat::TsPacket pkt;
+            ppbox::avformat::PsPacket pkt;
             mutable framework::system::LimitNumber<33> time_pcr;
+            ppbox::avformat::PsmPacket psm;
+            ppbox::avformat::PesPacket pes;
+            boost::uint64_t pes_data_offset;
+            mutable framework::system::LimitNumber<33> time_pts_;
+            mutable framework::system::LimitNumber<33> time_dts_;
+
+            boost::uint64_t data_offset() const
+            {
+                return pes_data_offset;
+            }
+
+            boost::uint32_t size() const
+            {
+                return pes.payload_length();
+            }
+
+            boost::uint64_t dts() const
+            {
+                if (pes.PTS_DTS_flags == 3) {
+                    return time_dts_.transfer(pes.dts_bits.value());
+                } else if (pes.PTS_DTS_flags == 2) {
+                    return time_pts_.transfer(pes.pts_bits.value());
+                } else {
+                    return 0;
+                }
+            }
+
+            boost::uint32_t cts_delta() const
+            {
+                if (pes.PTS_DTS_flags == 3) {
+                    return (boost::uint32_t)(time_pts_.transfer(pes.pts_bits.value()) - time_dts_.transfer(pes.dts_bits.value()));
+                } else {
+                    return 0;
+                }
+            }
         };
 
-        class TsDemuxer
+        class PsDemuxer
             : public BasicDemuxer
         {
 
         public:
-            TsDemuxer(
+            PsDemuxer(
                 boost::asio::io_service & io_svc, 
                 std::basic_streambuf<boost::uint8_t> & buf);
 
-            ~TsDemuxer();
+            ~PsDemuxer();
 
         public:
             virtual boost::system::error_code open(
@@ -89,28 +123,16 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            virtual JointShareInfo * joint_share();
-
-            virtual void joint_share(
-                JointShareInfo * info);
-
-        public:
-            virtual void joint_begin(
-                JointContext & context);
-
-            virtual void joint_end();
-
-        private:
             bool is_open(
                 boost::system::error_code & ec) const;
 
         private:
             bool get_packet(
-                TsParse & parse, 
+                PsParse & parse, 
                 boost::system::error_code & ec);
 
             void skip_packet(
-                TsParse & parse);
+                PsParse & parse);
 
             bool get_pes(
                 boost::system::error_code & ec);
@@ -121,29 +143,21 @@ namespace ppbox
                 std::vector<ppbox::data::DataBlock> & payloads);
 
         private:
-            friend class TsJointShareInfo;
-            friend class TsJointData;
-            friend class TsJointData2;
-
-            ppbox::avformat::TsIArchive archive_;
+            ppbox::avformat::Mp2IArchive archive_;
 
             size_t open_step_;
             boost::uint64_t header_offset_;
-            ppbox::avformat::PatProgram pat_;
-            ppbox::avformat::PmtSection pmt_;
-            std::vector<TsStream> streams_;
-            std::vector<size_t> stream_map_; // Map pid to TsStream
+            ppbox::avformat::PsSystemHeader sh_;
+            std::vector<PsStream> streams_;
+            std::vector<size_t> stream_map_; // Map pid to PsStream
 
-            TsParse parse_;
-            TsParse parse2_;
-
-            std::vector<PesParse> pes_parses_;
-            size_t pes_index_;
+            PsParse parse_;
+            PsParse parse2_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("ts", TsDemuxer);
+        PPBOX_REGISTER_BASIC_DEMUXER("mpg", PsDemuxer);
 
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_TS_DEMUXER_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_PS_DEMUXER_H_

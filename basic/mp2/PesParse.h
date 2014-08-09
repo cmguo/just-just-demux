@@ -1,12 +1,12 @@
 // PesParse.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_TS_PES_PARSE_H_
-#define _PPBOX_DEMUX_BASIC_TS_TS_PES_PARSE_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_PES_PARSE_H_
+#define _PPBOX_DEMUX_BASIC_MP2_PES_PARSE_H_
 
-#include "ppbox/demux/basic/ts/PesStreamBuffer.h"
-#include "ppbox/demux/basic/ts/PesAdtsSplitter.h"
+#include "ppbox/demux/basic/mp2/PesStreamBuffer.h"
+#include "ppbox/demux/basic/mp2/PesAdtsSplitter.h"
 
-#include <ppbox/avformat/ts/PesPacket.h>
+#include <ppbox/avformat/mp2/PesPacket.h>
 
 #include <ppbox/avcodec/avc/AvcFrameType.h>
 
@@ -33,7 +33,7 @@ namespace ppbox
             // 第二个bool表示是否需要回退
             std::pair<bool, bool> add_packet(
                 ppbox::avformat::TsPacket const & ts_pkt, 
-                ppbox::avformat::TsIArchive & ar, 
+                ppbox::avformat::Mp2IArchive & ar, 
                 boost::system::error_code & ec)
             {
                 boost::uint64_t offset = ar.tellg();
@@ -73,7 +73,7 @@ namespace ppbox
                         left_ = 0;
                     }
                     // aac adts
-                    if (stream_type_ == TsStreamType::iso_13818_7_audio) {
+                    if (stream_type_ == Mp2StreamType::iso_13818_7_audio) {
                         if (adts_splitter_.finish(ar, payloads_, size_ - left_)) {
                             size_ = adts_splitter_.size();
                             if (adts_splitter_.save_size() >= size) {
@@ -109,7 +109,7 @@ namespace ppbox
                 payloads.swap(payloads_);
                 payloads_.clear();
                 size_ = left_ = 0;
-                if (stream_type_ == TsStreamType::iso_13818_7_audio) {
+                if (stream_type_ == Mp2StreamType::iso_13818_7_audio) {
                     adts_splitter_.clear(payloads_);
                     size_ = adts_splitter_.save_size() + left_;
                 }
@@ -142,12 +142,12 @@ namespace ppbox
 
             void get_data(
                 std::vector<boost::uint8_t> & data, 
-                ppbox::avformat::TsIArchive & ar) const
+                ppbox::avformat::Mp2IArchive & ar) const
             {
                 using namespace framework::container;
 
                 PesStreamBuffer buffer(*ar.rdbuf(), payloads_);
-                TsIArchive ar1(buffer);
+                Mp2IArchive ar1(buffer);
 
                 data.resize(size_, 0);
                 ar >> make_array(&data[0], size_);
@@ -155,11 +155,11 @@ namespace ppbox
             }
 
             bool is_sync_frame(
-                ppbox::avformat::TsIArchive & ar) const
+                ppbox::avformat::Mp2IArchive & ar) const
             {
                 PesStreamBuffer buffer(*ar.rdbuf(), payloads_);
                 std::basic_istream<boost::uint8_t> is(&buffer);
-                if (stream_type_ == TsStreamType::iso_13818_video) {
+                if (stream_type_ == Mp2StreamType::iso_13818_video) {
                     avc_frame_.handle(is);
                     return avc_frame_.is_sync_frame();
                 }
@@ -167,7 +167,7 @@ namespace ppbox
             }
 
             void save_for_joint(
-                ppbox::avformat::TsIArchive & ar)
+                ppbox::avformat::Mp2IArchive & ar)
             {
                 is_sync_frame(ar);
             }
@@ -187,4 +187,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_TS_PES_PARSE_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_PES_PARSE_H_

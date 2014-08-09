@@ -1,10 +1,10 @@
 // TsJointData.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_TS_JOINT_DATA_H_
-#define _PPBOX_DEMUX_BASIC_TS_TS_JOINT_DATA_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_TS_JOINT_DATA_H_
+#define _PPBOX_DEMUX_BASIC_MP2_TS_JOINT_DATA_H_
 
 #include "ppbox/demux/basic/JointData.h"
-#include "ppbox/demux/basic/ts/TsDemuxer.h"
+#include "ppbox/demux/basic/mp2/TsDemuxer.h"
 
 namespace ppbox
 {
@@ -46,4 +46,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_TS_JOINT_DATA_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_TS_JOINT_DATA_H_

@@ -1,10 +1,10 @@
 // PsStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_PS_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_TS_PS_STREAM_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_PS_STREAM_H_
+#define _PPBOX_DEMUX_BASIC_MP2_PS_STREAM_H_
 
-#include <ppbox/avformat/ts/TsFormat.h>
-#include <ppbox/avformat/ts/TsEnum.h>
+#include <ppbox/avformat/mp2/Mp2Format.h>
+#include <ppbox/avformat/mp2/Mp2Enum.h>
 
 namespace ppbox
 {
@@ -27,10 +27,10 @@ namespace ppbox
             {
                 using namespace ppbox::avformat;
 
-                if (info.stream_id == TsStreamId::audio_base)
-                    stream_type = TsStreamType::iso_11172_audio;
-                else if (info.stream_id == TsStreamId::video_base)
-                    stream_type = TsStreamType::iso_13818_2_video;
+                if (info.stream_id == Mp2StreamId::audio_base)
+                    stream_type = Mp2StreamType::iso_11172_audio;
+                else if (info.stream_id == Mp2StreamId::video_base)
+                    stream_type = Mp2StreamType::iso_13818_2_video;
             }
 
             ~PsStream()
@@ -41,7 +41,7 @@ namespace ppbox
             void set(
                 ppbox::avformat::PsmStream const & info)
             {
-                ppbox::avformat::TsContext c = {0, 0, 0};
+                ppbox::avformat::Mp2Context c = {0, 0, 0};
                 context_ = c;
                 context = &context_;
 
@@ -83,10 +83,10 @@ namespace ppbox
             bool ready;
 
         private:
-            ppbox::avformat::TsContext context_;
+            ppbox::avformat::Mp2Context context_;
         };
 
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_PS_STREAM_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_PS_STREAM_H_

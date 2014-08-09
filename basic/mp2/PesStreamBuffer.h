@@ -1,7 +1,7 @@
 // PesStreamBuffer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_TS_TS_PES_STREAM_BUFFER_H_
-#define _PPBOX_DEMUX_BASIC_TS_TS_PES_STREAM_BUFFER_H_
+#ifndef _PPBOX_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
+#define _PPBOX_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
 
 #include <ppbox/data/base/DataBlock.h>
 
@@ -109,4 +109,4 @@ namespace ppbox
     } // namespace demux
 } // namespace ppbox
 
-#endif // _PPBOX_DEMUX_BASIC_TS_TS_PES_STREAM_BUFFER_H_
+#endif // _PPBOX_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
