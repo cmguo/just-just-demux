@@ -77,6 +77,7 @@ namespace ppbox
                         if (adts_splitter_.finish(ar, payloads_, size_ - left_)) {
                             size_ = adts_splitter_.size();
                             if (adts_splitter_.save_size() >= size) {
+                                // 上一个 TsPacket 剩余的数据仍包含完整ADTS，新加的 TsPacket 需要回退
                                 left_ += size;
                                 adts_splitter_.pop_payload();
                                 return std::make_pair(true, true);
@@ -108,10 +109,11 @@ namespace ppbox
             {
                 payloads.swap(payloads_);
                 payloads_.clear();
-                size_ = left_ = 0;
                 if (stream_type_ == Mp2StreamType::iso_13818_7_audio) {
                     adts_splitter_.clear(payloads_);
                     size_ = adts_splitter_.save_size() + left_;
+                } else {
+                    size_ = left_ = 0;
                 }
             }
 

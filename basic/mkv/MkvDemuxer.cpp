@@ -80,13 +80,13 @@ namespace ppbox
 
                 if (archive_) {
                     file_prop_ = segment.SegmentInfo;
+                    if (file_prop_.Time_Code_Scale.empty()) {
+                        file_prop_.Time_Code_Scale = 1000000;
+                    }
                     for (size_t i = 0; i < segment.Tracks.Tracks.size(); ++i) {
                         MkvTrackEntry const & track = segment.Tracks.Tracks[i];
                         MkvStream stream(file_prop_, track);
                         stream.index = streams_.size();
-                        if (file_prop_.Time_Code_Scale.empty()) {
-                            file_prop_.Time_Code_Scale = 1000000;
-                        }
                         if (stream_map_.size() <= (size_t)track.TrackNumber.value()) {
                             stream_map_.resize((size_t)track.TrackNumber.value() + 1, size_t(-1));
                             stream_map_[(size_t)track.TrackNumber.value()] = streams_.size();
