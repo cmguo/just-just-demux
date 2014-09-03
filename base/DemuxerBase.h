@@ -23,12 +23,9 @@ namespace ppbox
 
         public:
             DemuxerBase(
-                boost::asio::io_service & io_svc)
-                : io_svc_(io_svc)
-            {
-            };
+                boost::asio::io_service & io_svc);
 
-            virtual ~DemuxerBase() {}
+            virtual ~DemuxerBase();
 
         public:
             virtual boost::system::error_code open(
