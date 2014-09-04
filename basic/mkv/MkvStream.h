@@ -80,7 +80,11 @@ namespace ppbox
                     type = StreamType::VIDE;
                     video_format.width = (boost::uint32_t)Video.PixelWidth.value();
                     video_format.height = (boost::uint32_t)Video.PixelHeight.value();
-                    video_format.frame_rate(0);
+                    if (DefaultDuration.empty()) {
+                        video_format.frame_rate(0);
+                    } else {
+                        video_format.frame_rate(1000000000, (boost::uint32_t)DefaultDuration.value());
+                    }
                     Format::finish_from_stream(*this, "mkv", 0, ec);
                 } else if (TrackType == MkvTrackType::AUDIO) {
                     type = StreamType::AUDI;
