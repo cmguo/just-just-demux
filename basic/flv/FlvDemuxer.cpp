@@ -291,22 +291,22 @@ namespace ppbox
                 LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.as<FlvDataString>().StringData);
                 return get_sample(sample, ec);
             } else if (flv_tag_.Type == FlvTagType::AUDIO) {
-                if (flv_tag_.AudioHeader.SoundFormat == FlvSoundCodec::AAC
-                    && flv_tag_.AudioHeader.AACPacketType == 0) {
-                        LOG_DEBUG("[get_sample] duplicate aac sequence header");
-                        return get_sample(sample, ec);
+                assert(flv_tag_.AudioHeader.SoundFormat == FlvSoundCodec::AAC);
+                if (flv_tag_.AudioHeader.AACPacketType == 0) {
+                    LOG_DEBUG("[get_sample] duplicate sequence header");
+                    return get_sample(sample, ec);
                 }
                 ec = bad_media_format;
             } else if (flv_tag_.Type == FlvTagType::VIDEO) {
-                if (flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H264) {
-                    if (flv_tag_.VideoHeader.AVCPacketType == 0) {
-                        LOG_DEBUG("[get_sample] duplicate aac sequence header");
-                        return get_sample(sample, ec);
-                    } else if (flv_tag_.VideoHeader.AVCPacketType == 2) {
-                        LOG_DEBUG("[get_sample] end of avc sequence");
-                        return get_sample(sample, ec);
-                    }
-                } 
+                assert(flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H264
+                    || flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H265);
+                if (flv_tag_.VideoHeader.AVCPacketType == 0) {
+                    LOG_DEBUG("[get_sample] duplicate sequence header");
+                    return get_sample(sample, ec);
+                } else if (flv_tag_.VideoHeader.AVCPacketType == 2) {
+                    LOG_DEBUG("[get_sample] end of sequence");
+                    return get_sample(sample, ec);
+                }
                 ec = bad_media_format;
             } else {
                 ec = bad_media_format;
