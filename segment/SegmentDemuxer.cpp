@@ -628,10 +628,11 @@ namespace ppbox
             if (media_info_.format.empty()) {
                 SegmentStream stream(*buffer_, false);
                 buffer_->attach_stream(stream, true);
-                media_info_.format = BasicDemuxerFactory::probe(stream);
+                media_info_.format = BasicDemuxerFactory::probe(stream, ec);
                 buffer_->detach_stream(stream);
                 if (media_info_.format.empty()) {
-                    ec = boost::asio::error::would_block;
+                    if (ec == boost::asio::error::try_again)
+                        ec = boost::asio::error::would_block;
                     return NULL;
                 }
                 LOG_INFO("[alloc_demuxer] detect media format: " << media_info_.format);

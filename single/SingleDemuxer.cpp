@@ -118,20 +118,16 @@ namespace ppbox
         bool SingleDemuxer::create_demuxer(
             boost::system::error_code & ec)
         {
-            if (!media_info_.format.empty()) {
-                BasicDemuxer * demuxer = BasicDemuxerFactory::create(media_info_.format, get_io_service(), *stream_, ec);
-                if (demuxer) {
-                    attach(*demuxer);
-                    return true;
+            if (media_info_.format.empty()) {
+                media_info_.format = BasicDemuxerFactory::probe(*stream_, ec);
+                if (media_info_.format.empty()) {
+                    return false;
                 }
-            } else {
-                BasicDemuxer * demuxer = BasicDemuxerFactory::probe(get_io_service(), *stream_);
-                if (demuxer) {
-                    attach(*demuxer);
-                    return true;
-                } else {
-                    ec = boost::asio::error::try_again;
-                }
+            }
+            BasicDemuxer * demuxer = BasicDemuxerFactory::create(media_info_.format, get_io_service(), *stream_, ec);
+            if (demuxer) {
+                attach(*demuxer);
+                return true;
             }
             return false;
         }
@@ -178,7 +174,7 @@ namespace ppbox
                         open_state_ = demuxer_open;
                         CustomDemuxer::open(ec);
                         CustomDemuxer::reset(ec);
-                    } else if (ec == boost::asio::error::try_again && stream_->out_position() < 1024 * 1024) {
+                    } else if (ec == boost::asio::error::try_again) {
                         stream_->async_prepare_some(0, 
                             boost::bind(&SingleDemuxer::handle_async_open, this, _1));
                         break;

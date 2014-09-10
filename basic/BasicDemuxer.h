@@ -56,9 +56,10 @@ namespace ppbox
             virtual boost::uint64_t get_duration(
                 boost::system::error_code & ec) const = 0;
 
-            virtual boost::uint32_t probe(
+            // overload by child class
+            static boost::uint32_t probe(
                 boost::uint8_t const * header, 
-                size_t hsize) const;
+                size_t hsize);
 
         protected:
             virtual boost::uint64_t get_cur_time(
@@ -165,17 +166,27 @@ namespace ppbox
             : public util::tools::ClassFactory<BasicDemuxerTraits>
         {
         public:
-            static std::string probe(
-                std::basic_streambuf<boost::uint8_t> & content);
-
-            static BasicDemuxer * probe(
-                boost::asio::io_service & io_svc, 
-                std::basic_streambuf<boost::uint8_t> & content);
+            typedef boost::uint32_t (*probe_func_t)(
+                boost::uint8_t const * header,
+                size_t hsize);
 
         public:
-            static creator_map_type::const_iterator priv_probe(
-                boost::asio::io_service & io_svc, 
-                std::basic_streambuf<boost::uint8_t> & content);
+            static std::string probe(
+                std::basic_streambuf<boost::uint8_t> & content,
+                boost::system::error_code & ec);
+
+        public:
+            template <typename Demuxer>
+            static void register_class(
+                std::string const & key)
+            {
+                util::tools::ClassFactory<BasicDemuxerTraits>::register_class<Demuxer>(key);
+                probe_funcs().insert(std::make_pair(key, Demuxer::probe));
+            }
+
+        private:
+            typedef std::map<std::string, probe_func_t> probe_map_t;
+            static probe_map_t & probe_funcs();
         };
 
     } // namespace demux

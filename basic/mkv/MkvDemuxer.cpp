@@ -248,7 +248,7 @@ namespace ppbox
 
         boost::uint32_t MkvDemuxer::probe(
             boost::uint8_t const * hbytes, 
-            size_t hsize) const
+            size_t hsize)
         {
             if (hsize < 4 
                 || hbytes[0] != 0x1A

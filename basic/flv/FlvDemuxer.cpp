@@ -316,7 +316,7 @@ namespace ppbox
 
         boost::uint32_t FlvDemuxer::probe(
             boost::uint8_t const * hbytes, 
-            size_t hsize) const
+            size_t hsize)
         {
             if (hsize >= 3 
                 && hbytes[0] == 'F'

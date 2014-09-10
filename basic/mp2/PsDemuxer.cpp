@@ -288,7 +288,7 @@ namespace ppbox
             boost::uint64_t beg = archive_.tellg();
             archive_.seekg(0, std::ios::end);
             assert(archive_);
-            boost::uint64_t end = archive_.tellg();
+            //boost::uint64_t end = archive_.tellg();
             //assert(end > PsPacket::PACKET_SIZE);
             //end = (end / PsPacket::PACKET_SIZE) * PsPacket::PACKET_SIZE;
 

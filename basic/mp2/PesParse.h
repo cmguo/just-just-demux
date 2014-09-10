@@ -161,11 +161,11 @@ namespace ppbox
             {
                 PesStreamBuffer buffer(*ar.rdbuf(), payloads_);
                 std::basic_istream<boost::uint8_t> is(&buffer);
-                if (stream_type_ == Mp2StreamType::iso_13818_video) {
+                if (stream_type_ == Mp2StreamType::iso_14496_10_video) {
                     avc_frame_.handle(is);
                     return avc_frame_.is_sync_frame();
                 }
-                return false;
+                return true;
             }
 
             void save_for_joint(

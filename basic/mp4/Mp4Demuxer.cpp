@@ -300,7 +300,7 @@ namespace ppbox
 
         boost::uint32_t Mp4Demuxer::probe(
             boost::uint8_t const * header, 
-            size_t hsize) const
+            size_t hsize)
         {
             if (hsize < 12)
                 return 0;
