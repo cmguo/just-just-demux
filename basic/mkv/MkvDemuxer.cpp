@@ -104,9 +104,9 @@ namespace ppbox
 
             if (open_step_ == 1) {
                 if (object_parse_.ready(archive_, ec)) {
-                    boost::uint64_t start_time = object_parse_. cluster_time_code();
+                    timestamp_offset_ms_ = object_parse_. cluster_time_code();
                     for (size_t i = 0; i < streams_.size(); ++i) {
-                        streams_[i].set_start_time(start_time);
+                        streams_[i].set_start_time(timestamp_offset_ms_);
                     }
                     object_parse_.reset(header_offset_);
                     archive_.seekg(header_offset_, std::ios_base::beg);
