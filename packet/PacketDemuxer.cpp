@@ -389,12 +389,11 @@ namespace ppbox
                 sample = peek_samples_.front();
                 peek_samples_.pop_front();
                 ec.clear();
-                if (sample.flags & sample.f_config == 0)
+                if ((sample.flags & sample.f_config) == 0)
                     return;
                 free_sample(sample, ec);
             }
             while (true) {
-                sample.data.clear();
                 filters_.last()->get_sample(sample, ec);
                 if (ec || (sample.flags & sample.f_config) == 0)
                     break;
@@ -406,7 +405,6 @@ namespace ppbox
             Sample & sample, 
             boost::system::error_code & ec)
         {
-            sample.data.clear();
             filters_.last()->get_sample(sample, ec);
             if (!ec) {
                 peek_samples_.push_back(sample);

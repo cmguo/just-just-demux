@@ -31,6 +31,7 @@ namespace ppbox
                 Sample & sample,
                 boost::system::error_code & ec)
             {
+                sample.data.clear();
                 sample.append(source_.fetch(sample.size, sample.data, ec));
                 sample.context = &source_;
                 return !ec;

@@ -105,7 +105,10 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::data::MediaBase const & media() const;
+            ppbox::data::MediaBase const & media() const
+            {
+                return media_;
+            }
 
             ppbox::data::PacketSource const & source() const
             {
