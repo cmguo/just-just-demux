@@ -625,22 +625,22 @@ namespace ppbox
                     }
                 }
             }
-            if (media_info_.format.empty()) {
+            if (media_info_.format_type.empty()) {
                 SegmentStream stream(*buffer_, false);
                 buffer_->attach_stream(stream, true);
-                media_info_.format = BasicDemuxerFactory::probe(stream, ec);
+                media_info_.format_type = BasicDemuxerFactory::probe(stream, ec);
                 buffer_->detach_stream(stream);
-                if (media_info_.format.empty()) {
+                if (media_info_.format_type.empty()) {
                     if (ec == boost::asio::error::try_again)
                         ec = boost::asio::error::would_block;
                     return NULL;
                 }
-                LOG_INFO("[alloc_demuxer] detect media format: " << media_info_.format);
+                LOG_INFO("[alloc_demuxer] detect media format: " << media_info_.format_type);
             }
             DemuxerInfo * info = new DemuxerInfo(*buffer_);
             info->segment = segment;
             buffer_->attach_stream(info->stream, is_read);
-            info->demuxer = BasicDemuxerFactory::create(media_info_.format, get_io_service(), info->stream, ec);
+            info->demuxer = BasicDemuxerFactory::create(media_info_.format_type, get_io_service(), info->stream, ec);
             if (is_read) {
                 info->demuxer->joint_begin(joint_context_);
             } else {

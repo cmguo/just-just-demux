@@ -5,7 +5,7 @@
 
 #include "ppbox/demux/base/DemuxBase.h"
 
-#include <ppbox/data/base/StreamStatistic.h>
+#include <ppbox/avbase/StreamStatistic.h>
 
 namespace ppbox
 {
@@ -13,7 +13,7 @@ namespace ppbox
     {
 
         class DemuxStatistic
-            : public ppbox::data::StreamStatistic
+            : public ppbox::avbase::StreamStatistic
         {
         protected:
             DemuxStatistic(

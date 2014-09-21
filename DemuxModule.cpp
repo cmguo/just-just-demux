@@ -153,7 +153,8 @@ namespace ppbox
             error_code & ec)
         {
             framework::string::Url playlink(play_link);
-            ppbox::common::decode_url(playlink, ec);
+            if (!ppbox::common::decode_url(playlink, ec))
+                return NULL;
             ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), playlink, ec);
             DemuxerBase * demuxer = NULL;
             if (media != NULL) {
@@ -162,7 +163,7 @@ namespace ppbox
                     if ((info.flags & info.f_extend) == info.f_segment) {
                         demuxer = new SegmentDemuxer(io_svc(), *(ppbox::data::SegmentMedia *)media);
                     } else if ((info.flags & info.f_extend) == info.f_packet) {
-                        demuxer = PacketDemuxerFactory::create(info.format, io_svc(), *(ppbox::data::PacketMedia *)media, ec);
+                        demuxer = PacketDemuxerFactory::create(info.format_type, io_svc(), *(ppbox::data::PacketMedia *)media, ec);
                     } else {
 #ifndef PPBOX_DISABLE_FFMPEG
                         demuxer = new FFMpegDemuxer(io_svc(), *media);

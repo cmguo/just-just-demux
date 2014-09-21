@@ -7,9 +7,6 @@
 
 using namespace ppbox::avformat::error;
 
-#include <ppbox/data/base/MediaInfo.h>
-#include <ppbox/data/base/StreamStatus.h>
-
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 

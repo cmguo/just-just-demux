@@ -118,13 +118,13 @@ namespace ppbox
         bool SingleDemuxer::create_demuxer(
             boost::system::error_code & ec)
         {
-            if (media_info_.format.empty()) {
-                media_info_.format = BasicDemuxerFactory::probe(*stream_, ec);
-                if (media_info_.format.empty()) {
+            if (media_info_.format_type.empty()) {
+                media_info_.format_type = BasicDemuxerFactory::probe(*stream_, ec);
+                if (media_info_.format_type.empty()) {
                     return false;
                 }
             }
-            BasicDemuxer * demuxer = BasicDemuxerFactory::create(media_info_.format, get_io_service(), *stream_, ec);
+            BasicDemuxer * demuxer = BasicDemuxerFactory::create(media_info_.format_type, get_io_service(), *stream_, ec);
             if (demuxer) {
                 attach(*demuxer);
                 return true;

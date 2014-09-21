@@ -8,19 +8,20 @@
 #include <ppbox/avbase/StreamType.h>
 #include <ppbox/avbase/StreamInfo.h>
 #include <ppbox/avbase/Sample.h>
+#include <ppbox/avbase/StreamStatus.h>
 
 namespace ppbox
 {
     namespace demux
     {
 
-        using ppbox::data::MediaInfo;
-        using ppbox::data::StreamStatus;
         using ppbox::data::DataStat;
 
         using ppbox::avbase::StreamType;
         using ppbox::avbase::StreamInfo;
         using ppbox::avbase::Sample;
+        using ppbox::avbase::StreamStatus;
+        using ppbox::avbase::MediaInfo;
 
         class DemuxerBase;
 
