@@ -152,6 +152,7 @@ namespace ppbox
 
         PPBOX_REGISTER_BASIC_DEMUXER("asf", AsfDemuxer);
         PPBOX_REGISTER_BASIC_DEMUXER("wmv", AsfDemuxer);
+        PPBOX_REGISTER_BASIC_DEMUXER("wma", AsfDemuxer);
 
     } // namespace demux
 } // namespace ppbox

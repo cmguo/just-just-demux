@@ -11,5 +11,6 @@
 #include "ppbox/demux/basic/mp2/TsDemuxer.h"
 #include "ppbox/demux/basic/mp2/PsDemuxer.h"
 #include "ppbox/demux/basic/mkv/MkvDemuxer.h"
+#include "ppbox/demux/basic/avi/AviDemuxer.h"
 
 #endif // _PPBOX_DEMUX_DEMUXER_TYPES_H_
