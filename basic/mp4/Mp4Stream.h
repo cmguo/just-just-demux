@@ -106,6 +106,7 @@ namespace ppbox
                     audio_format.sample_rate = audio.sample_rate();
                     audio_format.sample_size = audio.sample_size();
                     audio_format.channel_count = audio.channel_count();
+                    audio_format.sample_per_frame = duration * audio_format.sample_rate / sample_count_ / time_scale;
                     box = &audio.box();
                 }
 
