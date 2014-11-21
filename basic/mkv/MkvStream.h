@@ -92,6 +92,9 @@ namespace ppbox
                     audio_format.sample_rate = (boost::uint32_t)(float)Audio.SamplingFrequency.value().as_int32();
                     audio_format.sample_size = (boost::uint32_t)Audio.BitDepth.value();
                     Format::finish_from_stream(*this, "mkv", 0, ec);
+                } else if (TrackType == MkvTrackType::SUBTITLE) {
+                    type = StreamType::SUBS;
+                    Format::finish_from_stream(*this, "mkv", 0, ec);
                 }
             }
 
