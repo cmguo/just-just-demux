@@ -1,11 +1,11 @@
 // CustomDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASE_CUSTOM_DEMUXER_H_
-#define _PPBOX_DEMUX_BASE_CUSTOM_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASE_CUSTOM_DEMUXER_H_
+#define _JUST_DEMUX_BASE_CUSTOM_DEMUXER_H_
 
-#include "ppbox/demux/base/Demuxer.h"
+#include "just/demux/base/Demuxer.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -40,7 +40,7 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code get_media_info(
-                ppbox::data::MediaInfo & info,
+                just::data::MediaInfo & info,
                 boost::system::error_code & ec) const;
 
             virtual size_t get_stream_count(
@@ -96,6 +96,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASE_CUSTOM_DEMUXER_H_
+#endif // _JUST_DEMUX_BASE_CUSTOM_DEMUXER_H_

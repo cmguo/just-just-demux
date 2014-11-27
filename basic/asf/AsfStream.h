@@ -1,20 +1,20 @@
 // AsfStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_ASF_ASF_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_ASF_ASF_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_ASF_ASF_STREAM_H_
+#define _JUST_DEMUX_BASIC_ASF_ASF_STREAM_H_
 
-#include <ppbox/avformat/asf/AsfObjectType.h>
-#include <ppbox/avformat/Format.h>
+#include <just/avformat/asf/AsfObjectType.h>
+#include <just/avformat/Format.h>
 
 #include <util/archive/ArchiveBuffer.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class AsfStream
-            : public ppbox::avformat::AsfStreamPropertiesObjectData
+            : public just::avformat::AsfStreamPropertiesObjectData
             , public StreamInfo
         {
         public:
@@ -24,8 +24,8 @@ namespace ppbox
             }
 
             AsfStream(
-                ppbox::avformat::AsfStreamPropertiesObjectData const & property)
-                : ppbox::avformat::AsfStreamPropertiesObjectData(property)
+                just::avformat::AsfStreamPropertiesObjectData const & property)
+                : just::avformat::AsfStreamPropertiesObjectData(property)
             {
                 index = (size_t)-1;
                 parse();
@@ -55,7 +55,7 @@ namespace ppbox
         private:
             void parse()
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 if (TypeSpecificDataLength > 0) {
 
@@ -83,6 +83,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_ASF_ASF_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_ASF_ASF_STREAM_H_

@@ -1,13 +1,13 @@
 // Timestamp.h
 
-#ifndef _PPBOX_DEMUX_BASE_TIMESTAMP_H_
-#define _PPBOX_DEMUX_BASE_TIMESTAMP_H_
+#ifndef _JUST_DEMUX_BASE_TIMESTAMP_H_
+#define _JUST_DEMUX_BASE_TIMESTAMP_H_
 
-#include <ppbox/demux/base/DemuxBase.h>
+#include <just/demux/base/DemuxBase.h>
 
 #include <framework/system/ScaleTransform.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -173,6 +173,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASE_TIMESTAMP_H_
+#endif // _JUST_DEMUX_BASE_TIMESTAMP_H_

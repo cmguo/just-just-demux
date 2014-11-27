@@ -1,17 +1,17 @@
 // PacketDemuxer.h
 
-#ifndef _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_
-#define _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_
+#ifndef _JUST_DEMUX_PACKET_PACKET_DEMUXER_H_
+#define _JUST_DEMUX_PACKET_PACKET_DEMUXER_H_
 
-#include "ppbox/demux/base/Demuxer.h"
-#include "ppbox/demux/packet/Filter.h"
+#include "just/demux/base/Demuxer.h"
+#include "just/demux/packet/Filter.h"
 
-#include <ppbox/data/packet/PacketMedia.h>
-#include <ppbox/data/packet/PacketSource.h>
+#include <just/data/packet/PacketMedia.h>
+#include <just/data/packet/PacketSource.h>
 
 #include <util/tools/ClassFactory.h>
 
-namespace ppbox
+namespace just
 {
     namespace data
     {
@@ -37,7 +37,7 @@ namespace ppbox
         public:
             PacketDemuxer(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::PacketMedia & media);
+                just::data::PacketMedia & media);
 
             virtual ~PacketDemuxer();
 
@@ -56,7 +56,7 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code get_media_info(
-                ppbox::data::MediaInfo & info,
+                just::data::MediaInfo & info,
                 boost::system::error_code & ec) const;
 
             virtual size_t get_stream_count(
@@ -105,12 +105,12 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::data::MediaBase const & media() const
+            just::data::MediaBase const & media() const
             {
                 return media_;
             }
 
-            ppbox::data::PacketSource const & source() const
+            just::data::PacketSource const & source() const
             {
                 return *source_;
             }
@@ -143,7 +143,7 @@ namespace ppbox
         private:
             DemuxerBase * create_demuxer(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::MediaBase & media);
+                just::data::MediaBase & media);
 
             bool is_open(
                 boost::system::error_code & ec) const;
@@ -155,8 +155,8 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
         protected:
-            ppbox::data::PacketMedia & media_;
-            ppbox::data::PacketSource * source_;
+            just::data::PacketMedia & media_;
+            just::data::PacketSource * source_;
 
             framework::string::Url url_;
             MediaInfo media_info_;
@@ -179,7 +179,7 @@ namespace ppbox
             typedef std::string key_type;
             typedef PacketDemuxer * (create_proto)(
                 boost::asio::io_service &, 
-                ppbox::data::PacketMedia & media);
+                just::data::PacketMedia & media);
 
             static boost::system::error_code error_not_found();
         };
@@ -187,8 +187,8 @@ namespace ppbox
         typedef util::tools::ClassFactory<PacketDemuxerTraits> PacketDemuxerFactory;
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#define PPBOX_REGISTER_PACKET_DEMUXER(k, c) UTIL_REGISTER_CLASS(ppbox::demux::PacketDemuxerFactory, k, c)
+#define JUST_REGISTER_PACKET_DEMUXER(k, c) UTIL_REGISTER_CLASS(just::demux::PacketDemuxerFactory, k, c)
 
-#endif // _PPBOX_DEMUX_PACKET_PACKET_DEMUXER_H_
+#endif // _JUST_DEMUX_PACKET_PACKET_DEMUXER_H_

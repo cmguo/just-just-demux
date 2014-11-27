@@ -1,7 +1,7 @@
 // Demuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/Demuxer.h"
+#include "just/demux/Common.h"
+#include "just/demux/base/Demuxer.h"
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -9,9 +9,9 @@
 #include <boost/bind.hpp>
 #include <boost/thread/condition_variable.hpp>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Demuxer", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.Demuxer", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -132,7 +132,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             ec = framework::system::logic_error::not_supported;
-            return ppbox::data::invalid_size;
+            return just::data::invalid_size;
         }
 
         boost::system::error_code Demuxer::pause(
@@ -169,4 +169,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

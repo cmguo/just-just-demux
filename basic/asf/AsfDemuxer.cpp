@@ -1,12 +1,12 @@
 // AsfDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/asf/AsfDemuxer.h"
-using namespace ppbox::demux::error;
+#include "just/demux/Common.h"
+#include "just/demux/basic/asf/AsfDemuxer.h"
+using namespace just::demux::error;
 
-#include <ppbox/avformat/asf/AsfGuid.h>
-using namespace ppbox::avformat;
-using namespace ppbox::avformat::error;
+#include <just/avformat/asf/AsfGuid.h>
+using namespace just::avformat;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -14,9 +14,9 @@ using namespace ppbox::avformat::error;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.AsfDemuxer", framework::logger::Warn)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.AsfDemuxer", framework::logger::Warn)
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -210,7 +210,7 @@ namespace ppbox
             error_code & ec) const
         {
             ec = framework::system::logic_error::not_supported;
-            return ppbox::data::invalid_size;
+            return just::data::invalid_size;
         }
 
         size_t AsfDemuxer::get_stream_count(
@@ -414,4 +414,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

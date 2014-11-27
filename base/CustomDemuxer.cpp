@@ -1,9 +1,9 @@
 // CustomDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/CustomDemuxer.h"
+#include "just/demux/Common.h"
+#include "just/demux/base/CustomDemuxer.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -57,7 +57,7 @@ namespace ppbox
         }
 
         boost::system::error_code CustomDemuxer::get_media_info(
-            ppbox::data::MediaInfo & info, 
+            just::data::MediaInfo & info, 
             boost::system::error_code & ec) const
         {
             return demuxer_->get_media_info(info, ec);
@@ -124,4 +124,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

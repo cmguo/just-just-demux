@@ -1,12 +1,12 @@
 // Mp4Demuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/mp4/Mp4Demuxer.h"
-#include "ppbox/demux/basic/mp4/Mp4Stream.h"
+#include "just/demux/Common.h"
+#include "just/demux/basic/mp4/Mp4Demuxer.h"
+#include "just/demux/basic/mp4/Mp4Stream.h"
 
-#include <ppbox/avformat/mp4/box/Mp4Box.hpp>
-using namespace ppbox::avformat;
-using namespace ppbox::avformat::error;
+#include <just/avformat/mp4/box/Mp4Box.hpp>
+using namespace just::avformat;
+using namespace just::avformat::error;
 
 #include <framework/system/BytesOrder.h>
 #include <framework/timer/TimeCounter.h>
@@ -15,9 +15,9 @@ using namespace ppbox::avformat::error;
 
 #include <stdio.h>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.Mp4Demuxer", framework::logger::Warn)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.Mp4Demuxer", framework::logger::Warn)
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -353,4 +353,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

@@ -1,15 +1,15 @@
 // MkvDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MKV_MKV_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_MKV_MKV_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_MKV_MKV_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_MKV_MKV_DEMUXER_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
-#include "ppbox/demux/basic/mkv/MkvStream.h"
-#include "ppbox/demux/basic/mkv/MkvParse.h"
+#include "just/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/mkv/MkvStream.h"
+#include "just/demux/basic/mkv/MkvParse.h"
 
 #include <framework/system/LimitNumber.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -96,10 +96,10 @@ namespace ppbox
                 boost::uint32_t id);
 
         public:
-            ppbox::avformat::MkvIArchive archive_;
+            just::avformat::MkvIArchive archive_;
 
             size_t open_step_;
-            ppbox::avformat::MkvSegmentInfo file_prop_;
+            just::avformat::MkvSegmentInfo file_prop_;
             std::vector<MkvStream> streams_;
             std::vector<size_t> stream_map_; // Map index to FlvStream
             boost::uint64_t header_offset_;
@@ -112,9 +112,9 @@ namespace ppbox
             boost::uint64_t timestamp_offset_ms_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("mkv", MkvDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("mkv", MkvDemuxer);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MKV_MKV_DEMUXER_H_
+#endif // _JUST_DEMUX_BASIC_MKV_MKV_DEMUXER_H_

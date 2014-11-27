@@ -1,19 +1,19 @@
 // PsStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_PS_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_MP2_PS_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_PS_STREAM_H_
+#define _JUST_DEMUX_BASIC_MP2_PS_STREAM_H_
 
-#include <ppbox/avformat/mp2/Mp2Format.h>
-#include <ppbox/avformat/mp2/Mp2Enum.h>
+#include <just/avformat/mp2/Mp2Format.h>
+#include <just/avformat/mp2/Mp2Enum.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class PsStream
             : public StreamInfo
-            , private ppbox::avformat::PsmStream
+            , private just::avformat::PsmStream
         {
         public:
             PsStream()
@@ -22,10 +22,10 @@ namespace ppbox
             }
 
             PsStream(
-                ppbox::avformat::PsSystemHeader::Stream const & info)
+                just::avformat::PsSystemHeader::Stream const & info)
                 : ready(false)
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 if (info.stream_id == Mp2StreamId::audio_base)
                     stream_type = Mp2StreamType::iso_11172_audio;
@@ -39,13 +39,13 @@ namespace ppbox
 
         public:
             void set(
-                ppbox::avformat::PsmStream const & info)
+                just::avformat::PsmStream const & info)
             {
-                ppbox::avformat::Mp2Context c = {0, 0, 0};
+                just::avformat::Mp2Context c = {0, 0, 0};
                 context_ = c;
                 context = &context_;
 
-                (ppbox::avformat::PsmStream &)(*this) = info;
+                (just::avformat::PsmStream &)(*this) = info;
 
                 // search for registration_descriptor, descriptor_tag = 5
                 {
@@ -66,7 +66,7 @@ namespace ppbox
             void set_pes(
                 std::vector<boost::uint8_t> const & data)
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 time_scale = PsPacket::TIME_SCALE;
                 format_data = data;
@@ -83,10 +83,10 @@ namespace ppbox
             bool ready;
 
         private:
-            ppbox::avformat::Mp2Context context_;
+            just::avformat::Mp2Context context_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_PS_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_MP2_PS_STREAM_H_

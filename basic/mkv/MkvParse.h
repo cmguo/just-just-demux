@@ -1,11 +1,11 @@
 // MkvParse.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MKV_MKV_PARSE_H_
-#define _PPBOX_DEMUX_BASIC_MKV_MKV_PARSE_H_
+#ifndef _JUST_DEMUX_BASIC_MKV_MKV_PARSE_H_
+#define _JUST_DEMUX_BASIC_MKV_MKV_PARSE_H_
 
-#include <ppbox/avformat/mkv/MkvObjectType.h>
+#include <just/avformat/mkv/MkvObjectType.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -24,7 +24,7 @@ namespace ppbox
                 boost::uint64_t off);
 
             bool ready(
-                ppbox::avformat::EBML_IArchive & ar, 
+                just::avformat::EBML_IArchive & ar, 
                 boost::system::error_code & ec);
 
             void next();
@@ -68,7 +68,7 @@ namespace ppbox
 
         private:
             bool next_block(
-                ppbox::avformat::EBML_IArchive & ar, 
+                just::avformat::EBML_IArchive & ar, 
                 boost::system::error_code & ec);
 
         private:
@@ -76,10 +76,10 @@ namespace ppbox
             std::vector<size_t> & stream_map_;
             boost::uint64_t offset_;
             boost::uint64_t end_;
-            ppbox::avformat::EBML_ElementHeader header_;
-            ppbox::avformat::MkvClusterData cluster_;
-            ppbox::avformat::MkvBlockData block_;
-            ppbox::avformat::MkvBlockGroup group_;
+            just::avformat::EBML_ElementHeader header_;
+            just::avformat::MkvClusterData cluster_;
+            just::avformat::MkvBlockData block_;
+            just::avformat::MkvBlockGroup group_;
             boost::uint64_t cluster_end_;
             boost::uint64_t offset_block_;
             boost::uint32_t size_block_;
@@ -89,6 +89,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MKV_MKV_PARSE_H_
+#endif // _JUST_DEMUX_BASIC_MKV_MKV_PARSE_H_

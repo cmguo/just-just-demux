@@ -1,23 +1,23 @@
 // DemuxerModule.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/DemuxModule.h"
-#include "ppbox/demux/Version.h"
-#include "ppbox/demux/basic/DemuxerTypes.h"
-//#include "ppbox/demux/EmptyDemuxer.h"
-#include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/single/SingleDemuxer.h"
-#include "ppbox/demux/segment/SegmentDemuxer.h"
-#include "ppbox/demux/packet/PacketDemuxer.h"
-#ifndef PPBOX_DISABLE_FFMPEG
-#  include "ppbox/demux/ffmpeg/FFMpegDemuxer.h"
+#include "just/demux/Common.h"
+#include "just/demux/DemuxModule.h"
+#include "just/demux/Version.h"
+#include "just/demux/basic/DemuxerTypes.h"
+//#include "just/demux/EmptyDemuxer.h"
+#include "just/demux/base/DemuxerBase.h"
+#include "just/demux/single/SingleDemuxer.h"
+#include "just/demux/segment/SegmentDemuxer.h"
+#include "just/demux/packet/PacketDemuxer.h"
+#ifndef JUST_DISABLE_FFMPEG
+#  include "just/demux/ffmpeg/FFMpegDemuxer.h"
 #endif
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
-#include <ppbox/data/base/MediaBase.h>
+#include <just/data/base/MediaBase.h>
 
-#include <ppbox/common/UrlHelper.h>
+#include <just/common/UrlHelper.h>
 
 #include <framework/timer/Timer.h>
 #include <framework/logger/Logger.h>
@@ -26,16 +26,16 @@ using namespace ppbox::avformat::error;
 #include <boost/bind.hpp>
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxModule", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.DemuxModule", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         struct DemuxModule::DemuxInfo
         {
-            ppbox::data::MediaBase * media;
+            just::data::MediaBase * media;
             DemuxerBase * demuxer;
             framework::string::Url play_link;
             error_code ec;
@@ -67,7 +67,7 @@ namespace ppbox
 
         DemuxModule::DemuxModule(
             util::daemon::Daemon & daemon)
-            : ppbox::common::CommonModuleBase<DemuxModule>(daemon, "DemuxModule")
+            : just::common::CommonModuleBase<DemuxModule>(daemon, "DemuxModule")
         {
             buffer_size_ = 20 * 1024 * 1024;
         }
@@ -135,7 +135,7 @@ namespace ppbox
         }
 
         DemuxerBase * DemuxModule::find(
-            ppbox::data::MediaBase const & media)
+            just::data::MediaBase const & media)
         {
             boost::mutex::scoped_lock lock(mutex_);
             std::vector<DemuxInfo *>::const_iterator iter = demuxers_.begin();
@@ -153,26 +153,26 @@ namespace ppbox
             error_code & ec)
         {
             framework::string::Url playlink(play_link);
-            if (!ppbox::common::decode_url(playlink, ec))
+            if (!just::common::decode_url(playlink, ec))
                 return NULL;
-            ppbox::data::MediaBase * media = ppbox::data::MediaBase::create(io_svc(), playlink, ec);
+            just::data::MediaBase * media = just::data::MediaBase::create(io_svc(), playlink, ec);
             DemuxerBase * demuxer = NULL;
             if (media != NULL) {
-                ppbox::data::MediaBasicInfo info;
+                just::data::MediaBasicInfo info;
                 if (media->get_basic_info(info, ec)) {
                     if ((info.flags & info.f_extend) == info.f_segment) {
-                        demuxer = new SegmentDemuxer(io_svc(), *(ppbox::data::SegmentMedia *)media);
+                        demuxer = new SegmentDemuxer(io_svc(), *(just::data::SegmentMedia *)media);
                     } else if ((info.flags & info.f_extend) == info.f_packet) {
-                        demuxer = PacketDemuxerFactory::create(info.format_type, io_svc(), *(ppbox::data::PacketMedia *)media, ec);
+                        demuxer = PacketDemuxerFactory::create(info.format_type, io_svc(), *(just::data::PacketMedia *)media, ec);
                     } else {
-#ifndef PPBOX_DISABLE_FFMPEG
-                        demuxer = new FFMpegDemuxer(io_svc(), *media);
-#else
+//#ifndef JUST_DISABLE_FFMPEG
+//                        demuxer = new FFMpegDemuxer(io_svc(), *media);
+//#else
                         demuxer = new SingleDemuxer(io_svc(), *media);
-#endif
+//#endif
                     }
                     if (demuxer) {
-                        ppbox::common::apply_config(demuxer->get_config(), config, "demux.");
+                        just::common::apply_config(demuxer->get_config(), config, "demux.");
                     }
                 }
             }
@@ -210,4 +210,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

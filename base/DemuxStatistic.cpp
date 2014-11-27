@@ -1,10 +1,10 @@
 // DemuxStatistic.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/DemuxStatistic.h"
-#include "ppbox/demux/base/Demuxer.h"
+#include "just/demux/Common.h"
+#include "just/demux/base/DemuxStatistic.h"
+#include "just/demux/base/Demuxer.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {

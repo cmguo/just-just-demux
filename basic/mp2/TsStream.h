@@ -1,17 +1,17 @@
 // TsStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_TS_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_MP2_TS_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_TS_STREAM_H_
+#define _JUST_DEMUX_BASIC_MP2_TS_STREAM_H_
 
-#include <ppbox/avformat/mp2/Mp2Format.h>
+#include <just/avformat/mp2/Mp2Format.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class TsStream
-            : public ppbox::avformat::PmtStream
+            : public just::avformat::PmtStream
             , public StreamInfo
         {
         public:
@@ -19,18 +19,18 @@ namespace ppbox
                 : ready(false)
             {
                 index = (boost::uint32_t)-1;
-                ppbox::avformat::Mp2Context c = {0, 0, 0};
+                just::avformat::Mp2Context c = {0, 0, 0};
                 context_ = c;
             }
 
             TsStream(
-                ppbox::avformat::PmtSection const & sec, 
-                ppbox::avformat::PmtStream const & info)
-                : ppbox::avformat::PmtStream(info)
+                just::avformat::PmtSection const & sec, 
+                just::avformat::PmtStream const & info)
+                : just::avformat::PmtStream(info)
                 , ready(false)
             {
                 index = (boost::uint32_t)-1;
-                ppbox::avformat::Mp2Context c = {0, 0, 0};
+                just::avformat::Mp2Context c = {0, 0, 0};
                 context_ = c;
                 context = &context_;
 
@@ -70,7 +70,7 @@ namespace ppbox
             void set_pes(
                 std::vector<boost::uint8_t> const & data)
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 time_scale = TsPacket::TIME_SCALE;
                 format_data = data;
@@ -87,10 +87,10 @@ namespace ppbox
             bool ready;
 
         private:
-            ppbox::avformat::Mp2Context context_;
+            just::avformat::Mp2Context context_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_TS_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_MP2_TS_STREAM_H_

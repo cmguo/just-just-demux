@@ -1,20 +1,20 @@
 // MkvStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_MKV_MKV_STREAM_H_
+#define _JUST_DEMUX_BASIC_MKV_MKV_STREAM_H_
 
-#include "ppbox/demux/base/DemuxBase.h"
+#include "just/demux/base/DemuxBase.h"
 
-#include <ppbox/avformat/mkv/MkvObjectType.h>
-#include <ppbox/avformat/Format.h>
+#include <just/avformat/mkv/MkvObjectType.h>
+#include <just/avformat/Format.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class MkvStream
-            : public ppbox::avformat::MkvTrackEntryData
+            : public just::avformat::MkvTrackEntryData
             , public StreamInfo
         {
         public:
@@ -27,9 +27,9 @@ namespace ppbox
             }
 
             MkvStream(
-                ppbox::avformat::MkvSegmentInfo file_prop, 
-                ppbox::avformat::MkvTrackEntryData const & track)
-                : ppbox::avformat::MkvTrackEntryData(track)
+                just::avformat::MkvSegmentInfo file_prop, 
+                just::avformat::MkvTrackEntryData const & track)
+                : just::avformat::MkvTrackEntryData(track)
                 , dts_orgin_(0)
                 , dts_(0)
             {
@@ -70,7 +70,7 @@ namespace ppbox
         private:
             void parse()
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
                 boost::system::error_code ec;
 
                 time_scale = (boost::uint32_t)(1000000000 / time_code_scale_);
@@ -105,6 +105,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MKV_MKV_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_MKV_MKV_STREAM_H_

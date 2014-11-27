@@ -1,18 +1,18 @@
 // SegmentDemuxer.h
 
-#ifndef _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
-#define _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
+#ifndef _JUST_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
+#define _JUST_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxError.h"
-#include "ppbox/demux/base/Demuxer.h"
-#include "ppbox/demux/base/DemuxStatistic.h"
-#include "ppbox/demux/basic/JointContext.h"
+#include "just/demux/base/DemuxError.h"
+#include "just/demux/base/Demuxer.h"
+#include "just/demux/base/DemuxStatistic.h"
+#include "just/demux/basic/JointContext.h"
 
-#include <ppbox/data/segment/SegmentMedia.h>
+#include <just/data/segment/SegmentMedia.h>
 
 #include <framework/timer/Ticker.h>
 
-namespace ppbox
+namespace just
 {
     namespace data
     {
@@ -34,7 +34,7 @@ namespace ppbox
         public:
             SegmentDemuxer(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::SegmentMedia & media);
+                just::data::SegmentMedia & media);
 
             virtual ~SegmentDemuxer();
 
@@ -53,7 +53,7 @@ namespace ppbox
 
         public:
             virtual boost::system::error_code get_media_info(
-                ppbox::data::MediaInfo & info,
+                just::data::MediaInfo & info,
                 boost::system::error_code & ec) const;
 
             virtual size_t get_stream_count(
@@ -102,17 +102,17 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::data::SegmentMedia const & media() const
+            just::data::SegmentMedia const & media() const
             {
                 return media_;
             }
 
-            ppbox::data::SegmentSource const & source() const
+            just::data::SegmentSource const & source() const
             {
                 return *source_;
             }
 
-            ppbox::data::SegmentBuffer const & buffer() const
+            just::data::SegmentBuffer const & buffer() const
             {
                 return *buffer_;
             }
@@ -153,7 +153,7 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
             DemuxerInfo * alloc_demuxer(
-                ppbox::data::SegmentPosition const & segment, 
+                just::data::SegmentPosition const & segment, 
                 bool is_read, 
                 boost::system::error_code & ec);
 
@@ -163,10 +163,10 @@ namespace ppbox
                 boost::system::error_code & ec);
 
         private:
-            ppbox::data::SegmentMedia & media_;
+            just::data::SegmentMedia & media_;
             DemuxStrategy * strategy_;
-            ppbox::data::SegmentSource * source_;
-            ppbox::data::SegmentBuffer * buffer_;
+            just::data::SegmentSource * source_;
+            just::data::SegmentBuffer * buffer_;
 
         private:
             // config
@@ -175,7 +175,7 @@ namespace ppbox
             boost::uint32_t buffer_read_size_; // 10K
 
         private:
-            ppbox::data::MediaInfo media_info_;
+            just::data::MediaInfo media_info_;
             std::vector<StreamInfo> stream_infos_;
             JointContext joint_context_;
 
@@ -193,6 +193,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_
+#endif // _JUST_DEMUX_SEGMENT_SEGMENT_DEMUXER_H_

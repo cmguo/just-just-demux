@@ -1,18 +1,18 @@
 // PesParse.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_PES_PARSE_H_
-#define _PPBOX_DEMUX_BASIC_MP2_PES_PARSE_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_PES_PARSE_H_
+#define _JUST_DEMUX_BASIC_MP2_PES_PARSE_H_
 
-#include "ppbox/demux/basic/mp2/PesStreamBuffer.h"
-#include "ppbox/demux/basic/mp2/PesAdtsSplitter.h"
+#include "just/demux/basic/mp2/PesStreamBuffer.h"
+#include "just/demux/basic/mp2/PesAdtsSplitter.h"
 
-#include <ppbox/avformat/mp2/PesPacket.h>
+#include <just/avformat/mp2/PesPacket.h>
 
-#include <ppbox/avcodec/avc/AvcFrameType.h>
+#include <just/avcodec/avc/AvcFrameType.h>
 
 #include <utility>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -32,8 +32,8 @@ namespace ppbox
             // 第一个bool表示是否完整
             // 第二个bool表示是否需要回退
             std::pair<bool, bool> add_packet(
-                ppbox::avformat::TsPacket const & ts_pkt, 
-                ppbox::avformat::Mp2IArchive & ar, 
+                just::avformat::TsPacket const & ts_pkt, 
+                just::avformat::Mp2IArchive & ar, 
                 boost::system::error_code & ec)
             {
                 boost::uint64_t offset = ar.tellg();
@@ -58,7 +58,7 @@ namespace ppbox
                     LOG_WARN("[add_packet] payload with no pes come first");
                     return std::make_pair(false, false);
                 }
-                payloads_.push_back(ppbox::data::DataBlock(offset, size));
+                payloads_.push_back(just::data::DataBlock(offset, size));
                 if (left_ == 0) {
                     size_ += size;
                     return std::make_pair(false, false);
@@ -105,7 +105,7 @@ namespace ppbox
             }
 
             void clear(
-                std::vector<ppbox::data::DataBlock> & payloads)
+                std::vector<just::data::DataBlock> & payloads)
             {
                 payloads.swap(payloads_);
                 payloads_.clear();
@@ -144,7 +144,7 @@ namespace ppbox
 
             void get_data(
                 std::vector<boost::uint8_t> & data, 
-                ppbox::avformat::Mp2IArchive & ar) const
+                just::avformat::Mp2IArchive & ar) const
             {
                 using namespace framework::container;
 
@@ -157,7 +157,7 @@ namespace ppbox
             }
 
             bool is_sync_frame(
-                ppbox::avformat::Mp2IArchive & ar) const
+                just::avformat::Mp2IArchive & ar) const
             {
                 PesStreamBuffer buffer(*ar.rdbuf(), payloads_);
                 std::basic_istream<boost::uint8_t> is(&buffer);
@@ -169,24 +169,24 @@ namespace ppbox
             }
 
             void save_for_joint(
-                ppbox::avformat::Mp2IArchive & ar)
+                just::avformat::Mp2IArchive & ar)
             {
                 is_sync_frame(ar);
             }
 
         private:
-            ppbox::avformat::PesPacket pkt_;
-            std::vector<ppbox::data::DataBlock> payloads_;
+            just::avformat::PesPacket pkt_;
+            std::vector<just::data::DataBlock> payloads_;
             boost::uint8_t stream_type_;
             boost::uint32_t size_;
             boost::uint32_t left_;
             mutable PesAdtsSplitter adts_splitter_;
-            mutable ppbox::avcodec::AvcFrameType avc_frame_;
+            mutable just::avcodec::AvcFrameType avc_frame_;
             mutable framework::system::LimitNumber<33> time_pts_;
             mutable framework::system::LimitNumber<33> time_dts_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_PES_PARSE_H_
+#endif // _JUST_DEMUX_BASIC_MP2_PES_PARSE_H_

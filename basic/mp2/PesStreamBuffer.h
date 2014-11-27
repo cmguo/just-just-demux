@@ -1,13 +1,13 @@
 // PesStreamBuffer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
-#define _PPBOX_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
+#define _JUST_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
 
-#include <ppbox/data/base/DataBlock.h>
+#include <just/data/base/DataBlock.h>
 
 #include <streambuf>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -18,7 +18,7 @@ namespace ppbox
         public:
             PesStreamBuffer(
                 std::basic_streambuf<boost::uint8_t> & next_layer, 
-                std::vector<ppbox::data::DataBlock> const & payloads)
+                std::vector<just::data::DataBlock> const & payloads)
                 : next_layer_(next_layer)
                 , payloads_(payloads)
                 , ipayload_(0)
@@ -100,13 +100,13 @@ namespace ppbox
 
         private:
             std::basic_streambuf<boost::uint8_t> & next_layer_;
-            std::vector<ppbox::data::DataBlock> const & payloads_;
+            std::vector<just::data::DataBlock> const & payloads_;
             size_t ipayload_;
             boost::uint64_t offset_;
             boost::uint32_t left_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_
+#endif // _JUST_DEMUX_BASIC_MP2_PES_STREAM_BUFFER_H_

@@ -1,12 +1,12 @@
 // AviDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/avi/AviDemuxer.h"
-#include "ppbox/demux/basic/avi/AviStream.h"
+#include "just/demux/Common.h"
+#include "just/demux/basic/avi/AviDemuxer.h"
+#include "just/demux/basic/avi/AviStream.h"
 
-#include <ppbox/avformat/avi/box/AviBox.hpp>
-using namespace ppbox::avformat;
-using namespace ppbox::avformat::error;
+#include <just/avformat/avi/box/AviBox.hpp>
+using namespace just::avformat;
+using namespace just::avformat::error;
 
 #include <framework/system/BytesOrder.h>
 #include <framework/timer/TimeCounter.h>
@@ -15,9 +15,9 @@ using namespace ppbox::avformat::error;
 
 #include <stdio.h>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.AviDemuxer", framework::logger::Warn)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.AviDemuxer", framework::logger::Warn)
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -117,14 +117,14 @@ namespace ppbox
             }
 
             if (open_step_ == 1) {
-                std::vector<ppbox::avformat::AviStream *> & streams(file_.header_list()->streams());
-                for (std::vector<ppbox::avformat::AviStream *>::iterator iter = streams.begin(); iter != streams.end(); ++iter) {
-                    ppbox::avformat::AviStream & stream(**iter);
+                std::vector<just::avformat::AviStream *> & streams(file_.header_list()->streams());
+                for (std::vector<just::avformat::AviStream *>::iterator iter = streams.begin(); iter != streams.end(); ++iter) {
+                    just::avformat::AviStream & stream(**iter);
                     if (stream.type() != AviStreamType::auds
                         && stream.type() != AviStreamType::vids) {
                             continue;
                     }
-                    ppbox::demux::AviStream * stream2 = new ppbox::demux::AviStream(streams_.size(), stream, timestamp());
+                    just::demux::AviStream * stream2 = new just::demux::AviStream(streams_.size(), stream, timestamp());
                     if (stream2->parse(ec)) {
                         streams_.push_back(stream2);
                         stream_list_->push(stream2);
@@ -361,4 +361,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

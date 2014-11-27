@@ -1,13 +1,13 @@
 // Demuxer.h
 
-#ifndef _PPBOX_DEMUX_DEMUXER_H_
-#define _PPBOX_DEMUX_DEMUXER_H_
+#ifndef _JUST_DEMUX_DEMUXER_H_
+#define _JUST_DEMUX_DEMUXER_H_
 
-#include "ppbox/demux/base/DemuxerBase.h"
-#include "ppbox/demux/base/DemuxStatistic.h"
-#include "ppbox/demux/base/TimestampHelper.h"
+#include "just/demux/base/DemuxerBase.h"
+#include "just/demux/base/DemuxStatistic.h"
+#include "just/demux/base/TimestampHelper.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -106,6 +106,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_DEMUXER_H_
+#endif // _JUST_DEMUX_DEMUXER_H_

@@ -1,14 +1,14 @@
 // JointContext.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/JointContext.h"
-#include "ppbox/demux/basic/BasicDemuxer.h"
-#include "ppbox/demux/basic/JointData.h"
-#include "ppbox/demux/basic/JointShareInfo.h"
+#include "just/demux/Common.h"
+#include "just/demux/basic/JointContext.h"
+#include "just/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/JointData.h"
+#include "just/demux/basic/JointShareInfo.h"
 
-#include <ppbox/data/segment/SegmentInfo.h>
+#include <just/data/segment/SegmentInfo.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -97,7 +97,7 @@ namespace ppbox
 
         bool JointContext::smoth() const
         {
-            return (media_flags_ & ppbox::data::SegmentMediaFlags::f_time_smoth) != 0;
+            return (media_flags_ & just::data::SegmentMediaFlags::f_time_smoth) != 0;
         }
 
         void JointContext::share_info(
@@ -110,4 +110,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

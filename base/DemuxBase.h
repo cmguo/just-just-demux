@@ -1,31 +1,31 @@
 // DemuxBase.h
 
-#ifndef _PPBOX_DEMUX_DEMUX_BASE_H_
-#define _PPBOX_DEMUX_DEMUX_BASE_H_
+#ifndef _JUST_DEMUX_DEMUX_BASE_H_
+#define _JUST_DEMUX_DEMUX_BASE_H_
 
-#include <ppbox/data/base/DataBase.h>
+#include <just/data/base/DataBase.h>
 
-#include <ppbox/avbase/StreamType.h>
-#include <ppbox/avbase/StreamInfo.h>
-#include <ppbox/avbase/Sample.h>
-#include <ppbox/avbase/StreamStatus.h>
+#include <just/avbase/StreamType.h>
+#include <just/avbase/StreamInfo.h>
+#include <just/avbase/Sample.h>
+#include <just/avbase/StreamStatus.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
-        using ppbox::data::DataStat;
+        using just::data::DataStat;
 
-        using ppbox::avbase::StreamType;
-        using ppbox::avbase::StreamInfo;
-        using ppbox::avbase::Sample;
-        using ppbox::avbase::StreamStatus;
-        using ppbox::avbase::MediaInfo;
+        using just::avbase::StreamType;
+        using just::avbase::StreamInfo;
+        using just::avbase::Sample;
+        using just::avbase::StreamStatus;
+        using just::avbase::MediaInfo;
 
         class DemuxerBase;
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_DEMUX_BASE_H_
+#endif // _JUST_DEMUX_DEMUX_BASE_H_

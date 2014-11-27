@@ -1,9 +1,9 @@
 // SourceTreeItem.h
 
-#ifndef _PPBOX_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
-#define _PPBOX_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
+#ifndef _JUST_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
+#define _JUST_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -89,6 +89,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_
+#endif // _JUST_DEMUX_SEGMENT_SOURCE_TREE_ITEM_H_

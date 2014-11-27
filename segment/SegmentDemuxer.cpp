@@ -1,17 +1,17 @@
 // SegmentDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/segment/SegmentDemuxer.h"
-#include "ppbox/demux/segment/DemuxerInfo.h"
-#include "ppbox/demux/segment/DemuxStrategy.h"
-#include "ppbox/demux/basic/JointData.h"
+#include "just/demux/Common.h"
+#include "just/demux/segment/SegmentDemuxer.h"
+#include "just/demux/segment/DemuxerInfo.h"
+#include "just/demux/segment/DemuxStrategy.h"
+#include "just/demux/basic/JointData.h"
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
-#include <ppbox/data/base/MediaBase.h>
-#include <ppbox/data/base/Error.h>
-#include <ppbox/data/segment/SegmentSource.h>
-using namespace ppbox::data;
+#include <just/data/base/MediaBase.h>
+#include <just/data/base/Error.h>
+#include <just/data/segment/SegmentSource.h>
+using namespace just::data;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -21,16 +21,16 @@ using namespace ppbox::data;
 #include <boost/bind.hpp>
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.SegmentDemuxer", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.SegmentDemuxer", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         SegmentDemuxer::SegmentDemuxer(
             boost::asio::io_service & io_svc, 
-            ppbox::data::SegmentMedia & media)
+            just::data::SegmentMedia & media)
             : Demuxer(io_svc)
             , media_(media)
             , strategy_(NULL)
@@ -168,9 +168,9 @@ namespace ppbox
                         if (source) {
                             boost::system::error_code ec1;
                             source->set_non_block(true, ec1);
-                            source_ = new ppbox::data::SegmentSource(*strategy_, *source);
+                            source_ = new just::data::SegmentSource(*strategy_, *source);
                             source_->set_time_out(source_time_out_);
-                            buffer_ = new ppbox::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
+                            buffer_ = new just::data::SegmentBuffer(*source_, buffer_capacity_, buffer_read_size_);
                             open_state_ = demuxer_open;
                             DemuxStatistic::open_beg_stream();
                             joint_context_.media_flags(media_info_.flags);
@@ -238,7 +238,7 @@ namespace ppbox
                 SegmentPosition pos(buffer_->read_segment());
                 pos.byte_range.pos = 0; // 可能pos不是0
                 if (!strategy_->time_seek(time, base, pos, ec) 
-                    || !buffer_->seek(base, pos, pos.time_range.pos == 0 ? ppbox::data::invalid_size : pos.head_size, ec)) {
+                    || !buffer_->seek(base, pos, pos.time_range.pos == 0 ? just::data::invalid_size : pos.head_size, ec)) {
                         DemuxStatistic::last_error(ec);
                         return ec;
                 }
@@ -353,7 +353,7 @@ namespace ppbox
         }
 
         boost::system::error_code SegmentDemuxer::get_media_info(
-            ppbox::data::MediaInfo & info,
+            just::data::MediaInfo & info,
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
@@ -398,7 +398,7 @@ namespace ppbox
             StreamStatus & info, 
             boost::system::error_code & ec)
         {
-            using ppbox::data::invalid_size;
+            using just::data::invalid_size;
 
             if (is_open(ec)) {
                 info.byte_range.beg = 0;
@@ -481,7 +481,7 @@ namespace ppbox
                 } else {
                     ec = buffer_->last_error();
                     assert(ec);
-                    if (ec == ppbox::data::error::no_more_segment)
+                    if (ec == just::data::error::no_more_segment)
                         ec = end_of_stream;
                     if (!ec) {
                         ec = boost::asio::error::would_block;
@@ -672,4 +672,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

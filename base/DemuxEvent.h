@@ -1,11 +1,11 @@
 // DemuxEvent.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUX_EVENT_H_
-#define _PPBOX_DEMUX_BASE_DEMUX_EVENT_H_
+#ifndef _JUST_DEMUX_BASE_DEMUX_EVENT_H_
+#define _JUST_DEMUX_BASE_DEMUX_EVENT_H_
 
 #include <util/event/Event.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -26,6 +26,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASE_DEMUXER_STATISTIC_H_
+#endif // _JUST_DEMUX_BASE_DEMUXER_STATISTIC_H_

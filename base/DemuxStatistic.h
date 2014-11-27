@@ -1,19 +1,19 @@
 // DemuxStatistic.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
-#define _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
+#ifndef _JUST_DEMUX_BASE_DEMUX_STATISTIC_H_
+#define _JUST_DEMUX_BASE_DEMUX_STATISTIC_H_
 
-#include "ppbox/demux/base/DemuxBase.h"
+#include "just/demux/base/DemuxBase.h"
 
-#include <ppbox/avbase/StreamStatistic.h>
+#include <just/avbase/StreamStatistic.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class DemuxStatistic
-            : public ppbox::avbase::StreamStatistic
+            : public just::avbase::StreamStatistic
         {
         protected:
             DemuxStatistic(
@@ -28,6 +28,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASE_DEMUX_STATISTIC_H_
+#endif // _JUST_DEMUX_BASE_DEMUX_STATISTIC_H_

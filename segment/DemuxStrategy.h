@@ -1,13 +1,13 @@
 // DemuxStrategy.h
 
-#ifndef _PPBOX_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
-#define _PPBOX_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
+#ifndef _JUST_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
+#define _JUST_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
 
-#include "ppbox/demux/segment/SourceTreeItem.h"
+#include "just/demux/segment/SourceTreeItem.h"
 
-#include <ppbox/data/segment/SegmentStrategy.h>
+#include <just/data/segment/SegmentStrategy.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -22,7 +22,7 @@ namespace ppbox
         //  5、打开（range）、关闭、读取、取消功能（若不提供分段大小，则打开成功后获取分段大小）；
         //  6、提供插入和删除源
         class DemuxStrategy
-            : public ppbox::data::SegmentStrategy
+            : public just::data::SegmentStrategy
         {
         public:
 
@@ -35,24 +35,24 @@ namespace ppbox
 
         public:
             DemuxStrategy(
-                ppbox::data::SegmentMedia & media);
+                just::data::SegmentMedia & media);
 
             ~DemuxStrategy();
 /*
         public:
             boost::system::error_code insert(
-                ppbox::data::SegmentPosition const & pos, 
+                just::data::SegmentPosition const & pos, 
                 DemuxStrategy & child, 
                 boost::system::error_code & ec);
 */
         public:
             virtual bool next_segment(
-                ppbox::data::SegmentPosition & pos, 
+                just::data::SegmentPosition & pos, 
                 boost::system::error_code & ec);
 
             //virtual bool byte_seek(
             //    boost::uint64_t offset, 
-            //    ppbox::data::SegmentPosition & pos, 
+            //    just::data::SegmentPosition & pos, 
             //    boost::system::error_code & ec)
             //{
             //    SegmentPosition base;
@@ -61,10 +61,10 @@ namespace ppbox
 
             virtual bool time_seek(
                 boost::uint64_t offset, 
-                ppbox::data::SegmentPosition & pos, 
+                just::data::SegmentPosition & pos, 
                 boost::system::error_code & ec)
             {
-                ppbox::data::SegmentPosition base;
+                just::data::SegmentPosition base;
                 return time_seek(offset, base, pos, ec);
             }
 
@@ -80,8 +80,8 @@ namespace ppbox
 
             virtual bool time_seek(
                 boost::uint64_t time, 
-                ppbox::data::SegmentPosition & base,
-                ppbox::data::SegmentPosition & pos, 
+                just::data::SegmentPosition & base,
+                just::data::SegmentPosition & pos, 
                 boost::system::error_code & ec);
 
         private:
@@ -95,6 +95,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_SEGMENT_DEMUX_STRATEGY_H_
+#endif // _JUST_DEMUX_SEGMENT_DEMUX_STRATEGY_H_

@@ -1,16 +1,16 @@
 // FlvDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_FLV_FLV_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_FLV_FLV_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_FLV_FLV_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_FLV_FLV_DEMUXER_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/BasicDemuxer.h"
 
-#include <ppbox/avformat/flv/FlvTagType.h>
-#include <ppbox/avformat/flv/FlvMetaData.h>
+#include <just/avformat/flv/FlvTagType.h>
+#include <just/avformat/flv/FlvMetaData.h>
 
 #include <framework/system/LimitNumber.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -76,17 +76,17 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
             boost::system::error_code get_tag(
-                ppbox::avformat::FlvTag & flv_tag,
+                just::avformat::FlvTag & flv_tag,
                 boost::system::error_code & ec);
 
         private:
-            ppbox::avformat::FlvIArchive archive_;
+            just::avformat::FlvIArchive archive_;
 
-            ppbox::avformat::FlvHeader flv_header_;
-            ppbox::avformat::FlvMetaData metadata_;
+            just::avformat::FlvHeader flv_header_;
+            just::avformat::FlvMetaData metadata_;
             std::vector<FlvStream> streams_;
             std::vector<size_t> stream_map_; // Map index to FlvStream
-            ppbox::avformat::FlvTag flv_tag_;
+            just::avformat::FlvTag flv_tag_;
 
             size_t open_step_;
             boost::uint64_t header_offset_;
@@ -97,9 +97,9 @@ namespace ppbox
             framework::system::LimitNumber<32> timestamp_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("flv", FlvDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("flv", FlvDemuxer);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_FLV_FLV_DEMUXER_H_
+#endif // _JUST_DEMUX_FLV_FLV_DEMUXER_H_

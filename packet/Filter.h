@@ -1,13 +1,13 @@
 // Filter.h
 
-#ifndef _PPBOX_DEMUX_PACKET_FILTER_H_
-#define _PPBOX_DEMUX_PACKET_FILTER_H_
+#ifndef _JUST_DEMUX_PACKET_FILTER_H_
+#define _JUST_DEMUX_PACKET_FILTER_H_
 
-#include "ppbox/demux/base/DemuxBase.h"
+#include "just/demux/base/DemuxBase.h"
 
 #include <framework/container/List.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -57,6 +57,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_PACKET_FILTER_H_
+#endif // _JUST_DEMUX_PACKET_FILTER_H_

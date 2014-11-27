@@ -1,11 +1,11 @@
 // FlvDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/flv/FlvDemuxer.h"
-using namespace ppbox::demux::error;
+#include "just/demux/Common.h"
+#include "just/demux/basic/flv/FlvDemuxer.h"
+using namespace just::demux::error;
 
-using namespace ppbox::avformat;
-using namespace ppbox::avformat::error;
+using namespace just::avformat;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -15,11 +15,11 @@ using namespace framework::system;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FlvDemuxer", framework::logger::Warn)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.FlvDemuxer", framework::logger::Warn)
 
-#include "ppbox/demux/basic/flv/FlvStream.h"
+#include "just/demux/basic/flv/FlvStream.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -223,7 +223,7 @@ namespace ppbox
             error_code & ec) const
         {
             ec = framework::system::logic_error::not_supported;
-            return ppbox::data::invalid_size;
+            return just::data::invalid_size;
         }
 
         size_t FlvDemuxer::get_stream_count(

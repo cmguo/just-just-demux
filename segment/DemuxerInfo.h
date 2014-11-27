@@ -1,13 +1,13 @@
 // DemuxerInfo.h
 
-#ifndef _PPBOX_DEMUX_SEGMENT_DEMUXER_INFO_H_
-#define _PPBOX_DEMUX_SEGMENT_DEMUXER_INFO_H_
+#ifndef _JUST_DEMUX_SEGMENT_DEMUXER_INFO_H_
+#define _JUST_DEMUX_SEGMENT_DEMUXER_INFO_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
-#include "ppbox/data/segment/SegmentStream.h"
-#include "ppbox/data/segment/SegmentBuffer.h"
+#include "just/demux/basic/BasicDemuxer.h"
+#include "just/data/segment/SegmentStream.h"
+#include "just/data/segment/SegmentBuffer.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -15,12 +15,12 @@ namespace ppbox
         struct DemuxerInfo
         {
             boost::uint32_t nref;
-            ppbox::data::SegmentPosition segment;
-            ppbox::data::SegmentStream stream;
+            just::data::SegmentPosition segment;
+            just::data::SegmentStream stream;
             BasicDemuxer * demuxer;
 
             DemuxerInfo(
-                ppbox::data::SegmentBuffer & buffer)
+                just::data::SegmentBuffer & buffer)
                 : nref(1)
                 , stream(buffer, false)
                 , demuxer(NULL)
@@ -40,6 +40,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_SEGMENT_DEMUXER_INFO_H_
+#endif // _JUST_DEMUX_SEGMENT_DEMUXER_INFO_H_

@@ -1,16 +1,16 @@
 // TsDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_TS_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_MP2_TS_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_TS_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_MP2_TS_DEMUXER_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/BasicDemuxer.h"
 
-#include <ppbox/avformat/mp2/PatPacket.h>
-#include <ppbox/avformat/mp2/PmtPacket.h>
+#include <just/avformat/mp2/PatPacket.h>
+#include <just/avformat/mp2/PmtPacket.h>
 
 #include <framework/system/LimitNumber.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -29,7 +29,7 @@ namespace ppbox
 
             boost::uint64_t offset;
             bool had_pcr;
-            ppbox::avformat::TsPacket pkt;
+            just::avformat::TsPacket pkt;
             mutable framework::system::LimitNumber<33> time_pcr;
         };
 
@@ -118,19 +118,19 @@ namespace ppbox
             void free_pes();
 
             void free_pes(
-                std::vector<ppbox::data::DataBlock> & payloads);
+                std::vector<just::data::DataBlock> & payloads);
 
         private:
             friend class TsJointShareInfo;
             friend class TsJointData;
             friend class TsJointData2;
 
-            ppbox::avformat::Mp2IArchive archive_;
+            just::avformat::Mp2IArchive archive_;
 
             size_t open_step_;
             boost::uint64_t header_offset_;
-            ppbox::avformat::PatProgram pat_;
-            ppbox::avformat::PmtSection pmt_;
+            just::avformat::PatProgram pat_;
+            just::avformat::PmtSection pmt_;
             std::vector<TsStream> streams_;
             std::vector<size_t> stream_map_; // Map pid to TsStream
 
@@ -141,9 +141,9 @@ namespace ppbox
             size_t pes_index_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("ts", TsDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("ts", TsDemuxer);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_TS_DEMUXER_H_
+#endif // _JUST_DEMUX_BASIC_MP2_TS_DEMUXER_H_

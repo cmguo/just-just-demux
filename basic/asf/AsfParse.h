@@ -1,16 +1,16 @@
 // AsfParse.h
 
-#ifndef _PPBOX_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
-#define _PPBOX_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
+#ifndef _JUST_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
+#define _JUST_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
 
-#include <ppbox/avformat/asf/AsfObjectType.h>
-#include <ppbox/data/base/DataBlock.h>
+#include <just/avformat/asf/AsfObjectType.h>
+#include <just/data/base/DataBlock.h>
 
 #include <framework/system/LimitNumber.h>
 
 #include <utility>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -26,13 +26,13 @@ namespace ppbox
 
         public:
             void add_packet(
-                ppbox::avformat::AsfPacket const & pkt)
+                just::avformat::AsfPacket const & pkt)
             {
             }
 
             bool add_payload(
-                ppbox::avformat::AsfParseContext const & context, 
-                ppbox::avformat::AsfPayloadHeader const & payload)
+                just::avformat::AsfParseContext const & context, 
+                just::avformat::AsfPayloadHeader const & payload)
             {
                 if (!payloads_.empty() && payload.MediaObjNum != payload_.MediaObjNum) {
                     next_object_offset_ = 0;
@@ -49,7 +49,7 @@ namespace ppbox
                 if (payloads_.empty()) {
                     payload_ = payload;
                 }
-                payloads_.push_back(ppbox::data::DataBlock(context.payload_data_offset, payload.PayloadLength));
+                payloads_.push_back(just::data::DataBlock(context.payload_data_offset, payload.PayloadLength));
                 next_object_offset_ += payload.PayloadLength;
                 return finish();
             }
@@ -67,7 +67,7 @@ namespace ppbox
             }
 
             void clear(
-                std::vector<ppbox::data::DataBlock> & payloads)
+                std::vector<just::data::DataBlock> & payloads)
             {
                 payloads.swap(payloads_);
                 clear();
@@ -98,20 +98,20 @@ namespace ppbox
                 return is_discontinuity_;
             }
 
-            std::vector<ppbox::data::DataBlock> const &  payloads() const
+            std::vector<just::data::DataBlock> const &  payloads() const
             {
                 return payloads_;
             }
 
         private:
-            ppbox::avformat::AsfPayloadHeader payload_;
+            just::avformat::AsfPayloadHeader payload_;
             boost::uint64_t next_object_offset_; // not offset in file, just offset of this object
             bool is_discontinuity_;
-            std::vector<ppbox::data::DataBlock> payloads_;
+            std::vector<just::data::DataBlock> payloads_;
             mutable framework::system::LimitNumber<32> timestamp;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_
+#endif // _JUST_DEMUX_BASIC_ASF_ASF_PES_PARSE_H_

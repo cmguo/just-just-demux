@@ -1,30 +1,30 @@
 // SingleDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/single/SingleDemuxer.h"
-#include "ppbox/demux/basic/BasicDemuxer.h"
+#include "just/demux/Common.h"
+#include "just/demux/single/SingleDemuxer.h"
+#include "just/demux/basic/BasicDemuxer.h"
 
-#include <ppbox/data/base/MediaBase.h>
-#include <ppbox/data/single/SingleSource.h>
-#include <ppbox/data/single/SingleBuffer.h>
+#include <just/data/base/MediaBase.h>
+#include <just/data/single/SingleSource.h>
+#include <just/data/single/SingleBuffer.h>
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
 #include <boost/bind.hpp>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.SingleDemuxer", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.SingleDemuxer", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         SingleDemuxer::SingleDemuxer(
             boost::asio::io_service & io_svc, 
-            ppbox::data::MediaBase & media)
+            just::data::MediaBase & media)
             : CustomDemuxer(io_svc)
             , media_(media)
             , source_(NULL)
@@ -158,9 +158,9 @@ namespace ppbox
                         if (source) {
                             boost::system::error_code ec1;
                             source->set_non_block(true, ec1);
-                            source_ = new ppbox::data::SingleSource(url_, *source);
+                            source_ = new just::data::SingleSource(url_, *source);
                             source_->set_time_out(5000);
-                            stream_ = new ppbox::data::SingleBuffer(*source_, 10 * 1024 * 1024, 10240);
+                            stream_ = new just::data::SingleBuffer(*source_, 10 * 1024 * 1024, 10240);
                             // TODO:
                             open_state_ = demuxer_probe;
                             DemuxStatistic::open_beg_stream();
@@ -184,7 +184,7 @@ namespace ppbox
                         open_state_ = opened;
                         stream_->set_track_count(get_stream_count(ec));
                         media_info_.file_size = source_->total_size();
-                        using ppbox::data::invalid_size;
+                        using just::data::invalid_size;
                         if (media_info_.duration == invalid_size) {
                             boost::system::error_code ec;
                             CustomDemuxer::get_media_info(media_info_, ec);
@@ -267,7 +267,7 @@ namespace ppbox
         }
 
         boost::system::error_code SingleDemuxer::get_media_info(
-            ppbox::data::MediaInfo & info,
+            just::data::MediaInfo & info,
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
@@ -336,7 +336,7 @@ namespace ppbox
             }
             if (!ec) {
                 DemuxStatistic::play_on(sample.time);
-                sample.memory = stream_->fetch(sample.itrack, *(std::vector<ppbox::data::DataBlock> *)sample.context, sample.data, ec);
+                sample.memory = stream_->fetch(sample.itrack, *(std::vector<just::data::DataBlock> *)sample.context, sample.data, ec);
                 assert(!ec);
             } else {
                 DemuxStatistic::last_error(ec);
@@ -357,4 +357,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

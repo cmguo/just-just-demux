@@ -1,10 +1,10 @@
 // Name.h
 
-#ifndef _PPBOX_DEMUX_NAME_H_
-#define _PPBOX_DEMUX_NAME_H_
+#ifndef _JUST_DEMUX_NAME_H_
+#define _JUST_DEMUX_NAME_H_
 
-#include "ppbox/demux/Define.h"
+#include "just/demux/Define.h"
 
 #include <framework/system/AutoName.h>
 
-#endif // _PPBOX_DEMUX_NAME_H_
+#endif // _JUST_DEMUX_NAME_H_

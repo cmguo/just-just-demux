@@ -1,17 +1,17 @@
 // PsDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_PS_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_MP2_PS_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_PS_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_MP2_PS_DEMUXER_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/BasicDemuxer.h"
 
-#include <ppbox/avformat/mp2/PsPacket.h>
-#include <ppbox/avformat/mp2/PsmPacket.h>
-#include <ppbox/avformat/mp2/PesPacket.h>
+#include <just/avformat/mp2/PsPacket.h>
+#include <just/avformat/mp2/PsmPacket.h>
+#include <just/avformat/mp2/PesPacket.h>
 
 #include <framework/system/LimitNumber.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -28,10 +28,10 @@ namespace ppbox
             }
 
             boost::uint64_t offset;
-            ppbox::avformat::PsPacket pkt;
+            just::avformat::PsPacket pkt;
             mutable framework::system::LimitNumber<33> time_pcr;
-            ppbox::avformat::PsmPacket psm;
-            ppbox::avformat::PesPacket pes;
+            just::avformat::PsmPacket psm;
+            just::avformat::PesPacket pes;
             boost::uint64_t pes_data_offset;
             mutable framework::system::LimitNumber<33> time_pts_;
             mutable framework::system::LimitNumber<33> time_dts_;
@@ -140,14 +140,14 @@ namespace ppbox
             void free_pes();
 
             void free_pes(
-                std::vector<ppbox::data::DataBlock> & payloads);
+                std::vector<just::data::DataBlock> & payloads);
 
         private:
-            ppbox::avformat::Mp2IArchive archive_;
+            just::avformat::Mp2IArchive archive_;
 
             size_t open_step_;
             boost::uint64_t header_offset_;
-            ppbox::avformat::PsSystemHeader sh_;
+            just::avformat::PsSystemHeader sh_;
             std::vector<PsStream> streams_;
             std::vector<size_t> stream_map_; // Map pid to PsStream
 
@@ -155,9 +155,9 @@ namespace ppbox
             PsParse parse2_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("mpg", PsDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("mpg", PsDemuxer);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_PS_DEMUXER_H_
+#endif // _JUST_DEMUX_BASIC_MP2_PS_DEMUXER_H_

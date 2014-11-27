@@ -8,7 +8,7 @@ PROJECT_TYPE			:= lib
 
 ## 生成目标名称（完整文件名称要根据类型PROJECT_TYPE、配置LOCAL_CONFIG、版本PROJECT_VERSION增加前缀、后缀）
 
-PROJECT_TARGET			:= ppbox_demux
+PROJECT_TARGET			:= just_demux
 
 ## 项目版本号（只要前三位，最后一位自动生成）
 
@@ -32,7 +32,7 @@ PROJECT_HEADER_DIRECTORY	:=
 
 ## 项目预编译头文件
 
-PROJECT_COMMON_HEADERS  	:= ppbox/demux/Common.h
+PROJECT_COMMON_HEADERS  	:= just/demux/Common.h
 
 ## 内部包含目录（相对于源文件根目录ROOT_SOURCE_DIRECTORY）
 
@@ -53,8 +53,8 @@ PROJECT_LINK_FLAGS		:= $(PROJECT_LINK_FLAGS)
 ## 该项目依赖的其他项目
 
 PROJECT_DEPENDS			:= \
-				/ppbox/data \
-				/ppbox/avformat \
+				/just/data \
+				/just/avformat \
 				/thirdparty/ffmpeg-1.2 \
 				$(PROJECT_DEPENDS) \
 

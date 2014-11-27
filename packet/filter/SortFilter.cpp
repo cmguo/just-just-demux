@@ -1,19 +1,19 @@
 // SortFilter.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/packet/filter/SortFilter.h"
+#include "just/demux/Common.h"
+#include "just/demux/packet/filter/SortFilter.h"
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
-        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.SortFilter", framework::logger::Debug);
+        FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.SortFilter", framework::logger::Debug);
 
         SortFilter::SortFilter(
             boost::uint32_t stream_count)
@@ -96,4 +96,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

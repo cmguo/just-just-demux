@@ -1,17 +1,17 @@
 // AviDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_AVI_AVI_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_AVI_AVI_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_AVI_AVI_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_AVI_AVI_DEMUXER_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
-#include "ppbox/demux/basic/avi/AviStream.h"
+#include "just/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/avi/AviStream.h"
 
-#include <ppbox/avformat/avi/lib/AviFile.h>
-#include <ppbox/avformat/avi/box/AviBoxArchive.h>
+#include <just/avformat/avi/lib/AviFile.h>
+#include <just/avformat/avi/box/AviBoxArchive.h>
 
 class AP4_File;
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -20,7 +20,7 @@ namespace ppbox
             : public BasicDemuxer
         {
         public:
-#ifdef PPBOX_DEMUX_AVI_NO_TIME_ORDER
+#ifdef JUST_DEMUX_AVI_NO_TIME_ORDER
             typedef AviStream::StreamOffsetList StreamList;
 #else
             typedef AviStream::StreamTimeList StreamList;
@@ -82,23 +82,23 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         private:
-            ppbox::avformat::AviBoxIArchive archive_;
+            just::avformat::AviBoxIArchive archive_;
 
             boost::uint64_t open_step_;
             boost::uint64_t parse_offset_;
             boost::uint64_t header_offset_;
 
-            ppbox::avformat::AviFile file_;
-            std::auto_ptr<ppbox::avformat::AviBox> box_;
+            just::avformat::AviFile file_;
+            std::auto_ptr<just::avformat::AviBox> box_;
             std::vector<AviStream *> streams_;
             StreamList * stream_list_;
             //const_pointer copy_from_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("avi", AviDemuxer);
-        PPBOX_REGISTER_BASIC_DEMUXER("3gp", AviDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("avi", AviDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("3gp", AviDemuxer);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_AVI_AVI_DEMUXER_H_
+#endif // _JUST_DEMUX_BASIC_AVI_AVI_DEMUXER_H_

@@ -1,10 +1,10 @@
 // TimestampHelper.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/base/TimestampHelper.h"
-#include "ppbox/demux/base/DemuxerBase.h"
+#include "just/demux/Common.h"
+#include "just/demux/base/TimestampHelper.h"
+#include "just/demux/base/DemuxerBase.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -52,4 +52,4 @@ namespace ppbox
 
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

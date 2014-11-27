@@ -1,14 +1,14 @@
 // PesAdtsSplitter.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
-#define _PPBOX_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
+#define _JUST_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
 
-#include "ppbox/demux/basic/mp2/PesStreamBuffer.h"
+#include "just/demux/basic/mp2/PesStreamBuffer.h"
 
-#include <ppbox/avcodec/aac/AacAdts.h>
-#include <ppbox/avbase/stream/BitsIStream.h>
+#include <just/avcodec/aac/AacAdts.h>
+#include <just/avbase/stream/BitsIStream.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -22,8 +22,8 @@ namespace ppbox
             }
 
             bool finish(
-                ppbox::avformat::Mp2IArchive & ar, 
-                std::vector<ppbox::data::DataBlock> & payloads, 
+                just::avformat::Mp2IArchive & ar, 
+                std::vector<just::data::DataBlock> & payloads, 
                 boost::uint32_t size)
             {
                 if (size < size_) {
@@ -31,7 +31,7 @@ namespace ppbox
                 }
                 if (!has_header_) {
                     PesStreamBuffer buffer(*ar.rdbuf(), payloads);
-                    ppbox::avbase::BitsIStream<boost::uint8_t> ia(buffer);
+                    just::avbase::BitsIStream<boost::uint8_t> ia(buffer);
                     ia >> header_;
                     assert(ia);
                     size_ = header_.frame_length;
@@ -47,7 +47,7 @@ namespace ppbox
                     ++i;
                 }
                 if (size) {
-                    save_payloads_.push_back(ppbox::data::DataBlock(payloads[i].offset + size, payloads[i].size - size));
+                    save_payloads_.push_back(just::data::DataBlock(payloads[i].offset + size, payloads[i].size - size));
                     payloads[i].size = size;
                     ++i;
                 }
@@ -65,7 +65,7 @@ namespace ppbox
             }
 
             void clear(
-                std::vector<ppbox::data::DataBlock> & payloads)
+                std::vector<just::data::DataBlock> & payloads)
             {
                 payloads.swap(save_payloads_);
                 has_header_ = false;
@@ -83,14 +83,14 @@ namespace ppbox
             }
 
         private:
-            ppbox::avcodec::AacAdts header_;
-            std::vector<ppbox::data::DataBlock> save_payloads_;
+            just::avcodec::AacAdts header_;
+            std::vector<just::data::DataBlock> save_payloads_;
             boost::uint32_t save_size_;
             bool has_header_;
             boost::uint32_t size_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_
+#endif // _JUST_DEMUX_BASIC_MP2_PES_ADTS_SPLITTER_H_

@@ -1,11 +1,11 @@
 // FFMpegDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_PROTO_H_
-#define _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_PROTO_H_
+#ifndef _JUST_DEMUX_BASE_FFMPEG_FFMPEG_PROTO_H_
+#define _JUST_DEMUX_BASE_FFMPEG_FFMPEG_PROTO_H_
 
 struct URLProtocol;
 
-namespace ppbox
+namespace just
 {
     namespace data
     {
@@ -15,13 +15,13 @@ namespace ppbox
     namespace demux
     {
 
-        void insert_buffer(ppbox::data::SingleBuffer & b);
+        void insert_buffer(just::data::SingleBuffer & b);
 
-        void remove_buffer(ppbox::data::SingleBuffer & b);
+        void remove_buffer(just::data::SingleBuffer & b);
 
-        std::string buffer_url(ppbox::data::SingleBuffer & b);
+        std::string buffer_url(just::data::SingleBuffer & b);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_PROTO_H_
+#endif // _JUST_DEMUX_BASE_FFMPEG_FFMPEG_PROTO_H_

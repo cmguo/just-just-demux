@@ -1,16 +1,16 @@
 // PacketDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/packet/PacketDemuxer.h"
-#include "ppbox/demux/packet/filter/SourceFilter.h"
-#include "ppbox/demux/packet/filter/TimestampFilter.h"
-#include "ppbox/demux/packet/filter/SortFilter.h"
-#include "ppbox/demux/base/DemuxError.h"
+#include "just/demux/Common.h"
+#include "just/demux/packet/PacketDemuxer.h"
+#include "just/demux/packet/filter/SourceFilter.h"
+#include "just/demux/packet/filter/TimestampFilter.h"
+#include "just/demux/packet/filter/SortFilter.h"
+#include "just/demux/base/DemuxError.h"
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
-#include <ppbox/data/packet/PacketMedia.h>
-#include <ppbox/data/packet/PacketBuffer.h>
+#include <just/data/packet/PacketMedia.h>
+#include <just/data/packet/PacketBuffer.h>
 
 #include <util/stream/Source.h>
 
@@ -21,16 +21,16 @@ using namespace ppbox::avformat::error;
 #include <boost/bind.hpp>
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.PacketDemuxer", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.PacketDemuxer", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         PacketDemuxer::PacketDemuxer(
             boost::asio::io_service & io_svc, 
-            ppbox::data::PacketMedia & media)
+            just::data::PacketMedia & media)
             : Demuxer(io_svc)
             , media_(media)
             , source_(NULL)
@@ -133,9 +133,9 @@ namespace ppbox
                 case media_open:
                     media_.get_info(media_info_, ec);
                     if (!ec) {
-                        ppbox::data::PacketFeature feature;
+                        just::data::PacketFeature feature;
                         media_.get_packet_feature(feature, ec);
-                        source_ = new ppbox::data::PacketSource(feature, media_.source());
+                        source_ = new just::data::PacketSource(feature, media_.source());
                         boost::system::error_code ec1;
                         media_.source().set_non_block(true, ec1);
                         filters_.push_back(new SourceFilter(*source_));
@@ -147,7 +147,7 @@ namespace ppbox
                     if (!ec && check_open(ec)) {
                         open_state_ = open_finished;
                         filters_.push_back(new TimestampFilter(timestamp()));
-                        if (media_info_.flags & ppbox::data::PacketMediaFlags::f_non_ordered) {
+                        if (media_info_.flags & just::data::PacketMediaFlags::f_non_ordered) {
                             filters_.push_back(new SortFilter(stream_infos_.size()));
                         }
                         on_open();
@@ -185,7 +185,7 @@ namespace ppbox
         }
 
         boost::system::error_code PacketDemuxer::get_media_info(
-            ppbox::data::MediaInfo & info,
+            just::data::MediaInfo & info,
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
@@ -284,7 +284,7 @@ namespace ppbox
             StreamStatus & info, 
             boost::system::error_code & ec)
         {
-            using ppbox::data::invalid_size;
+            using just::data::invalid_size;
 
             if (is_open(ec)) {
                 info.byte_range.beg = 0;
@@ -426,4 +426,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

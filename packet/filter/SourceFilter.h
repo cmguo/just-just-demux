@@ -1,13 +1,13 @@
 // SourceFilter.h
 
-#ifndef _PPBOX_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_
-#define _PPBOX_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_
+#ifndef _JUST_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_
+#define _JUST_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_
 
-#include "ppbox/demux/packet/Filter.h"
+#include "just/demux/packet/Filter.h"
 
-#include <ppbox/data/packet/PacketSource.h>
+#include <just/data/packet/PacketSource.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -17,7 +17,7 @@ namespace ppbox
         {
         public:
             SourceFilter(
-                ppbox::data::PacketSource & source)
+                just::data::PacketSource & source)
                 : source_(source)
             {
             }
@@ -68,10 +68,10 @@ namespace ppbox
             }
 
         private:
-            ppbox::data::PacketSource & source_;
+            just::data::PacketSource & source_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_
+#endif // _JUST_DEMUX_PACKET_FILTER_SOURCE_FILTER_H_

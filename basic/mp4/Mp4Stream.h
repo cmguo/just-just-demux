@@ -1,20 +1,20 @@
 // Mp4Stream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP4_MP4_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_MP4_MP4_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_MP4_MP4_STREAM_H_
+#define _JUST_DEMUX_BASIC_MP4_MP4_STREAM_H_
 
-#include <ppbox/avformat/Format.h>
-#include <ppbox/avformat/mp4/Mp4Format.h>
-#include <ppbox/avformat/mp4/lib/Mp4Track.h>
-#include <ppbox/avformat/mp4/box/Mp4BoxEnum.h>
+#include <just/avformat/Format.h>
+#include <just/avformat/mp4/Mp4Format.h>
+#include <just/avformat/mp4/lib/Mp4Track.h>
+#include <just/avformat/mp4/box/Mp4BoxEnum.h>
 
-#include <ppbox/avcodec/CodecType.h>
-#include <ppbox/avcodec/avc/AvcFormatType.h>
-#include <ppbox/avcodec/aac/AacFormatType.h>
+#include <just/avcodec/CodecType.h>
+#include <just/avcodec/avc/AvcFormatType.h>
+#include <just/avcodec/aac/AacFormatType.h>
 
 #include <framework/container/OrderedUnidirList.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -26,7 +26,7 @@ namespace ppbox
         public:
             Mp4Stream(
                 size_t itrack, 
-                ppbox::avformat::Mp4Track & track, 
+                just::avformat::Mp4Track & track, 
                 TimestampHelper & helper)
                 : track_(track)
                 , helper_(helper)
@@ -86,7 +86,7 @@ namespace ppbox
             bool parse(
                 boost::system::error_code & ec)
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 ec.clear();
 
@@ -184,15 +184,15 @@ namespace ppbox
             > StreamTimeList;
 
         private:
-            ppbox::avformat::Mp4Track & track_;
+            just::avformat::Mp4Track & track_;
             TimestampHelper & helper_;
-            ppbox::avformat::Mp4SampleTable & samples_;
+            just::avformat::Mp4SampleTable & samples_;
             boost::uint32_t sample_count_;
             boost::uint64_t time_; // ∫¡√Î
             boost::uint64_t offset_;
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP4_MP4_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_MP4_MP4_STREAM_H_

@@ -1,12 +1,12 @@
 // TsJointShareInfo.h
 
-#ifndef _PPBOX_DEMUX_BASIC_MP2_TS_JOINT_SHARE_INFO_H_
-#define _PPBOX_DEMUX_BASIC_MP2_TS_JOINT_SHARE_INFO_H_
+#ifndef _JUST_DEMUX_BASIC_MP2_TS_JOINT_SHARE_INFO_H_
+#define _JUST_DEMUX_BASIC_MP2_TS_JOINT_SHARE_INFO_H_
 
-#include "ppbox/demux/basic/JointShareInfo.h"
-#include "ppbox/demux/basic/mp2/TsDemuxer.h"
+#include "just/demux/basic/JointShareInfo.h"
+#include "just/demux/basic/mp2/TsDemuxer.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -32,6 +32,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_MP2_TS_JOINT_SHARE_INFO_H_
+#endif // _JUST_DEMUX_BASIC_MP2_TS_JOINT_SHARE_INFO_H_

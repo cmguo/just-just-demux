@@ -1,12 +1,12 @@
 // TimestampFilter.h
 
-#ifndef _PPBOX_DEMUX_PACKET_FILTER_TIMESTAMP_FILTER_H_
-#define _PPBOX_DEMUX_PACKET_FILTER_TIMESTAMP_FILTER_H_
+#ifndef _JUST_DEMUX_PACKET_FILTER_TIMESTAMP_FILTER_H_
+#define _JUST_DEMUX_PACKET_FILTER_TIMESTAMP_FILTER_H_
 
-#include "ppbox/demux/packet/Filter.h"
-#include "ppbox/demux/base/TimestampHelper.h"
+#include "just/demux/packet/Filter.h"
+#include "just/demux/base/TimestampHelper.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -38,6 +38,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_PACKET_FILTER_TIMESTAMP_FILTER_H_
+#endif // _JUST_DEMUX_PACKET_FILTER_TIMESTAMP_FILTER_H_

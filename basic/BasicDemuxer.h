@@ -1,15 +1,15 @@
 // BasicDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_BASIC_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_BASIC_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_BASIC_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_BASIC_DEMUXER_H_
 
-#include "ppbox/demux/base/Demuxer.h"
+#include "just/demux/base/Demuxer.h"
 
-#include <ppbox/data/base/DataBlock.h>
+#include <just/data/base/DataBlock.h>
 
 #include <util/tools/ClassFactory.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -124,10 +124,10 @@ namespace ppbox
                 boost::uint64_t off, 
                 boost::uint32_t size)
             {
-                datas_.push_back(ppbox::data::DataBlock(off, size));
+                datas_.push_back(just::data::DataBlock(off, size));
             }
 
-            std::vector<ppbox::data::DataBlock> & datas()
+            std::vector<just::data::DataBlock> & datas()
             {
                 return datas_;
             }
@@ -144,7 +144,7 @@ namespace ppbox
 
         private:
             streambuffer_t & buf_;
-            std::vector<ppbox::data::DataBlock> datas_;
+            std::vector<just::data::DataBlock> datas_;
             bool is_open_;
             JointContext * joint_;
             TimestampHelper * timestamp_;
@@ -190,8 +190,8 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#define PPBOX_REGISTER_BASIC_DEMUXER(k, c) UTIL_REGISTER_CLASS(ppbox::demux::BasicDemuxerFactory, k, c)
+#define JUST_REGISTER_BASIC_DEMUXER(k, c) UTIL_REGISTER_CLASS(just::demux::BasicDemuxerFactory, k, c)
 
-#endif // _PPBOX_DEMUX_BASIC_BASIC_DEMUXER_H_
+#endif // _JUST_DEMUX_BASIC_BASIC_DEMUXER_H_

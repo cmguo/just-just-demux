@@ -1,11 +1,11 @@
 // FFMpegDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
-#define _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
+#define _JUST_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
 
-#include "ppbox/demux/base/Demuxer.h"
+#include "just/demux/base/Demuxer.h"
 
-#include <ppbox/data/base/MediaBase.h>
+#include <just/data/base/MediaBase.h>
 
 #include <util/event/Event.h>
 
@@ -15,7 +15,7 @@
 struct AVFormatContext;
 struct AVPacket;
 
-namespace ppbox
+namespace just
 {
     namespace data
     {
@@ -42,7 +42,7 @@ namespace ppbox
         public:
             FFMpegDemuxer(
                 boost::asio::io_service & io_svc, 
-                ppbox::data::MediaBase & media);
+                just::data::MediaBase & media);
 
             virtual ~FFMpegDemuxer();
 
@@ -110,12 +110,12 @@ namespace ppbox
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::data::MediaBase const & media() const
+            just::data::MediaBase const & media() const
             {
                 return media_;
             }
 
-            ppbox::data::SingleSource const & source() const
+            just::data::SingleSource const & source() const
             {
                 return *source_;
             }
@@ -134,12 +134,12 @@ namespace ppbox
                 boost::system::error_code const & ec);
 
             void free_packet(
-                ppbox::data::MemoryLock * lock);
+                just::data::MemoryLock * lock);
 
         private:
-            ppbox::data::MediaBase & media_;
-            ppbox::data::SingleSource * source_;
-            ppbox::data::SingleBuffer * buffer_;
+            just::data::MediaBase & media_;
+            just::data::SingleSource * source_;
+            just::data::SingleBuffer * buffer_;
             framework::memory::SmallFixedPool mem_lock_pool_;
             AVFormatContext * avf_ctx_;
             std::deque<AVPacket *> peek_packets_;
@@ -157,6 +157,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_
+#endif // _JUST_DEMUX_BASE_FFMPEG_FFMPEG_DEMUXER_H_

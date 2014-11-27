@@ -1,22 +1,22 @@
 // MkvDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/mkv/MkvDemuxer.h"
-#include "ppbox/avformat/mkv/ebml/EBML_Archive.h"
-#include "ppbox/avformat/mkv/MkvAlgorithm.h"
-using namespace ppbox::demux::error;
+#include "just/demux/Common.h"
+#include "just/demux/basic/mkv/MkvDemuxer.h"
+#include "just/avformat/mkv/ebml/EBML_Archive.h"
+#include "just/avformat/mkv/MkvAlgorithm.h"
+using namespace just::demux::error;
 
-using namespace ppbox::avformat;
-using namespace ppbox::avformat::error;
+using namespace just::avformat;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.MkvDemuxer", framework::logger::Warn)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.MkvDemuxer", framework::logger::Warn)
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -159,10 +159,10 @@ namespace ppbox
             error_code & ec) const
         {
             if (!is_open(ec)) {
-                return ppbox::data::invalid_size;
+                return just::data::invalid_size;
             }
             if (file_prop_.Duration.empty())
-                return ppbox::data::invalid_size;
+                return just::data::invalid_size;
             else
                 return (boost::uint64_t)file_prop_.Duration.value().as_int64() * file_prop_.Time_Code_Scale.value() / 1000000;
         }
@@ -285,4 +285,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

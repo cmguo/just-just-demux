@@ -1,22 +1,22 @@
 // AsfDemuxer.h
 
-#ifndef _PPBOX_DEMUX_BASIC_ASF_ASF_DEMUXER_H_
-#define _PPBOX_DEMUX_BASIC_ASF_ASF_DEMUXER_H_
+#ifndef _JUST_DEMUX_BASIC_ASF_ASF_DEMUXER_H_
+#define _JUST_DEMUX_BASIC_ASF_ASF_DEMUXER_H_
 
-#include "ppbox/demux/basic/BasicDemuxer.h"
-#include "ppbox/demux/basic/asf/AsfStream.h"
-#include "ppbox/demux/basic/asf/AsfParse.h"
+#include "just/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/asf/AsfStream.h"
+#include "just/demux/basic/asf/AsfParse.h"
 
-#include <ppbox/avformat/asf/AsfObjectType.h>
+#include <just/avformat/asf/AsfObjectType.h>
 #include <framework/system/LimitNumber.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class AsfDemuxer
-            : public ppbox::avformat::AsfObjectHeader
+            : public just::avformat::AsfObjectHeader
             , public BasicDemuxer
         {
 
@@ -106,9 +106,9 @@ namespace ppbox
                     context.packet = &packet;
                 }
 
-                ppbox::avformat::AsfPacket packet;
-                ppbox::avformat::AsfPayloadHeader payload;
-                ppbox::avformat::AsfParseContext context;
+                just::avformat::AsfPacket packet;
+                just::avformat::AsfPayloadHeader payload;
+                just::avformat::AsfParseContext context;
                 boost::uint64_t data_end;
                 boost::uint64_t offset_packet;
                 boost::uint64_t offset;
@@ -117,22 +117,22 @@ namespace ppbox
             };
 
             boost::system::error_code next_packet(
-                ppbox::avformat::AsfIArchive & archive, 
+                just::avformat::AsfIArchive & archive, 
                 ParseStatus & parse_status, 
                 boost::system::error_code & ec) const;
 
             boost::system::error_code next_payload(
-                ppbox::avformat::AsfIArchive & archive, 
+                just::avformat::AsfIArchive & archive, 
                 ParseStatus & parse_status, 
                 boost::system::error_code & ec) const;
 
         public:
-            ppbox::avformat::AsfIArchive archive_;
+            just::avformat::AsfIArchive archive_;
 
             size_t open_step_;
-            ppbox::avformat::AsfHeaderObject header_;
-            ppbox::avformat::AsfFilePropertiesObjectData file_prop_;
-            ppbox::avformat::AsfDataObject data_;
+            just::avformat::AsfHeaderObject header_;
+            just::avformat::AsfFilePropertiesObjectData file_prop_;
+            just::avformat::AsfDataObject data_;
             std::vector<AsfStream> streams_;
             std::vector<size_t> stream_map_; // Map index to AsfStream
             // std::vector<Sample> start_samples_; // send revert order
@@ -150,11 +150,11 @@ namespace ppbox
             boost::uint64_t timestamp_offset_ms_;
         };
 
-        PPBOX_REGISTER_BASIC_DEMUXER("asf", AsfDemuxer);
-        PPBOX_REGISTER_BASIC_DEMUXER("wmv", AsfDemuxer);
-        PPBOX_REGISTER_BASIC_DEMUXER("wma", AsfDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("asf", AsfDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("wmv", AsfDemuxer);
+        JUST_REGISTER_BASIC_DEMUXER("wma", AsfDemuxer);
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_ASF_ASF_DEMUXER_H_
+#endif // _JUST_DEMUX_BASIC_ASF_ASF_DEMUXER_H_

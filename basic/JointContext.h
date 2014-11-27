@@ -1,11 +1,11 @@
 // JointContext.h
 
-#ifndef _PPBOX_DEMUX_BASIC_JOINT_CONTEXT_H_
-#define _PPBOX_DEMUX_BASIC_JOINT_CONTEXT_H_
+#ifndef _JUST_DEMUX_BASIC_JOINT_CONTEXT_H_
+#define _JUST_DEMUX_BASIC_JOINT_CONTEXT_H_
 
-#include "ppbox/demux/base/TimestampHelper.h"
+#include "just/demux/base/TimestampHelper.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -117,6 +117,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_JOINT_CONTEXT_H_
+#endif // _JUST_DEMUX_BASIC_JOINT_CONTEXT_H_

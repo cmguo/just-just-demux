@@ -1,19 +1,19 @@
 // FFMpegDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/ffmpeg/FFMpegDemuxer.h"
-#include "ppbox/demux/ffmpeg/FFMpegProto.h"
-#include "ppbox/demux/basic/BasicDemuxer.h"
+#include "just/demux/Common.h"
+#include "just/demux/ffmpeg/FFMpegDemuxer.h"
+#include "just/demux/ffmpeg/FFMpegProto.h"
+#include "just/demux/basic/BasicDemuxer.h"
 
-#include <ppbox/data/base/MediaBase.h>
-#include <ppbox/data/base/Error.h>
-#include <ppbox/data/single/SingleSource.h>
-#include <ppbox/data/single/SingleBuffer.h>
+#include <just/data/base/MediaBase.h>
+#include <just/data/base/Error.h>
+#include <just/data/single/SingleSource.h>
+#include <just/data/single/SingleBuffer.h>
 
-#include <ppbox/avformat/Format.h>
-using namespace ppbox::avformat::error;
-#include <ppbox/avcodec/Codec.h>
-#include <ppbox/avcodec/ffmpeg/FFMpegLog.h>
+#include <just/avformat/Format.h>
+using namespace just::avformat::error;
+#include <just/avcodec/Codec.h>
+#include <just/avcodec/ffmpeg/FFMpegLog.h>
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
@@ -31,28 +31,28 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.FFMpegDemuxer", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.FFMpegDemuxer", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         FFMpegDemuxer::FFMpegDemuxer(
             boost::asio::io_service & io_svc, 
-            ppbox::data::MediaBase & media)
+            just::data::MediaBase & media)
             : Demuxer(io_svc)
             , media_(media)
             , source_(NULL)
             , buffer_(NULL)
-            , mem_lock_pool_(framework::memory::PrivateMemory(), 1024 * 1024, sizeof(ppbox::data::MemoryLock))
+            , mem_lock_pool_(framework::memory::PrivateMemory(), 1024 * 1024, sizeof(just::data::MemoryLock))
             , avf_ctx_(NULL)
             , start_time_(0)
             , seek_time_(0)
             , seek_pending_(false)
             , open_state_(closed)
         {
-            ppbox::avcodec::ffmpeg_log_setup();
+            just::avcodec::ffmpeg_log_setup();
             av_register_all();
         }
 
@@ -163,9 +163,9 @@ namespace ppbox
                         if (source) {
                             boost::system::error_code ec1;
                             source->set_non_block(true, ec1);
-                            source_ = new ppbox::data::SingleSource(url_, *source);
+                            source_ = new just::data::SingleSource(url_, *source);
                             source_->set_time_out(5000);
-                            buffer_ = new ppbox::data::SingleBuffer(*source_, 10 * 1024 * 1024, 10240);
+                            buffer_ = new just::data::SingleBuffer(*source_, 10 * 1024 * 1024, 10240);
                             insert_buffer(*buffer_);
                             // TODO:
                             open_state_ = demuxer_open;
@@ -258,7 +258,7 @@ namespace ppbox
         }
 
         boost::system::error_code FFMpegDemuxer::get_media_info(
-            ppbox::data::MediaInfo & info,
+            just::data::MediaInfo & info,
             boost::system::error_code & ec) const
         {
             if (is_open(ec)) {
@@ -373,8 +373,8 @@ namespace ppbox
             sample.size = pkt->size;
             sample.data.push_back(boost::asio::buffer(pkt->data, pkt->size));
             sample.stream_info = &streams_[sample.itrack];
-            ppbox::data::MemoryLock * lock = (ppbox::data::MemoryLock *)mem_lock_pool_.alloc();
-            new (lock) ppbox::data::MemoryLock;
+            just::data::MemoryLock * lock = (just::data::MemoryLock *)mem_lock_pool_.alloc();
+            new (lock) just::data::MemoryLock;
             lock->pointer = pkt;
             sample.memory = lock;
 
@@ -384,10 +384,10 @@ namespace ppbox
         }
 
         void FFMpegDemuxer::free_packet(
-            ppbox::data::MemoryLock * lock)
+            just::data::MemoryLock * lock)
         {
             while (!lock->join.empty()) {
-                ppbox::data::MemoryLock * l = lock->join.first();
+                just::data::MemoryLock * l = lock->join.first();
                 l->unlink();
                 free_packet(l);
             }
@@ -402,7 +402,7 @@ namespace ppbox
             boost::system::error_code & ec)
         {
             if (sample.memory) {
-                ppbox::data::MemoryLock * lock = (ppbox::data::MemoryLock *)sample.memory;
+                just::data::MemoryLock * lock = (just::data::MemoryLock *)sample.memory;
                 free_packet(lock);
                 sample.memory = NULL;
             }
@@ -464,7 +464,7 @@ namespace ppbox
                 }
                 stream1.duration = stream2->duration;
                 stream1.format_data.assign(stream2->codec->extradata, stream2->codec->extradata + stream2->codec->extradata_size);
-                if (ppbox::avformat::Format::finish_from_stream(stream1, "ffmpeg", stream2->codec->codec_id, ec)) {
+                if (just::avformat::Format::finish_from_stream(stream1, "ffmpeg", stream2->codec->codec_id, ec)) {
                     config_readys.set(i);
                 }
             }
@@ -479,7 +479,7 @@ namespace ppbox
                     }
                     if (!config_readys.test(pkt->stream_index)) {
                         streams_[pkt->stream_index].format_data.assign(pkt->data, pkt->data + pkt->size);
-                        if (ppbox::avcodec::Codec::static_finish_stream_info(streams_[pkt->stream_index], ec)) {
+                        if (just::avcodec::Codec::static_finish_stream_info(streams_[pkt->stream_index], ec)) {
                             config_readys.set(pkt->stream_index);
                         }
                     }
@@ -498,4 +498,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

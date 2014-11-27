@@ -1,20 +1,20 @@
 // BasicDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/BasicDemuxer.h"
-#include "ppbox/demux/basic/JointContext.h"
-#include "ppbox/demux/base/DemuxError.h"
+#include "just/demux/Common.h"
+#include "just/demux/basic/BasicDemuxer.h"
+#include "just/demux/basic/JointContext.h"
+#include "just/demux/base/DemuxError.h"
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
 #include <boost/bind.hpp>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.BasicDemuxer", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.BasicDemuxer", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -47,7 +47,7 @@ namespace ppbox
             StreamStatus & info, 
             boost::system::error_code & ec)
         {
-            using ppbox::data::invalid_size;
+            using just::data::invalid_size;
 
             assert(joint_ == NULL);
 
@@ -319,4 +319,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

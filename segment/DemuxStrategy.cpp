@@ -1,18 +1,18 @@
 // DemuxStrategy.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/segment/DemuxStrategy.h"
+#include "just/demux/Common.h"
+#include "just/demux/segment/DemuxStrategy.h"
 
-#include <ppbox/data/base/Error.h>
+#include <just/data/base/Error.h>
 
 #include <framework/system/LogicError.h>
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 using namespace framework::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.DemuxStrategy", framework::logger::Debug);
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.DemuxStrategy", framework::logger::Debug);
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -32,8 +32,8 @@ namespace ppbox
         }
 
         DemuxStrategy::DemuxStrategy(
-            ppbox::data::SegmentMedia & media)
-            : ppbox::data::SegmentStrategy(media)
+            just::data::SegmentMedia & media)
+            : just::data::SegmentStrategy(media)
             , tree_item_(this)
             , insert_item_(NULL)
             , insert_segment_(0)
@@ -48,7 +48,7 @@ namespace ppbox
         }
 
         bool DemuxStrategy::next_segment(
-            ppbox::data::SegmentPosition & pos, 
+            just::data::SegmentPosition & pos, 
             boost::system::error_code & ec)
         {
             if (!pos.item_context) {
@@ -82,7 +82,7 @@ namespace ppbox
                     pos.time_range.big_offset -= pos.time_range.beg;
                     return true;
                 } else {
-                    ec = ppbox::data::error::no_more_segment;
+                    ec = just::data::error::no_more_segment;
                     return false; // 没有父节点了
                 }
             } else {
@@ -113,26 +113,26 @@ namespace ppbox
             boost::uint64_t & time, 
             boost::system::error_code & ec)
         {
-            ppbox::data::MediaInfo media_info;
+            just::data::MediaInfo media_info;
             if (!media_.get_info(media_info, ec))
                 return false;
             assert(media_info.shift >= media_info.delay);
-            time = media_info.type == ppbox::data::MediaInfo::live 
+            time = media_info.type == just::data::MediaInfo::live 
                 ? media_info.current - media_info.delay : 0;
             return true;
         }
 
         bool DemuxStrategy::time_seek (
             boost::uint64_t time, 
-            ppbox::data::SegmentPosition & base,
-            ppbox::data::SegmentPosition & pos, 
+            just::data::SegmentPosition & base,
+            just::data::SegmentPosition & pos, 
             boost::system::error_code & ec)
         {
-            ppbox::data::SegmentPosition old_base = base;
+            just::data::SegmentPosition old_base = base;
 
             if (time < pos.time_range.big_beg()) {
-                base = ppbox::data::SegmentPosition();
-                pos = ppbox::data::SegmentPosition();
+                base = just::data::SegmentPosition();
+                pos = just::data::SegmentPosition();
                 if (!next_segment(pos, ec)) {
                     assert(0);
                     return false;
@@ -155,4 +155,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

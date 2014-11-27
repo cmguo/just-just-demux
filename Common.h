@@ -1,5 +1,5 @@
 // Common.h
 
-#include <ppbox/common/Common.h>
+#include <just/common/Common.h>
 
-#include "ppbox/demux/base/DemuxError.h"
+#include "just/demux/base/DemuxError.h"

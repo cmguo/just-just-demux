@@ -1,20 +1,20 @@
 // AviStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_AVI_AVI_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_AVI_AVI_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_AVI_AVI_STREAM_H_
+#define _JUST_DEMUX_BASIC_AVI_AVI_STREAM_H_
 
-#include <ppbox/avformat/Format.h>
-#include <ppbox/avformat/avi/AviFormat.h>
-#include <ppbox/avformat/avi/lib/AviStream.h>
-#include <ppbox/avformat/avi/box/AviBoxEnum.h>
+#include <just/avformat/Format.h>
+#include <just/avformat/avi/AviFormat.h>
+#include <just/avformat/avi/lib/AviStream.h>
+#include <just/avformat/avi/box/AviBoxEnum.h>
 
-#include <ppbox/avcodec/CodecType.h>
-#include <ppbox/avcodec/avc/AvcFormatType.h>
-#include <ppbox/avcodec/aac/AacFormatType.h>
+#include <just/avcodec/CodecType.h>
+#include <just/avcodec/avc/AvcFormatType.h>
+#include <just/avcodec/aac/AacFormatType.h>
 
 #include <framework/container/OrderedUnidirList.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -26,7 +26,7 @@ namespace ppbox
         public:
             AviStream(
                 size_t istream, 
-                ppbox::avformat::AviStream & stream, 
+                just::avformat::AviStream & stream, 
                 TimestampHelper & helper)
                 : stream_(stream)
                 , helper_(helper)
@@ -84,7 +84,7 @@ namespace ppbox
             bool parse(
                 boost::system::error_code & ec)
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 ec.clear();
 
@@ -158,7 +158,7 @@ namespace ppbox
             > StreamTimeList;
 
         private:
-            ppbox::avformat::AviStream & stream_;
+            just::avformat::AviStream & stream_;
             TimestampHelper & helper_;
             Sample sample_;
             boost::uint64_t time_; // ∫¡√Î
@@ -166,6 +166,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_AVI_AVI_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_AVI_AVI_STREAM_H_

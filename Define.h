@@ -1,16 +1,16 @@
 // Define.h
 
-#ifndef _PPBOX_DEMUX_DEFINE_H_
-#define _PPBOX_DEMUX_DEFINE_H_
+#ifndef _JUST_DEMUX_DEFINE_H_
+#define _JUST_DEMUX_DEFINE_H_
 
-#include "ppbox/common/VersionDefine.h" // for VERSION
+#include "just/common/VersionDefine.h" // for VERSION
 
 #define LIB
 
-#define NAME ppbox_demux
+#define NAME just_demux
 
-#define BEGIN_NAME_SPACE namespace ppbox { namespace demux {
+#define BEGIN_NAME_SPACE namespace just { namespace demux {
 
 #define END_NAME_SPACE }}
 
-#endif // _PPBOX_DEMUX_DEFINE_H_
+#endif // _JUST_DEMUX_DEFINE_H_

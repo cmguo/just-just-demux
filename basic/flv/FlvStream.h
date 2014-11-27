@@ -1,20 +1,20 @@
 // FlvStream.h
 
-#ifndef _PPBOX_DEMUX_BASIC_FLV_FLV_STREAM_H_
-#define _PPBOX_DEMUX_BASIC_FLV_FLV_STREAM_H_
+#ifndef _JUST_DEMUX_BASIC_FLV_FLV_STREAM_H_
+#define _JUST_DEMUX_BASIC_FLV_FLV_STREAM_H_
 
-#include <ppbox/avformat/flv/FlvTagType.h>
-#include <ppbox/avformat/flv/FlvEnum.h>
-#include <ppbox/avformat/flv/FlvMetaData.h>
-#include <ppbox/avformat/Format.h>
+#include <just/avformat/flv/FlvTagType.h>
+#include <just/avformat/flv/FlvEnum.h>
+#include <just/avformat/flv/FlvMetaData.h>
+#include <just/avformat/Format.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
 
         class FlvStream
-            : public ppbox::avformat::FlvTag
+            : public just::avformat::FlvTag
             , public StreamInfo
         {
         public:
@@ -27,7 +27,7 @@ namespace ppbox
             FlvStream(
                 FlvTag const & tag, 
                 std::vector<boost::uint8_t> const & codec_data,
-                ppbox::avformat::FlvMetaData const & metadata)
+                just::avformat::FlvMetaData const & metadata)
                 : FlvTag(tag)
                 , ready(false)
             {
@@ -38,9 +38,9 @@ namespace ppbox
         private:
             void parse(
                 std::vector<boost::uint8_t> const & codec_data,
-                ppbox::avformat::FlvMetaData const & metadata)
+                just::avformat::FlvMetaData const & metadata)
             {
-                using namespace ppbox::avformat;
+                using namespace just::avformat;
 
                 if (DataSize == 0) {
                     return;
@@ -87,6 +87,6 @@ namespace ppbox
         };
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
-#endif // _PPBOX_DEMUX_BASIC_FLV_FLV_STREAM_H_
+#endif // _JUST_DEMUX_BASIC_FLV_FLV_STREAM_H_

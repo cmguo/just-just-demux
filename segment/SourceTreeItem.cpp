@@ -1,9 +1,9 @@
 // SourceTreeItem.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/segment/SourceTreeItem.h"
+#include "just/demux/Common.h"
+#include "just/demux/segment/SourceTreeItem.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -53,4 +53,4 @@ namespace ppbox
 
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

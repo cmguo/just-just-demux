@@ -1,9 +1,9 @@
 // TimestampFilter.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/packet/filter/TimestampFilter.h"
+#include "just/demux/Common.h"
+#include "just/demux/packet/filter/TimestampFilter.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -57,4 +57,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just

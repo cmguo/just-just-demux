@@ -1,11 +1,11 @@
 // DemuxError.h
 
-#ifndef _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
-#define _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
+#ifndef _JUST_DEMUX_BASE_DEMUX_ERROR_H_
+#define _JUST_DEMUX_BASE_DEMUX_ERROR_H_
 
-#include <ppbox/avformat/Error.h>
+#include <just/avformat/Error.h>
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -65,7 +65,7 @@ namespace ppbox
         } // namespace demux_error
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
 
 namespace boost
 {
@@ -73,16 +73,16 @@ namespace boost
     {
 
         template<>
-        struct is_error_code_enum<ppbox::demux::error::errors>
+        struct is_error_code_enum<just::demux::error::errors>
         {
             BOOST_STATIC_CONSTANT(bool, value = true);
         };
 
 #ifdef BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
-        using ppbox::demux::error::make_error_code;
+        using just::demux::error::make_error_code;
 #endif
 
     }
 }
 
-#endif // _PPBOX_DEMUX_BASE_DEMUX_ERROR_H_
+#endif // _JUST_DEMUX_BASE_DEMUX_ERROR_H_

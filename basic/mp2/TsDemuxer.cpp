@@ -1,15 +1,15 @@
 // TsDemuxer.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/mp2/TsDemuxer.h"
-#include "ppbox/demux/basic/mp2/TsStream.h"
-#include "ppbox/demux/basic/JointContext.h"
-#include "ppbox/demux/base/DemuxError.h"
-using namespace ppbox::demux::error;
+#include "just/demux/Common.h"
+#include "just/demux/basic/mp2/TsDemuxer.h"
+#include "just/demux/basic/mp2/TsStream.h"
+#include "just/demux/basic/JointContext.h"
+#include "just/demux/base/DemuxError.h"
+using namespace just::demux::error;
 
-#include <ppbox/avformat/mp2/Mp2Enum.h>
-using namespace ppbox::avformat;
-using namespace ppbox::avformat::error;
+#include <just/avformat/mp2/Mp2Enum.h>
+using namespace just::avformat;
+using namespace just::avformat::error;
 
 #include <util/serialization/Array.h>
 
@@ -19,13 +19,13 @@ using namespace ppbox::avformat::error;
 
 using namespace boost::system;
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.TsDemuxer", framework::logger::Warn)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.TsDemuxer", framework::logger::Warn)
 
-#include "ppbox/demux/basic/mp2/PesParse.h"
-#include "ppbox/demux/basic/mp2/TsJointData.h"
-#include "ppbox/demux/basic/mp2/TsJointShareInfo.h"
+#include "just/demux/basic/mp2/PesParse.h"
+#include "just/demux/basic/mp2/TsJointData.h"
+#include "just/demux/basic/mp2/TsJointShareInfo.h"
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -212,7 +212,7 @@ namespace ppbox
             }
             for (size_t i = 0; i < pes_parses_.size(); ++i) {
                 streams_[i].clear();
-                std::vector<ppbox::data::DataBlock> payloads;
+                std::vector<just::data::DataBlock> payloads;
                 pes_parses_[i].clear(payloads);
             }
             streams_.clear();
@@ -238,7 +238,7 @@ namespace ppbox
                 parse_.time_pcr = streams_[0].start_time;
                 parse2_ = parse_;
                 for (size_t i = 0; i < pes_parses_.size(); ++i) {
-                    std::vector<ppbox::data::DataBlock> payloads;
+                    std::vector<just::data::DataBlock> payloads;
                     pes_parses_[i].clear(payloads);
                 }
                 dts.assign(dts.size(), streams_[0].start_time); // TO BE FIXED
@@ -252,7 +252,7 @@ namespace ppbox
             error_code & ec) const
         {
             ec = framework::system::logic_error::not_supported;
-            return ppbox::data::invalid_size;
+            return just::data::invalid_size;
         }
 
         size_t TsDemuxer::get_stream_count(
@@ -481,12 +481,12 @@ namespace ppbox
 
         void TsDemuxer::free_pes()
         {
-            std::vector<ppbox::data::DataBlock> payloads;
+            std::vector<just::data::DataBlock> payloads;
             free_pes(payloads);
         }
 
         void TsDemuxer::free_pes(
-            std::vector<ppbox::data::DataBlock> & payloads)
+            std::vector<just::data::DataBlock> & payloads)
         {
             PesParse & parse = pes_parses_[pes_index_];
             pes_index_ = size_t(-1);

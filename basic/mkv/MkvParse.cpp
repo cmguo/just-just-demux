@@ -1,18 +1,18 @@
 // MkvParse.cpp
 
-#include "ppbox/demux/Common.h"
-#include "ppbox/demux/basic/mkv/MkvParse.h"
-#include "ppbox/demux/basic/mkv/MkvStream.h"
-using namespace ppbox::demux::error;
+#include "just/demux/Common.h"
+#include "just/demux/basic/mkv/MkvParse.h"
+#include "just/demux/basic/mkv/MkvStream.h"
+using namespace just::demux::error;
 
-using namespace ppbox::avformat::error;
+using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
-FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("ppbox.demux.MkvParse", framework::logger::Debug)
+FRAMEWORK_LOGGER_DECLARE_MODULE_LEVEL("just.demux.MkvParse", framework::logger::Debug)
 
-namespace ppbox
+namespace just
 {
     namespace demux
     {
@@ -49,7 +49,7 @@ namespace ppbox
         }
 
         bool MkvParse::ready(
-            ppbox::avformat::EBML_IArchive & ar, 
+            just::avformat::EBML_IArchive & ar, 
             boost::system::error_code & ec)
         {
             if (frame_ >= block_.sizes.size()) {
@@ -77,10 +77,10 @@ namespace ppbox
         }
 
         bool MkvParse::next_block(
-            ppbox::avformat::EBML_IArchive & ar, 
+            just::avformat::EBML_IArchive & ar, 
             boost::system::error_code & ec)
         {
-            using namespace ppbox::avformat;
+            using namespace just::avformat;
 
             assert(ar);
             ar.seekg(offset_, std::ios::beg);
@@ -213,4 +213,4 @@ namespace ppbox
         }
 
     } // namespace demux
-} // namespace ppbox
+} // namespace just
