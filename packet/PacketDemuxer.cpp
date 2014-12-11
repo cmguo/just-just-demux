@@ -146,7 +146,9 @@ namespace just
                     source_->pause_stream();
                     if (!ec && check_open(ec)) {
                         open_state_ = open_finished;
-                        filters_.push_back(new TimestampFilter(timestamp()));
+                        if (!media_info_.flags & just::data::PacketMediaFlags::f_has_time) {
+                            filters_.push_back(new TimestampFilter(timestamp()));
+                        }
                         if (media_info_.flags & just::data::PacketMediaFlags::f_non_ordered) {
                             filters_.push_back(new SortFilter(stream_infos_.size()));
                         }
