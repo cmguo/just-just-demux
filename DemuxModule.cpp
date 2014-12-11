@@ -19,7 +19,7 @@ using namespace just::avformat::error;
 
 #include <just/common/UrlHelper.h>
 
-#include <framework/timer/Timer.h>
+#include <framework/processs/Environments.h>
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
 
@@ -165,11 +165,12 @@ namespace just
                     } else if ((info.flags & info.f_extend) == info.f_packet) {
                         demuxer = PacketDemuxerFactory::create(info.format_type, io_svc(), *(just::data::PacketMedia *)media, ec);
                     } else {
-//#ifndef JUST_DISABLE_FFMPEG
-//                        demuxer = new FFMpegDemuxer(io_svc(), *media);
-//#else
-                        demuxer = new SingleDemuxer(io_svc(), *media);
-//#endif
+#ifndef JUST_DISABLE_FFMPEG
+                        if (get_environment("JUST_DISABLE_FFMPEG", "no") != "yes")
+                            demuxer = new FFMpegDemuxer(io_svc(), *media);
+#endif
+                        if (demuxer == NULL)
+                            demuxer = new SingleDemuxer(io_svc(), *media);
                     }
                     if (demuxer) {
                         just::common::apply_config(demuxer->get_config(), config, "demux.");

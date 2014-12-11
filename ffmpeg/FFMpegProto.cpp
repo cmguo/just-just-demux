@@ -68,7 +68,7 @@ namespace just
             const char *url, 
             int flags)
         {
-            intptr_t ptr = framework::string::parse<intptr_t>(url + 6);
+            intptr_t ptr = framework::string::parse<intptr_t>(url + 5);
             h->priv_data = buffers().find(ptr);
             if (h->priv_data) {
                 return 0;
