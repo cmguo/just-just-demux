@@ -15,6 +15,7 @@ using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
+#include <framework/logger/DataRecord.h>
 #include <framework/system/LogicError.h>
 
 using namespace boost::system;
@@ -150,6 +151,11 @@ namespace just
                     parse.get_data(data, archive_);
                     free_pes();
                     stream.set_pes(data);
+                    if (!stream.ready) {
+                        LOG_WARN("[is_open] Stream " << (int)stream.stream_type << ": PES has no valid config data!");
+                        LOG_DATA(framework::logger::Warn, ("PES data", &data[0], data.size()));
+                        continue;
+                    }
                     bool ready = true;
                     for (size_t i = 0; i < streams_.size(); ++i) {
                         if (!streams_[i].ready) {
@@ -172,6 +178,13 @@ namespace just
                     skip_packet(parse_);
                 }
                 if (parse_.had_pcr) {
+                    for (size_t i = 0; i < streams_.size(); ++i) {
+                        PesParse & parse = pes_parses_[i];
+                        if (parse.dts() < parse_.time_pcr.current()) {
+                            LOG_DEBUG("[is_open] adjust pcr: " << parse_.time_pcr.current() << " -> " << parse.dts());
+                            parse_.time_pcr = parse.dts();
+                        }
+                    }
                     parse2_ = parse_;
                     parse_.offset = header_offset_;
                     for (size_t i = 0; i < streams_.size(); ++i) {
