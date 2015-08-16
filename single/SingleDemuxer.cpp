@@ -300,7 +300,7 @@ namespace just
             boost::system::error_code & ec) const
         {
             if (source_) {
-                stat = *source_;
+                stat = (DataStat &)*source_;
                 ec.clear();
             } else {
                 ec = error::not_open;
