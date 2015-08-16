@@ -80,19 +80,20 @@ namespace just
             }
         }
 
-        error_code DemuxModule::startup()
+        bool DemuxModule::startup(
+            error_code & ec)
         {
-            error_code ec;
-            return ec;
+            return true;
         }
 
-        void DemuxModule::shutdown()
+        bool DemuxModule::shutdown(
+            error_code & ec)
         {
             boost::mutex::scoped_lock lock(mutex_);
-            error_code ec;
             for (size_t i = demuxers_.size() - 1; i != (size_t)-1; --i) {
                 demuxers_[i]->demuxer->cancel(ec);
             }
+            return true;
         }
 
         DemuxerBase * DemuxModule::create(
