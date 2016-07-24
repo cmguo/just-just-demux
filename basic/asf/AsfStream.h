@@ -20,14 +20,14 @@ namespace just
         public:
             AsfStream()
             {
-                index = (size_t)-1;
+                index = (boost::uint32_t)-1;
             }
 
             AsfStream(
                 just::avformat::AsfStreamPropertiesObjectData const & property)
                 : just::avformat::AsfStreamPropertiesObjectData(property)
             {
-                index = (size_t)-1;
+                index = (boost::uint32_t)-1;
                 parse();
             }
 /*

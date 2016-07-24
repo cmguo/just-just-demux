@@ -23,7 +23,7 @@ namespace just
                 , dts_orgin_(0)
                 , dts_(0)
             {
-                index = (size_t)-1;
+                index = (boost::uint32_t)-1;
             }
 
             MkvStream(
@@ -33,7 +33,7 @@ namespace just
                 , dts_orgin_(0)
                 , dts_(0)
             {
-                index = (size_t)-1;
+                index = (boost::uint32_t)-1;
                 time_code_scale_ = (boost::uint32_t)file_prop.Time_Code_Scale.value();
                 parse();
             }
