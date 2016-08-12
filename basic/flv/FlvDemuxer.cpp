@@ -124,7 +124,6 @@ namespace just
                     assert(archive_);
                     streams_[index] = FlvStream(flv_tag_, codec_data, metadata_);
                     streams_[index].index = index;
-                    streams_[index].ready = true;
                     bool ready = true;
                     for (size_t i = 0; i < streams_.size(); ++i) {
                         if (!streams_[i].ready) {
@@ -351,6 +350,7 @@ namespace just
             assert(archive_);
             boost::uint64_t time = 0;
             if (flv_tag_.Timestamp > timestamp_offset_ms_ + 1000) {
+                LOG_DEBUG("[get_end_time] parse_offset_ = " << parse_offset_);
                 time = (flv_tag_.Timestamp - timestamp_offset_ms_) * end / parse_offset_;
             } else if (metadata_.datarate) {
                 time = end * 8 / metadata_.datarate;

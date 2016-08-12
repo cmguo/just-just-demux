@@ -42,9 +42,9 @@ namespace just
             {
                 using namespace just::avformat;
 
-                if (DataSize == 0) {
-                    return;
-                }
+                //if (DataSize == 0) {
+                //    return;
+                //}
 
                 time_scale = 1000;
                 boost::system::error_code ec;
@@ -80,6 +80,8 @@ namespace just
                         audio_format.sample_size = metadata.audiosamplesize;
                     Format::finish_from_stream(*this, "flv", AudioHeader.SoundFormat, ec);
                 }
+
+                ready = true;
             }
 
         public:
