@@ -350,7 +350,6 @@ namespace just
             assert(archive_);
             boost::uint64_t time = 0;
             if (flv_tag_.Timestamp > timestamp_offset_ms_ + 1000) {
-                LOG_DEBUG("[get_end_time] parse_offset_ = " << parse_offset_);
                 time = (flv_tag_.Timestamp - timestamp_offset_ms_) * end / parse_offset_;
             } else if (metadata_.datarate) {
                 time = end * 8 / metadata_.datarate;

@@ -21,7 +21,7 @@ namespace just
             FlvStream()
                 : ready(false)
             {
-                index = (size_t)-1;
+                index = -1;
             }
 
             FlvStream(
@@ -31,7 +31,7 @@ namespace just
                 : FlvTag(tag)
                 , ready(false)
             {
-                index = (size_t)-1;
+                index = -1;
                 parse(codec_data, metadata);
             }
 
