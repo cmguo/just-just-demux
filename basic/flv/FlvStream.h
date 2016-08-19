@@ -20,6 +20,7 @@ namespace just
         public:
             FlvStream()
                 : ready(false)
+                , flags(0)
             {
                 index = -1;
             }
@@ -30,9 +31,29 @@ namespace just
                 just::avformat::FlvMetaData const & metadata)
                 : FlvTag(tag)
                 , ready(false)
+                , flags(0)
             {
                 index = -1;
                 parse(codec_data, metadata);
+            }
+
+            void parse(
+                std::vector<boost::uint8_t> const & codec_data)
+            {
+                if (format_data.size() == codec_data.size() && 
+                    std::equal(format_data.begin(), format_data.end(), codec_data.begin()))
+                        return;
+                using namespace just::avformat;
+                boost::system::error_code ec;
+                if (FlvTagType::VIDEO == Type) { 
+                    format_data = codec_data;
+                    Format::finish_from_stream(*this, "flv", VideoHeader.CodecID, ec);
+                    flags = Sample::f_config;
+                } else if (FlvTagType::AUDIO == Type) {
+                    format_data = codec_data;
+                    Format::finish_from_stream(*this, "flv", AudioHeader.SoundFormat, ec);
+                    flags = Sample::f_config;
+                }
             }
 
         private:
@@ -86,6 +107,7 @@ namespace just
 
         public:
             bool ready;
+            boost::uint32_t flags; // pending flags
         };
 
     } // namespace demux

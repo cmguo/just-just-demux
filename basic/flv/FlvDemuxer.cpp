@@ -9,6 +9,7 @@ using namespace just::avformat::error;
 
 #include <framework/logger/Logger.h>
 #include <framework/logger/StreamRecord.h>
+#include <framework/logger/DataRecord.h>
 #include <framework/system/LogicError.h>
 #include <framework/timer/TimeCounter.h>
 using namespace framework::system;
@@ -120,6 +121,8 @@ namespace just
                     archive_.seekg(std::streamoff(flv_tag_.data_offset), std::ios_base::beg);
                     assert(archive_);
                     util::serialization::serialize_collection(archive_, codec_data, (boost::uint64_t)flv_tag_.DataSize);
+                    LOG_TRACE("[is_open] tag index=" << index);
+                    LOG_DATA(framework::logger::Trace, ("data", boost::asio::buffer(codec_data)));
                     archive_.seekg(4, std::ios_base::cur);
                     assert(archive_);
                     streams_[index] = FlvStream(flv_tag_, codec_data, metadata_);
@@ -269,14 +272,19 @@ namespace just
                 LOG_DEBUG("[get_tag], elapse " << tc.elapse());
             }
             parse_offset_ = (boost::uint64_t)archive_.tellg();
+            if (flv_tag_.Type == FlvTagType::DATA) {
+                LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.as<FlvDataString>().StringData);
+                return get_sample(sample, ec);
+            }
+            assert(flv_tag_.Type < stream_map_.size());
+            size_t index = stream_map_[(size_t)flv_tag_.Type];
+            assert(index < streams_.size());
+            FlvStream & stream = streams_[index];
             if (flv_tag_.is_sample) {
-                assert(flv_tag_.Type < stream_map_.size());
-                size_t index = stream_map_[(size_t)flv_tag_.Type];
-                assert(index < streams_.size());
-                FlvStream const & stream = streams_[index];
                 BasicDemuxer::begin_sample(sample);
                 sample.itrack = index;
-                sample.flags = 0;
+                sample.flags = stream.flags;
+                stream.flags = 0;
                 if (flv_tag_.is_sync)
                     sample.flags |= Sample::f_sync;
                 sample.dts = timestamp_.transfer((boost::uint64_t)flv_tag_.Timestamp);;
@@ -286,29 +294,37 @@ namespace just
                 sample.stream_info = &stream;
                 BasicDemuxer::push_data(flv_tag_.data_offset, flv_tag_.DataSize);
                 BasicDemuxer::end_sample(sample);
-            } else if (flv_tag_.Type == FlvTagType::DATA) {
-                LOG_DEBUG("[get_sample] script data: " << flv_tag_.DataTag.Name.as<FlvDataString>().StringData);
-                return get_sample(sample, ec);
-            } else if (flv_tag_.Type == FlvTagType::AUDIO) {
-                assert(flv_tag_.AudioHeader.SoundFormat == FlvSoundCodec::AAC);
-                if (flv_tag_.AudioHeader.AACPacketType == 0) {
-                    LOG_DEBUG("[get_sample] duplicate sequence header");
-                    return get_sample(sample, ec);
-                }
-                ec = bad_media_format;
-            } else if (flv_tag_.Type == FlvTagType::VIDEO) {
-                assert(flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H264
-                    || flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H265);
-                if (flv_tag_.VideoHeader.AVCPacketType == 0) {
-                    LOG_DEBUG("[get_sample] duplicate sequence header");
-                    return get_sample(sample, ec);
-                } else if (flv_tag_.VideoHeader.AVCPacketType == 2) {
-                    LOG_DEBUG("[get_sample] end of sequence");
-                    return get_sample(sample, ec);
-                }
-                ec = bad_media_format;
             } else {
-                ec = bad_media_format;
+                std::vector<boost::uint8_t> codec_data;
+                archive_.seekg(std::streamoff(flv_tag_.data_offset), std::ios_base::beg);
+                assert(archive_);
+                util::serialization::serialize_collection(archive_, codec_data, (boost::uint64_t)flv_tag_.DataSize);
+                archive_.seekg(4, std::ios_base::cur);
+                if (flv_tag_.Type == FlvTagType::AUDIO) {
+                    assert(flv_tag_.AudioHeader.SoundFormat == FlvSoundCodec::AAC);
+                    if (flv_tag_.AudioHeader.AACPacketType == 0) {
+                        LOG_DEBUG("[get_sample] duplicate audio sequence header");
+                        LOG_DATA(framework::logger::Trace, ("data", boost::asio::buffer(codec_data)));
+                        stream.parse(codec_data);
+                        return get_sample(sample, ec);
+                    }
+                    ec = bad_media_format;
+                } else if (flv_tag_.Type == FlvTagType::VIDEO) {
+                    assert(flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H264
+                        || flv_tag_.VideoHeader.CodecID == FlvVideoCodec::H265);
+                    if (flv_tag_.VideoHeader.AVCPacketType == 0) {
+                        LOG_DEBUG("[get_sample] duplicate video sequence header");
+                        LOG_DATA(framework::logger::Trace, ("data", boost::asio::buffer(codec_data)));
+                        stream.parse(codec_data);
+                        return get_sample(sample, ec);
+                    } else if (flv_tag_.VideoHeader.AVCPacketType == 2) {
+                        LOG_DEBUG("[get_sample] end of sequence");
+                        return get_sample(sample, ec);
+                    }
+                    ec = bad_media_format;
+                } else {
+                    ec = bad_media_format;
+                }
             }
             return ec;
         }
