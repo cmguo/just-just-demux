@@ -97,8 +97,14 @@ namespace just
                 sample.dts += dts_offset_[sample.itrack];
                 boost::uint64_t time = time_trans_[sample.itrack].get();
                 sample.time = time_trans_[sample.itrack].transfer(sample.dts);
-                if (time + max_delta_ < sample.time) {
+                if (time + max_delta2_ < sample.time) {
                     sample.flags |= sample.f_discontinuity;
+                    if (time + max_delta2_ < sample.time) {
+                        sample.dts -= dts_offset_[sample.itrack];
+                        dts_offset_[sample.itrack] = -revert(sample.itrack, sample.time - time);
+                        sample.dts += dts_offset_[sample.itrack];
+                        sample.time = time;
+                    }
                 }
             }
 
@@ -167,6 +173,7 @@ namespace just
 
         protected:
             boost::uint32_t max_delta_; // ×î´óÖ¡¼ä¾àÀë£¬ºÁÃë
+            boost::uint32_t max_delta2_; // Ìø±ä¾àÀë£¬ºÁÃë
             boost::uint64_t time_offset_; // ºÁÃë
             std::vector<boost::uint64_t> dts_offset_;
             std::vector<framework::system::ScaleTransform> time_trans_; // dts -> time

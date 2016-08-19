@@ -11,6 +11,7 @@ namespace just
 
         TimestampHelper::TimestampHelper()
             : max_delta_(500)
+            , max_delta2_(5000)
             , time_offset_(0)
         {
         }
